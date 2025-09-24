@@ -8,6 +8,6 @@ public/components/*/*.gif
 public/components/*/*.png
 public/components/*/*.css.map
 analyze.js
-retool-custom-component-manifest.json
 dist/*
+retool-custom-component-manifest.json
 !dist/.placeholder
