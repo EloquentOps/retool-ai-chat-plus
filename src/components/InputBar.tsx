@@ -5,9 +5,10 @@ interface InputBarProps {
   onSubmitQuery: (message: string) => void
   isLoading: boolean
   onStop?: () => void
+  isCentered?: boolean
 }
 
-export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading, onStop }) => {
+export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading, onStop, isCentered = false }) => {
   const [inputValue, setInputValue] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,14 +38,26 @@ export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading, onStop }
     }
   }
 
+  const containerStyle = isCentered ? {
+    padding: '0',
+    backgroundColor: 'transparent',
+    borderTop: 'none'
+  } : {
+    borderTop: '1px solid #e0e0e0',
+    padding: '16px',
+    backgroundColor: '#fafafa'
+  }
+
   return (
     <div style={{
-      borderTop: '1px solid #e0e0e0',
-      padding: '16px',
-      backgroundColor: '#fafafa',
+      ...containerStyle,
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px' }}>
+      <form onSubmit={handleSubmit} style={{
+        display: 'flex',
+        gap: '8px'
+      }}>
+        {/* Main input */}
         <input
           type="text"
           value={inputValue}
@@ -62,6 +75,8 @@ export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading, onStop }
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
           }}
         />
+
+        {/* Send button */}
         <button
           type={isLoading ? 'button' : 'submit'}
           onClick={isLoading ? handleStop : undefined}
