@@ -9,10 +9,12 @@ interface Message {
 
 interface MessageItemProps {
   message: Message
+  onWidgetCallback?: (payload: Record<string, unknown>) => void
 }
 
 export const MessageItem: FC<MessageItemProps> = ({
-  message
+  message,
+  onWidgetCallback
 }) => {
   const isUser = message.role === 'user'
 
@@ -23,25 +25,27 @@ export const MessageItem: FC<MessageItemProps> = ({
       display: 'flex',
       flexDirection: 'column',
       alignItems: isUser ? 'flex-end' : 'flex-start',
-      width: '100%'
+      width: '100%',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       {isUser ? (
         <div style={{
-          backgroundColor: '#007bff',
-          color: '#ffffff',
-          padding: '10px 10px',
+          backgroundColor: '#eee',
+          color: '#000',
+          padding: '8px 16px',
           borderRadius: '18px',
           fontSize: '14px',
           lineHeight: '1.4',
           wordWrap: 'break-word',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}>
           {typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}
         </div>
       ) : (
         typeof message.content === 'string' 
           ? <TextWidget content={message.content} />
-          : renderWidget(message.content)
+          : renderWidget(message.content, onWidgetCallback)
       )}
     </div>
   )

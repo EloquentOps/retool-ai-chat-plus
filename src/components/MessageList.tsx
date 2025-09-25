@@ -4,17 +4,19 @@ import { MessageItem } from './MessageItem'
 
 interface Message {
   role: 'user' | 'assistant'
-  content: string | { type: string; [key: string]: unknown }
+  content: string | { type: string; source: string; [key: string]: unknown }
 }
 
 interface MessageListProps {
   messages: Message[]
   isLoading: boolean
+  onWidgetCallback?: (payload: Record<string, unknown>) => void
 }
 
 export const MessageList: FC<MessageListProps> = ({
   messages,
-  isLoading
+  isLoading,
+  onWidgetCallback
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -35,7 +37,8 @@ export const MessageList: FC<MessageListProps> = ({
       padding: '16px',
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px'
+      gap: '12px',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       {messages.length === 0 && !isLoading ? (
         <div style={{
@@ -54,6 +57,7 @@ export const MessageList: FC<MessageListProps> = ({
             <MessageItem
               key={index}
               message={message}
+              onWidgetCallback={onWidgetCallback}
             />
           ))}
           {isLoading && (

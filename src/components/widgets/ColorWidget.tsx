@@ -26,7 +26,5 @@ export const ColorWidget: FC<ColorWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const ColorWidgetInstruction = `
-Format type: "color".
-The source value has to be expressed as css compatible color string.
-`
+export const ColorWidgetInstruction = `Format type: "color".
+The source value has to be expressed as css compatible color string.`

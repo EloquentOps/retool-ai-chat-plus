@@ -3,6 +3,8 @@ import { type FC } from 'react'
 import { TextWidget, TextWidgetInstruction } from './TextWidget'
 import { ColorWidget, ColorWidgetInstruction } from './ColorWidget'
 import { ImageWidget, ImageWidgetInstruction } from './ImageWidget'
+import { GMapWidget, GMapWidgetInstruction } from './GMapWidget'
+import { ConfirmWidget, ConfirmWidgetInstruction } from './ConfirmWidget'
 
 // Widget configuration interface
 interface WidgetConfig {
@@ -28,11 +30,21 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     component: ImageWidget,
     instruction: ImageWidgetInstruction,
     enabled: true
+  },
+  map: {
+    component: GMapWidget,
+    instruction: GMapWidgetInstruction,
+    enabled: true
+  },
+  confirm: {
+    component: ConfirmWidget,
+    instruction: ConfirmWidgetInstruction,
+    enabled: true
   }
 }
 
 // Generalized widget renderer function
-export const renderWidget = (content: { type: string; source: string; [key: string]: unknown }) => {
+export const renderWidget = (content: { type: string; source: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void) => {
   const widgetConfig = WIDGET_REGISTRY[content.type]
   
   if (!widgetConfig || !widgetConfig.enabled) {
@@ -60,6 +72,24 @@ export const renderWidget = (content: { type: string; source: string; [key: stri
       props.width = content.width as number
       props.height = content.height as number
       break
+    case 'map':
+      props.location = content.source
+      props.width = content.width as number
+      props.height = content.height as number
+      props.zoom = content.zoom as number
+      props.apiKey = content.apiKey as string
+      break
+    case 'confirm':
+      props.text = content.source
+      props.variant = content.variant as string
+      props.size = content.size as string
+      props.disabled = content.disabled as boolean
+      props.onConfirm = () => {
+        if (onWidgetCallback) {
+          onWidgetCallback({})
+        }
+      }
+      break
     default:
       props.content = content.source
   }
@@ -67,11 +97,23 @@ export const renderWidget = (content: { type: string; source: string; [key: stri
   return React.createElement(widgetConfig.component, props)
 }
 
-// Get all enabled widget instructions
-export const getAllWidgetInstructions = () => {
-  return Object.values(WIDGET_REGISTRY)
-    .filter(config => config.enabled)
-    .map(config => config.instruction)
+// Get all enabled widget instructions based on provided enabled widgets
+export const getAllWidgetInstructions = (enabledWidgets?: string[]) => {
+  // If no enabled widgets specified, return all widgets
+  if (!enabledWidgets) {
+    return Object.values(WIDGET_REGISTRY)
+      .filter(config => config.enabled)
+      .map(config => config.instruction)
+  }
+  
+  // Always include text widget regardless of enabledWidgets array
+  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgets])]
+  
+  return Object.entries(WIDGET_REGISTRY)
+    .filter(([widgetType, config]) => 
+      config.enabled && effectiveEnabledWidgets.includes(widgetType)
+    )
+    .map(([, config]) => config.instruction)
 }
 
 // Helper function to enable/disable widgets

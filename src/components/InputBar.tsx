@@ -4,14 +4,17 @@ import { type FC } from 'react'
 interface InputBarProps {
   onSubmitQuery: (message: string) => void
   isLoading: boolean
+  onStop?: () => void
 }
 
-export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading }) => {
+export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading, onStop }) => {
   const [inputValue, setInputValue] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Form submitted, isLoading:', isLoading)
     if (inputValue.trim() && !isLoading) {
+      console.log('Submitting query:', inputValue.trim())
       onSubmitQuery(inputValue.trim())
       setInputValue('')
     }
@@ -24,11 +27,22 @@ export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading }) => {
     }
   }
 
+  const handleStop = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('Stop button clicked')
+    if (onStop) {
+      console.log('Calling onStop function')
+      onStop()
+    }
+  }
+
   return (
     <div style={{
       borderTop: '1px solid #e0e0e0',
       padding: '16px',
-      backgroundColor: '#fafafa'
+      backgroundColor: '#fafafa',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px' }}>
         <input
@@ -44,25 +58,28 @@ export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading }) => {
             borderRadius: '24px',
             fontSize: '14px',
             outline: 'none',
-            backgroundColor: '#ffffff'
+            backgroundColor: '#ffffff',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
           }}
         />
         <button
-          type="submit"
-          disabled={!inputValue.trim() || isLoading}
+          type={isLoading ? 'button' : 'submit'}
+          onClick={isLoading ? handleStop : undefined}
+          disabled={!isLoading && !inputValue.trim()}
           style={{
             padding: '12px 24px',
-            backgroundColor: (inputValue.trim() && !isLoading) ? '#007bff' : '#ccc',
+            backgroundColor: isLoading ? '#dc3545' : (inputValue.trim() && !isLoading) ? '#3170F9' : '#ccc',
             color: '#ffffff',
             border: 'none',
             borderRadius: '24px',
             fontSize: '14px',
             fontWeight: '500',
-            cursor: (inputValue.trim() && !isLoading) ? 'pointer' : 'not-allowed',
-            transition: 'background-color 0.2s'
+            cursor: isLoading || (inputValue.trim() && !isLoading) ? 'pointer' : 'not-allowed',
+            transition: 'background-color 0.2s',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
           }}
         >
-          {isLoading ? 'Sending...' : 'Send'}
+          {isLoading ? 'Stop' : 'Send'}
         </button>
       </form>
     </div>
