@@ -60,20 +60,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             color: '#374151',
             fontWeight: '400'
           }}>
-            <div style={{
-              width: '24px',
-              height: '24px',
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>
-              ✨
-            </div>
+            
             <span>Hi there, how can I help you today?</span>
           </div>
 
