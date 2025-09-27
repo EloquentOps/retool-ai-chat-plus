@@ -2,19 +2,20 @@ import React, { useState } from 'react'
 import { type FC } from 'react'
 
 interface ConfirmWidgetProps {
-  text?: string
+  source: string
   variant?: 'primary' | 'secondary' | 'danger'
   size?: 'small' | 'medium' | 'large'
   disabled?: boolean
-  onConfirm?: () => void
+  onWidgetCallback?: (payload: Record<string, unknown>) => void
+  widgetsOptions?: Record<string, unknown>
 }
 
 export const ConfirmWidget: FC<ConfirmWidgetProps> = ({ 
-  text = 'Confirm', 
+  source, 
   variant = 'primary',
   size = 'medium',
   disabled = false,
-  onConfirm 
+  onWidgetCallback
 }) => {
   const [isHovered, setIsHovered] = useState(false)
   const getButtonStyles = () => {
@@ -76,8 +77,8 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
   }
 
   const handleClick = () => {
-    if (!disabled && onConfirm) {
-      onConfirm()
+    if (!disabled && onWidgetCallback) {
+      onWidgetCallback({})
     }
   }
 
@@ -108,15 +109,15 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
       disabled={disabled}
       tabIndex={disabled ? -1 : 0}
       role="button"
-      aria-label={text}
+      aria-label={source}
     >
-      {text}
+      {source}
     </button>
   )
 }
 
 // Export the instruction for this widget
-export const ConfirmWidgetInstruction = `Format type: "confirm".
+export const ConfirmWidgetInstruction = `- **Format type: "confirm"**:
 The source value should be the button text to display.
 Optional properties:
 - variant: "primary" | "secondary" | "danger" (default: "primary")

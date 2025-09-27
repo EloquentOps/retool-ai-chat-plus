@@ -10,11 +10,13 @@ interface Message {
 interface MessageItemProps {
   message: Message
   onWidgetCallback?: (payload: Record<string, unknown>) => void
+  widgetsOptions?: Record<string, any>
 }
 
 export const MessageItem: FC<MessageItemProps> = ({
   message,
-  onWidgetCallback
+  onWidgetCallback,
+  widgetsOptions
 }) => {
   const isUser = message.role === 'user'
 
@@ -45,7 +47,7 @@ export const MessageItem: FC<MessageItemProps> = ({
       ) : (
         typeof message.content === 'string' 
           ? <TextWidget content={message.content} />
-          : renderWidget(message.content, onWidgetCallback)
+          : renderWidget(message.content, onWidgetCallback, widgetsOptions)
       )}
     </div>
   )

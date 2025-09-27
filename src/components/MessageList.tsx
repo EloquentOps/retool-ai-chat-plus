@@ -11,12 +11,14 @@ interface MessageListProps {
   messages: Message[]
   isLoading: boolean
   onWidgetCallback?: (payload: Record<string, unknown>) => void
+  widgetsOptions?: Record<string, any>
 }
 
 export const MessageList: FC<MessageListProps> = ({
   messages,
   isLoading,
-  onWidgetCallback
+  onWidgetCallback,
+  widgetsOptions
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -58,6 +60,7 @@ export const MessageList: FC<MessageListProps> = ({
               key={index}
               message={message}
               onWidgetCallback={onWidgetCallback}
+              widgetsOptions={widgetsOptions}
             />
           ))}
           {isLoading && (

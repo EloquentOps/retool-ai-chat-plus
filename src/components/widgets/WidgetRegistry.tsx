@@ -1,10 +1,11 @@
 import React from 'react'
 import { type FC } from 'react'
 import { TextWidget, TextWidgetInstruction } from './TextWidget'
-import { ColorWidget, ColorWidgetInstruction } from './ColorWidget'
+import { SampleWidget, SampleWidgetInstruction } from './SampleWidget'
 import { ImageWidget, ImageWidgetInstruction } from './ImageWidget'
-import { GMapWidget, GMapWidgetInstruction } from './GMapWidget'
+import { GoogleMapWidget, GoogleMapWidgetInstruction } from './GoogleMapWidget'
 import { ConfirmWidget, ConfirmWidgetInstruction } from './ConfirmWidget'
+import { SelectorWidget, SelectorWidgetInstruction } from './SelectorWidget'
 
 // Widget configuration interface
 interface WidgetConfig {
@@ -21,9 +22,9 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     instruction: TextWidgetInstruction,
     enabled: true
   },
-  color: {
-    component: ColorWidget,
-    instruction: ColorWidgetInstruction,
+  sample: {
+    component: SampleWidget,
+    instruction: SampleWidgetInstruction,
     enabled: true
   },
   image: {
@@ -31,67 +32,45 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     instruction: ImageWidgetInstruction,
     enabled: true
   },
-  map: {
-    component: GMapWidget,
-    instruction: GMapWidgetInstruction,
+  google_map: {
+    component: GoogleMapWidget,
+    instruction: GoogleMapWidgetInstruction,
     enabled: true
   },
   confirm: {
     component: ConfirmWidget,
     instruction: ConfirmWidgetInstruction,
     enabled: true
+  },
+  selector: {
+    component: SelectorWidget,
+    instruction: SelectorWidgetInstruction,
+    enabled: true
   }
 }
 
 // Generalized widget renderer function
-export const renderWidget = (content: { type: string; source: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void) => {
+export const renderWidget = (content: { type: string; source: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void, widgetsOptions?: Record<string, unknown>) => {
   const widgetConfig = WIDGET_REGISTRY[content.type]
   
   if (!widgetConfig || !widgetConfig.enabled) {
     // Fallback to text widget if widget type is not found or disabled
     const textConfig = WIDGET_REGISTRY.text
-    return React.createElement(textConfig.component, { content: content.source })
+    return React.createElement(textConfig.component, { 
+      source: content.source,
+      onWidgetCallback,
+      widgetsOptions
+    })
   }
   
-  // Create props based on widget type
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const props: Record<string, any> = {}
-  
-  switch (content.type) {
-    case 'text':
-      props.content = content.source
-      break
-    case 'color':
-      props.color = content.source
-      props.width = content.width as number
-      props.height = content.height as number
-      break
-    case 'image':
-      props.src = content.source
-      props.alt = content.alt as string
-      props.width = content.width as number
-      props.height = content.height as number
-      break
-    case 'map':
-      props.location = content.source
-      props.width = content.width as number
-      props.height = content.height as number
-      props.zoom = content.zoom as number
-      props.apiKey = content.apiKey as string
-      break
-    case 'confirm':
-      props.text = content.source
-      props.variant = content.variant as string
-      props.size = content.size as string
-      props.disabled = content.disabled as boolean
-      props.onConfirm = () => {
-        if (onWidgetCallback) {
-          onWidgetCallback({})
-        }
-      }
-      break
-    default:
-      props.content = content.source
+  // Pass source and additional props directly to the widget
+  // Each widget is responsible for parsing and using the source value appropriately
+  const { source, ...otherContent } = content
+  const props = {
+    source,
+    onWidgetCallback,
+    widgetsOptions,
+    ...otherContent // Spread all other properties from content (excluding source)
   }
   
   return React.createElement(widgetConfig.component, props)

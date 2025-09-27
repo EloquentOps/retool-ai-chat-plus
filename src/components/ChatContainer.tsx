@@ -17,6 +17,8 @@ interface ChatContainerProps {
     label: string
     question: string
   }>
+  widgetsOptions?: Record<string, any>
+  welcomeMessage?: string
 }
 
 export const ChatContainer: FC<ChatContainerProps> = ({
@@ -25,7 +27,9 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   isLoading,
   onWidgetCallback,
   onStop,
-  promptChips = []
+  promptChips = [],
+  widgetsOptions,
+  welcomeMessage
 }) => {
   const isEmpty = messages.length === 0 && !isLoading
 
@@ -52,17 +56,18 @@ export const ChatContainer: FC<ChatContainerProps> = ({
           gap: '40px'
         }}>
           {/* Welcome message */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            fontSize: '18px',
-            color: '#374151',
-            fontWeight: '400'
-          }}>
-            
-            <span>Hi there, how can I help you today?</span>
-          </div>
+          {welcomeMessage && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              fontSize: '18px',
+              color: '#374151',
+              fontWeight: '400'
+            }}>
+              <span>{welcomeMessage}</span>
+            </div>
+          )}
 
           {/* Centered input bar */}
           <div style={{ width: '100%', maxWidth: '720px' }}>
@@ -120,7 +125,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
       ) : (
         // Normal chat state
         <>
-          <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={onWidgetCallback} />
+          <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={onWidgetCallback} widgetsOptions={widgetsOptions} />
           <InputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} />
         </>
       )}
