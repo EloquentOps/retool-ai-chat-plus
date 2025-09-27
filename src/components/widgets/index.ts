@@ -8,5 +8,6 @@ export {
   renderWidget,
   getAllWidgetInstructions,
   setWidgetEnabled,
-  getEnabledWidgetTypes
+  getEnabledWidgetTypes,
+  getStructuredWidgetInstructions
 } from './WidgetRegistry'

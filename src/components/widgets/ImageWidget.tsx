@@ -92,6 +92,8 @@ export const ImageWidget: FC<ImageWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const ImageWidgetInstruction = `- **Format type: "image"**:
-The source value should be a valid URL pointing to an image file.
-Supported formats: jpg, jpeg, png, gif, webp, svg.`
+export const ImageWidgetInstruction = {
+  type: 'image',
+  instructions: 'The source value should be a valid URL pointing to an image file. Supported formats: jpg, jpeg, png, gif, webp, svg.',
+  sourceDataModel: 'string'
+}

@@ -7,11 +7,18 @@ import { GoogleMapWidget, GoogleMapWidgetInstruction } from './GoogleMapWidget'
 import { ConfirmWidget, ConfirmWidgetInstruction } from './ConfirmWidget'
 import { SelectorWidget, SelectorWidgetInstruction } from './SelectorWidget'
 
+// Widget instruction interface
+interface WidgetInstruction {
+  type: string
+  instructions: string
+  sourceDataModel: string | object
+}
+
 // Widget configuration interface
 interface WidgetConfig {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   component: FC<any>
-  instruction: string
+  instruction: WidgetInstruction
   enabled: boolean
 }
 
@@ -82,7 +89,7 @@ export const getAllWidgetInstructions = (enabledWidgets?: string[]) => {
   if (!enabledWidgets) {
     return Object.values(WIDGET_REGISTRY)
       .filter(config => config.enabled)
-      .map(config => config.instruction)
+      .map(config => formatInstructionAsString(config.instruction))
   }
   
   // Always include text widget regardless of enabledWidgets array
@@ -92,7 +99,18 @@ export const getAllWidgetInstructions = (enabledWidgets?: string[]) => {
     .filter(([widgetType, config]) => 
       config.enabled && effectiveEnabledWidgets.includes(widgetType)
     )
-    .map(([, config]) => config.instruction)
+    .map(([, config]) => formatInstructionAsString(config.instruction))
+}
+
+// Helper function to format structured instruction back to string format
+const formatInstructionAsString = (instruction: WidgetInstruction): string => {
+  const sourceDataModelStr = typeof instruction.sourceDataModel === 'string' 
+    ? instruction.sourceDataModel 
+    : JSON.stringify(instruction.sourceDataModel, null, 2)
+  
+  return `- Format type: "${instruction.type}":
+Why use this format type: ${instruction.instructions}
+Source data type and model: ${sourceDataModelStr}`
 }
 
 // Helper function to enable/disable widgets
@@ -105,4 +123,23 @@ export const setWidgetEnabled = (widgetType: string, enabled: boolean) => {
 // Helper function to get enabled widget types
 export const getEnabledWidgetTypes = () => {
   return Object.keys(WIDGET_REGISTRY).filter(type => WIDGET_REGISTRY[type].enabled)
+}
+
+// Helper function to get structured widget instructions (for future use)
+export const getStructuredWidgetInstructions = (enabledWidgets?: string[]): WidgetInstruction[] => {
+  // If no enabled widgets specified, return all widgets
+  if (!enabledWidgets) {
+    return Object.values(WIDGET_REGISTRY)
+      .filter(config => config.enabled)
+      .map(config => config.instruction)
+  }
+  
+  // Always include text widget regardless of enabledWidgets array
+  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgets])]
+  
+  return Object.entries(WIDGET_REGISTRY)
+    .filter(([widgetType, config]) => 
+      config.enabled && effectiveEnabledWidgets.includes(widgetType)
+    )
+    .map(([, config]) => config.instruction)
 }

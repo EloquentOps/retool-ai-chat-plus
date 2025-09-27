@@ -287,6 +287,8 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const GoogleMapWidgetInstruction = `- **Format type: "google_map"**:
-Use this format when the user ask to show a map of a specific location.
-The source value should be the lat lon coordinates (e.g., "40.7128,-74.0060").`
+export const GoogleMapWidgetInstruction = {
+  type: 'google_map',
+  instructions: 'Use this format when the user ask to show a map of a specific location. The source value should be the lat lon coordinates (e.g., "40.7128,-74.0060").',
+  sourceDataModel: 'string'
+}

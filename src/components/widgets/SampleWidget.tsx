@@ -24,6 +24,8 @@ export const SampleWidget: FC<SampleWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const SampleWidgetInstruction = `- **Format type: "sample"**:
-Use this format when the user says that they are a developer.
-The source value has to be expressed as css compatible color string.`
+export const SampleWidgetInstruction = {
+  type: 'sample',
+  instructions: 'Use this format when the user says that they are a developer. The source value has to be expressed as css compatible color string.',
+  sourceDataModel: 'string'
+}

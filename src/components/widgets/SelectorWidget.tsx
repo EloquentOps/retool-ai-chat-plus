@@ -196,20 +196,16 @@ export const SelectorWidget: FC<SelectorWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const SelectorWidgetInstruction = `- **Format type: "selector"**:
-Use this widget when the user needs to select an option from a given predefined list.
-The source property value should be a JSON object like this one:
-
-{
-    "placeholder": "Choose an option",
-    "options": [
+export const SelectorWidgetInstruction = {
+  type: 'selector',
+  instructions: 'Use this widget when the user needs to select an option from a given predefined list. The source property value should be a JSON object with placeholder and options array.',
+  sourceDataModel: {
+    placeholder: 'string',
+    options: [
       {
-        "value": "option1",
-        "label": "Option 1"
-      },
-      {
-        "value": "option2",
-        "label": "Option 2"
+        value: 'string',
+        label: 'string'
       }
-    ],
-  }`
+    ]
+  }
+}

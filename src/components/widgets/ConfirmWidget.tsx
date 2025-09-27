@@ -117,11 +117,8 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const ConfirmWidgetInstruction = `- **Format type: "confirm"**:
-The source value should be the button text to display.
-Optional properties:
-- variant: "primary" | "secondary" | "danger" (default: "primary")
-- size: "small" | "medium" | "large" (default: "medium")
-- disabled: boolean (default: false)
-
-Example: {"type": "confirm", "source": "Save Changes", "variant": "primary", "size": "medium", "disabled": false}`
+export const ConfirmWidgetInstruction = {
+  type: 'confirm',
+  instructions: 'The source value should be the button text to display. Optional properties: variant: "primary" | "secondary" | "danger" (default: "primary"), size: "small" | "medium" | "large" (default: "medium"), disabled: boolean (default: false). Example: {"type": "confirm", "source": "Save Changes", "variant": "primary", "size": "medium", "disabled": false}',
+  sourceDataModel: 'string'
+}

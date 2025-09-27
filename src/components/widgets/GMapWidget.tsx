@@ -165,12 +165,8 @@ export const GMapWidget: FC<GMapWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const GMapWidgetInstruction = `
-Format type: "map".
-The source value should be a location string (e.g., "New York, NY", "1600 Amphitheatre Parkway, Mountain View, CA", "Times Square, New York").
-Optional parameters:
-- width: number (default: 400) - Map width in pixels
-- height: number (default: 300) - Map height in pixels  
-- zoom: number (default: 15) - Map zoom level (1-20)
-- apiKey: string - Google Maps API key (if not provided, uses REACT_APP_GOOGLE_MAPS_API_KEY env var)
-YOU MUST encode all the new lines as \\n.`
+export const GMapWidgetInstruction = {
+  type: 'map',
+  instructions: 'The source value should be a location string (e.g., "New York, NY", "1600 Amphitheatre Parkway, Mountain View, CA", "Times Square, New York"). Optional parameters: width: number (default: 400) - Map width in pixels, height: number (default: 300) - Map height in pixels, zoom: number (default: 15) - Map zoom level (1-20), apiKey: string - Google Maps API key (if not provided, uses REACT_APP_GOOGLE_MAPS_API_KEY env var). YOU MUST encode all the new lines as \\n.',
+  sourceDataModel: 'string'
+}

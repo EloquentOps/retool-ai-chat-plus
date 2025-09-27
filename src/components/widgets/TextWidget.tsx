@@ -23,8 +23,9 @@ export const TextWidget: FC<TextWidgetProps> = ({ source }) => {
 }
 
 // Export the instruction for this widget
-export const TextWidgetInstruction = `- **Format type: "text"**:
-Use this format when the answer is text or markdown that needs to be displayed as is.
-The source property value can be text or markdown syntax including headers (#), bold (**text**), italic (*text*), lists (- item), code blocks, and links ([text](url)).
-YOU MUST encode all the new lines as \\n.`
+export const TextWidgetInstruction = {
+  type: 'text',
+  instructions: 'Use this format when the answer is text or markdown that needs to be displayed as is. The source property value can be text or markdown syntax including headers (#), bold (**text**), italic (*text*), lists (- item), code blocks, and links ([text](url)). YOU MUST encode all the new lines as \\n.',
+  sourceDataModel: 'string'
+}
 
