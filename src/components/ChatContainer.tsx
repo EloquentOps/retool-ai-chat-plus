@@ -2,6 +2,7 @@ import React from 'react'
 import { type FC } from 'react'
 import { MessageList } from './MessageList'
 import { InputBar } from './InputBar'
+import { ErrorMessage } from './ErrorMessage'
 
 interface ChatContainerProps {
   messages: Array<{
@@ -19,6 +20,9 @@ interface ChatContainerProps {
   }>
   widgetsOptions?: Record<string, any>
   welcomeMessage?: string
+  error?: string | null
+  onRetry?: () => void
+  onDismissError?: () => void
 }
 
 export const ChatContainer: FC<ChatContainerProps> = ({
@@ -29,7 +33,10 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onStop,
   promptChips = [],
   widgetsOptions,
-  welcomeMessage
+  welcomeMessage,
+  error,
+  onRetry,
+  onDismissError
 }) => {
   const isEmpty = messages.length === 0 && !isLoading
 
@@ -125,6 +132,13 @@ export const ChatContainer: FC<ChatContainerProps> = ({
       ) : (
         // Normal chat state
         <>
+          {error && onRetry && onDismissError && (
+            <ErrorMessage 
+              error={error} 
+              onRetry={onRetry} 
+              onDismiss={onDismissError} 
+            />
+          )}
           <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={onWidgetCallback} widgetsOptions={widgetsOptions} />
           <InputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} />
         </>

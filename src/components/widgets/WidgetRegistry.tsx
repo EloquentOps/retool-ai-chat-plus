@@ -6,6 +6,7 @@ import { ImageWidget, ImageWidgetInstruction } from './ImageWidget'
 import { GoogleMapWidget, GoogleMapWidgetInstruction } from './GoogleMapWidget'
 import { ConfirmWidget, ConfirmWidgetInstruction } from './ConfirmWidget'
 import { SelectorWidget, SelectorWidgetInstruction } from './SelectorWidget'
+import { ImageGridWidget, ImageGridWidgetInstruction } from './ImageGridWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -53,6 +54,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     component: SelectorWidget,
     instruction: SelectorWidgetInstruction,
     enabled: true
+  },
+  image_grid: {
+    component: ImageGridWidget,
+    instruction: ImageGridWidgetInstruction,
+    enabled: true
   }
 }
 
@@ -84,12 +90,12 @@ export const renderWidget = (content: { type: string; source: string; [key: stri
 }
 
 // Get all enabled widget instructions based on provided enabled widgets
-export const getAllWidgetInstructions = (enabledWidgets?: string[]) => {
+export const getAllWidgetInstructions = (enabledWidgets?: string[], widgetsOptions?: Record<string, unknown>) => {
   // If no enabled widgets specified, return all widgets
   if (!enabledWidgets) {
     return Object.values(WIDGET_REGISTRY)
       .filter(config => config.enabled)
-      .map(config => formatInstructionAsString(config.instruction))
+      .map(config => formatInstructionAsString(mergeWidgetInstruction(config.instruction, widgetsOptions)))
   }
   
   // Always include text widget regardless of enabledWidgets array
@@ -99,7 +105,51 @@ export const getAllWidgetInstructions = (enabledWidgets?: string[]) => {
     .filter(([widgetType, config]) => 
       config.enabled && effectiveEnabledWidgets.includes(widgetType)
     )
-    .map(([, config]) => formatInstructionAsString(config.instruction))
+    .map(([, config]) => formatInstructionAsString(mergeWidgetInstruction(config.instruction, widgetsOptions)))
+}
+
+// Helper function to merge widget instruction with widgetsOptions overrides
+const mergeWidgetInstruction = (baseInstruction: WidgetInstruction, widgetsOptions?: Record<string, unknown>): WidgetInstruction => {
+  
+  if (!widgetsOptions) {
+    console.log('Debug mergeWidgetInstruction: no widgetsOptions, returning base')
+    return baseInstruction
+  }
+
+  // Look for widget-specific options that might override instructions or sourceDataModel
+  const widgetType = baseInstruction.type
+  const widgetOptions = widgetsOptions[widgetType] as Record<string, unknown> | undefined
+
+  console.log('Debug mergeWidgetInstruction: widgetOptions for', widgetType, '=', widgetOptions)
+
+  if (!widgetOptions) {
+    console.log('Debug mergeWidgetInstruction: no widgetOptions for', widgetType, ', returning base')
+    return baseInstruction
+  }
+
+  // Create a merged instruction with overrides
+  const mergedInstruction: WidgetInstruction = { ...baseInstruction }
+
+  // Override instructions if provided in widgetsOptions
+  if (widgetOptions.instructions && typeof widgetOptions.instructions === 'string') {
+    console.log('Debug mergeWidgetInstruction: overriding instructions for', widgetType, 'with:', widgetOptions.instructions)
+    mergedInstruction.instructions = widgetOptions.instructions
+  }
+  
+  // Append additional instructions if provided in widgetsOptions
+  if (widgetOptions.addInstruction && typeof widgetOptions.addInstruction === 'string') {
+    console.log('Debug mergeWidgetInstruction: appending instructions for', widgetType, 'with:', widgetOptions.addInstruction)
+    mergedInstruction.instructions = mergedInstruction.instructions + '\n' + widgetOptions.addInstruction
+  }
+
+  // Override sourceDataModel if provided in widgetsOptions
+  if (widgetOptions.sourceDataModel !== undefined && widgetOptions.sourceDataModel !== null) {
+    console.log('Debug mergeWidgetInstruction: overriding sourceDataModel for', widgetType, 'with:', widgetOptions.sourceDataModel)
+    mergedInstruction.sourceDataModel = widgetOptions.sourceDataModel as string | object
+  }
+
+  console.log('Debug mergeWidgetInstruction: final merged instruction for', widgetType, '=', mergedInstruction)
+  return mergedInstruction
 }
 
 // Helper function to format structured instruction back to string format
@@ -126,12 +176,12 @@ export const getEnabledWidgetTypes = () => {
 }
 
 // Helper function to get structured widget instructions (for future use)
-export const getStructuredWidgetInstructions = (enabledWidgets?: string[]): WidgetInstruction[] => {
+export const getStructuredWidgetInstructions = (enabledWidgets?: string[], widgetsOptions?: Record<string, unknown>): WidgetInstruction[] => {
   // If no enabled widgets specified, return all widgets
   if (!enabledWidgets) {
     return Object.values(WIDGET_REGISTRY)
       .filter(config => config.enabled)
-      .map(config => config.instruction)
+      .map(config => mergeWidgetInstruction(config.instruction, widgetsOptions))
   }
   
   // Always include text widget regardless of enabledWidgets array
@@ -141,5 +191,5 @@ export const getStructuredWidgetInstructions = (enabledWidgets?: string[]): Widg
     .filter(([widgetType, config]) => 
       config.enabled && effectiveEnabledWidgets.includes(widgetType)
     )
-    .map(([, config]) => config.instruction)
+    .map(([, config]) => mergeWidgetInstruction(config.instruction, widgetsOptions))
 }

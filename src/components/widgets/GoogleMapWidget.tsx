@@ -4,14 +4,12 @@ import { Loader } from '@googlemaps/js-api-loader'
 
 interface GoogleMapWidgetProps {
   source: string
-  apiKey?: string
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
 }
 
 export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({ 
   source, 
-  apiKey,
   onWidgetCallback,
   widgetsOptions
 }) => {
@@ -84,11 +82,7 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
         setError(null)
 
         // Get API key: prefer prop, then widgetsOptions, then window globals
-        const mapsApiKey = 
-          apiKey ||
-          (widgetsOptions?.google_map as Record<string, unknown>)?.apiKey as string ||
-          (typeof window !== 'undefined' && (window as unknown as Record<string, string | undefined>)?.REACT_APP_GOOGLE_MAPS_API_KEY) ||
-          (typeof window !== 'undefined' && (window as unknown as Record<string, string | undefined>)?.GOOGLE_MAPS_API_KEY)
+        const mapsApiKey = (widgetsOptions?.google_map as Record<string, unknown>)?.apiKey as string
         
         console.log('GoogleMapWidget: Initializing map', { location: source, mapsApiKey: !!mapsApiKey })
         

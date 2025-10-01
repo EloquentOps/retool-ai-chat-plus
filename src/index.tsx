@@ -14,7 +14,7 @@ export const AiChatPlus: FC = () => {
 
   const [widgetsEnabled, _setWidgetsEnabled] = Retool.useStateArray({
     name: 'widgetsEnabled',
-    initialValue: ['text', 'color', 'image', 'map', 'confirm']
+    initialValue: []
   })
 
 
@@ -68,8 +68,9 @@ export const AiChatPlus: FC = () => {
   // Ref to track previous submitWithPayload value to prevent multiple triggers
   const previousSubmitWithPayloadRef = useRef<Record<string, unknown>>({})
   
-  // Local state for loading and current agentRunId
+  // Local state for loading, error, and current agentRunId
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const currentAgentRunIdRef = useRef<string | null>(null)
 
   // Ensure internal state variables are always empty objects on mount
@@ -126,16 +127,24 @@ export const AiChatPlus: FC = () => {
     console.log('Starting polling for agentRunId:', agentRunId)
     currentAgentRunIdRef.current = agentRunId
     setIsLoading(true)
+    setError(null) // Clear any previous errors
     
     pollingIntervalRef.current = setInterval(() => {
       console.log('Polling tick, current agentRunId:', currentAgentRunIdRef.current, 'expected:', agentRunId)
       // Check if we're still polling the same agentRunId
       if (currentAgentRunIdRef.current === agentRunId) {
-        _setAgentInputs({
-          action: 'getLogs',
-          agentRunId: agentRunId
-        })
-        onSubmitQuery()
+        try {
+          _setAgentInputs({
+            action: 'getLogs',
+            agentRunId: agentRunId
+          })
+          onSubmitQuery()
+        } catch (err) {
+          console.error('Error during polling:', err)
+          const errorMessage = err instanceof Error ? err.message : 'An error occurred during polling'
+          setError(errorMessage)
+          stopPolling()
+        }
       } else {
         console.log('Stopping polling - agentRunId mismatch')
         clearInterval(pollingIntervalRef.current!)
@@ -163,6 +172,14 @@ export const AiChatPlus: FC = () => {
   const checkQueryStatus = () => {
     if (!queryResponse || Object.keys(queryResponse).length === 0) return
 
+    // Handle error responses
+    if (queryResponse.status === 'ERROR' || queryResponse.error) {
+      const errorMessage = queryResponse.error || queryResponse.message || 'An error occurred while processing your request'
+      setError(errorMessage as string)
+      stopPolling()
+      return
+    }
+
     // Handle initial invoke response - get agentRunId and start polling
     if (queryResponse.agentRunId && queryResponse.status === 'PENDING' && !isLoading) {
       startPolling(queryResponse.agentRunId as string)
@@ -172,6 +189,7 @@ export const AiChatPlus: FC = () => {
     // Handle completed response
     if (queryResponse.status === 'COMPLETED' && isLoading) {
       stopPolling()
+      setError(null) // Clear any errors on successful completion
       
       // Extract AI response content
       const aiResponse = queryResponse.content || queryResponse.resultText
@@ -207,6 +225,15 @@ export const AiChatPlus: FC = () => {
   // Check status on every render
   checkQueryStatus()
 
+  // Retry function to restart polling
+  const retryPolling = () => {
+    if (currentAgentRunIdRef.current) {
+      console.log('Retrying polling for agentRunId:', currentAgentRunIdRef.current)
+      setError(null)
+      startPolling(currentAgentRunIdRef.current)
+    }
+  }
+
   // Function to normalize message content for agent input
   // Uses standardized format: {type: "text", source: "content"}
   const normalizeMessageForAgent = (message: { role: 'user' | 'assistant'; content: string | { type: string; source: string; [key: string]: unknown } }) => {
@@ -236,7 +263,7 @@ export const AiChatPlus: FC = () => {
     _setAgentInputs({})
     
     // Set agent inputs for the query with initial system instructions and widget instructions
-    const widgetInstructions = getAllWidgetInstructions(widgetsEnabled as string[])
+    const widgetInstructions = getAllWidgetInstructions(widgetsEnabled as string[], widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
     const instructionMessage = {
       role: 'assistant' as const,
@@ -314,6 +341,9 @@ Return the response as JSON STRING with this mandatory schema:
           promptChips={promptChips as Array<{ icon: string; label: string; question: string }>}
           widgetsOptions={widgetsOptions as Record<string, unknown>}
           welcomeMessage={welcomeMessage}
+          error={error}
+          onRetry={retryPolling}
+          onDismissError={() => setError(null)}
         />
       </div>
     </>
