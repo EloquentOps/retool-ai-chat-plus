@@ -3,6 +3,7 @@ import { type FC } from 'react'
 
 import { Retool } from '@tryretool/custom-component-support'
 import { ChatContainer } from './components'
+import { ApprovalModal } from './components/ApprovalModal'
 import { getAllWidgetInstructions } from './components/widgets'
 
 export const AiChatPlus: FC = () => {
@@ -71,7 +72,23 @@ export const AiChatPlus: FC = () => {
   // Local state for loading, error, and current agentRunId
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [approvalMessage, setApprovalMessage] = useState<string | null>(null)
+  const [toolInfo, setToolInfo] = useState<{
+    toolName: string
+    toolDescription: string
+    toolParameters: Record<string, unknown>
+    toolUseReasoning: string
+    toolUseReasoningSummary: string
+    toolExecutionId: string
+    toolId: string
+  } | null>(null)
+  const currentAgentIdRef = useRef<string | null>(null)
   const currentAgentRunIdRef = useRef<string | null>(null)
+  
+  // Track seen tool execution IDs to prevent duplicate approval modals
+  const seenToolExecutionIdsRef = useRef<Set<string>>(new Set())
+  const lastLogUUIDRef = useRef<string | null>(null)
 
   // Ensure internal state variables are always empty objects on mount
   useEffect(() => {
@@ -123,21 +140,65 @@ export const AiChatPlus: FC = () => {
   const onWidgetCallback = Retool.useEventCallback({ name: "widgetCallback" })
 
   // Polling function to check query status
-  const startPolling = (agentRunId: string) => {
+  const startPolling = (agentRunId: string, agentId: string) => {
     console.log('Starting polling for agentRunId:', agentRunId)
     currentAgentRunIdRef.current = agentRunId
+    currentAgentIdRef.current = agentId
     setIsLoading(true)
     setError(null) // Clear any previous errors
+    // Reset deduplication tracking for new run
+    seenToolExecutionIdsRef.current.clear()
+    lastLogUUIDRef.current = null
     
     pollingIntervalRef.current = setInterval(() => {
       console.log('Polling tick, current agentRunId:', currentAgentRunIdRef.current, 'expected:', agentRunId)
       // Check if we're still polling the same agentRunId
       if (currentAgentRunIdRef.current === agentRunId) {
         try {
-          _setAgentInputs({
+          const pollInput = {
             action: 'getLogs',
-            agentRunId: agentRunId
-          })
+            agentRunId: agentRunId,
+            ...(lastLogUUIDRef.current && { lastLogUUID: lastLogUUIDRef.current })
+          }
+          
+          _setAgentInputs(pollInput)
+          onSubmitQuery()
+        } catch (err) {
+          console.error('Error during polling:', err)
+          const errorMessage = err instanceof Error ? err.message : 'An error occurred during polling'
+          setError(errorMessage)
+          stopPolling()
+        }
+      } else {
+        console.log('Stopping polling - agentRunId mismatch')
+        clearInterval(pollingIntervalRef.current!)
+        pollingIntervalRef.current = null
+      }
+    }, 1000)
+    console.log('Polling interval set:', pollingIntervalRef.current)
+  }
+
+  // Resume polling function that preserves deduplication state
+  const resumePolling = (agentRunId: string, agentId: string) => {
+    console.log('Resuming polling for agentRunId:', agentRunId)
+    currentAgentRunIdRef.current = agentRunId
+    currentAgentIdRef.current = agentId
+    setIsLoading(true)
+    setError(null) // Clear any previous errors
+    // DON'T clear deduplication tracking - preserve seen toolExecutionIds
+    
+    pollingIntervalRef.current = setInterval(() => {
+      console.log('Polling tick, current agentRunId:', currentAgentRunIdRef.current, 'expected:', agentRunId)
+      // Check if we're still polling the same agentRunId
+      if (currentAgentRunIdRef.current === agentRunId) {
+        try {
+          const pollInput = {
+            action: 'getLogs',
+            agentRunId: agentRunId,
+            ...(lastLogUUIDRef.current && { lastLogUUID: lastLogUUIDRef.current })
+          }
+          
+          _setAgentInputs(pollInput)
           onSubmitQuery()
         } catch (err) {
           console.error('Error during polling:', err)
@@ -163,26 +224,131 @@ export const AiChatPlus: FC = () => {
       pollingIntervalRef.current = null
       console.log('Polling interval cleared')
     }
-    currentAgentRunIdRef.current = null
+    //currentAgentRunIdRef.current = null
     setIsLoading(false)
     console.log('Loading state set to false')
   }
 
-  // Check queryResponse for status changes
-  const checkQueryStatus = () => {
+  // Monitor queryResponse for status changes using useEffect to prevent infinite loops
+  useEffect(() => {
     if (!queryResponse || Object.keys(queryResponse).length === 0) return
+
+    console.log('AAA queryResponse', queryResponse)
+
+    // Update pagination tracking
+    if (queryResponse.pagination && typeof queryResponse.pagination === 'object' && queryResponse.pagination !== null) {
+      const pagination = queryResponse.pagination as Record<string, unknown>
+      if (typeof pagination.lastLogUUID === 'string') {
+        lastLogUUIDRef.current = pagination.lastLogUUID
+      }
+    }
 
     // Handle error responses
     if (queryResponse.status === 'ERROR' || queryResponse.error) {
-      const errorMessage = queryResponse.error || queryResponse.message || 'An error occurred while processing your request'
-      setError(errorMessage as string)
+      let errorMessage = 'An error occurred while processing your request'
+      
+      // Extract error message from various error formats
+      if (queryResponse.error) {
+        if (typeof queryResponse.error === 'string') {
+          errorMessage = queryResponse.error
+        } else if (typeof queryResponse.error === 'object' && queryResponse.error !== null) {
+          const errorObj = queryResponse.error as Record<string, unknown>
+          // Handle structured error objects
+          if (errorObj.message) {
+            errorMessage = errorObj.message as string
+          } else if (errorObj.payload && typeof errorObj.payload === 'object') {
+            const payload = errorObj.payload as Record<string, unknown>
+            errorMessage = Object.entries(payload).map(([key, value]) => `${key}: ${value}`).join('; ')
+          } else {
+            errorMessage = JSON.stringify(errorObj)
+          }
+        }
+      } else if (queryResponse.message) {
+        errorMessage = queryResponse.message as string
+      }
+      
+      setError(errorMessage)
       stopPolling()
       return
     }
 
-    // Handle initial invoke response - get agentRunId and start polling
+    // Handle PAUSED_WAITING_FOR_APPROVAL status
+    if (queryResponse.status === 'PAUSED_WAITING_FOR_APPROVAL' && isLoading) {
+      // Extract tool information from trace
+      let toolInfo = null
+      let toolReasoning = ''
+      let toolParameters = {}
+      let currentToolExecutionId = ''
+      
+      if (queryResponse.trace && Array.isArray(queryResponse.trace)) {
+        const traceArray = queryResponse.trace as unknown[]
+        
+        // Look for TOOL_WAITING_FOR_APPROVAL span or LLM_END span with toolData
+        const toolSpan = traceArray.find((span: unknown) => {
+          const spanObj = span as Record<string, unknown>
+          return spanObj.spanType === 'TOOL_WAITING_FOR_APPROVAL' || 
+                 (spanObj.spanType === 'LLM_END' && spanObj.toolData)
+        }) as Record<string, unknown> | undefined
+        
+        if (toolSpan?.toolData) {
+          const toolData = toolSpan.toolData as Record<string, unknown>
+          currentToolExecutionId = toolData.toolExecutionId as string
+          
+          toolInfo = {
+            toolName: toolData.toolName as string,
+            toolDescription: toolData.toolDescription as string,
+            toolParameters: (toolData.toolParameters as Record<string, unknown>) || {},
+            toolUseReasoning: (toolData.toolUseReasoning as string) || '',
+            toolUseReasoningSummary: (toolData.toolUseReasoningSummary as string) || '',
+            toolExecutionId: currentToolExecutionId,
+            toolId: toolData.toolId as string
+          }
+          toolReasoning = (toolData.toolUseReasoning as string) || ''
+          toolParameters = (toolData.toolParameters as Record<string, unknown>) || {}
+        }
+      }
+      
+      // Check if we've already shown this tool execution to prevent duplicate modals
+      if (currentToolExecutionId && seenToolExecutionIdsRef.current.has(currentToolExecutionId)) {
+        console.log('Already shown modal for toolExecutionId:', currentToolExecutionId, '- skipping duplicate')
+        return
+      }
+      
+      // Mark this tool execution as seen
+      if (currentToolExecutionId) {
+        seenToolExecutionIdsRef.current.add(currentToolExecutionId)
+        console.log('Added toolExecutionId to seen set:', currentToolExecutionId)
+      }
+      
+      stopPolling() // Stop polling but don't set error or complete
+      
+      // Extract approval message if provided
+      const approvalMsg = queryResponse.approvalMessage || queryResponse.message || 
+                          'This action requires approval before proceeding.'
+      
+      // Enhanced approval message with tool context
+      let enhancedMessage = approvalMsg
+      if (toolInfo) {
+        enhancedMessage = `The AI wants to use the "${toolInfo.toolName}" tool:\n\n• Tool: ${toolInfo.toolDescription}\n\nWhy: ${toolInfo.toolUseReasoningSummary || toolReasoning || 'No specific reasoning provided'}\n\nParameters:\n${Object.entries(toolParameters).map(([key, value]) => `• ${key}: ${value}`).join('\n')}`
+      }
+      
+      setApprovalMessage(enhancedMessage as string)
+      setToolInfo(toolInfo)
+      setShowApprovalModal(true)
+      return
+    }
+
+    // Handle resume response after tool approval/denial - restart polling
+    if (queryResponse.success === true && queryResponse.status === 'PENDING' && !isLoading && currentAgentRunIdRef.current) {
+      console.log('Agent resume detected, resuming polling for:', queryResponse.agentRunId || currentAgentRunIdRef.current)
+      resumePolling(queryResponse.agentRunId as string || currentAgentRunIdRef.current as string, 
+                    queryResponse.effectiveAgentId as string || currentAgentIdRef.current as string)
+      return
+    }
+
+    // Handle initial invoke response - get agent RunId and start polling
     if (queryResponse.agentRunId && queryResponse.status === 'PENDING' && !isLoading) {
-      startPolling(queryResponse.agentRunId as string)
+      startPolling(queryResponse.agentRunId as string, queryResponse.agentId as string)
       return
     }
 
@@ -220,17 +386,14 @@ export const AiChatPlus: FC = () => {
         _setHistory([...history, assistantMessage] as any)
       }
     }
-  }
-
-  // Check status on every render
-  checkQueryStatus()
+  }, [queryResponse, isLoading]) // Dependencies: only re-run when queryResponse or isLoading changes
 
   // Retry function to restart polling
   const retryPolling = () => {
-    if (currentAgentRunIdRef.current) {
+    if (currentAgentRunIdRef.current && currentAgentIdRef.current) {
       console.log('Retrying polling for agentRunId:', currentAgentRunIdRef.current)
       setError(null)
-      startPolling(currentAgentRunIdRef.current)
+      resumePolling(currentAgentRunIdRef.current as string, currentAgentIdRef.current as string)
     }
   }
 
@@ -319,6 +482,62 @@ Return the response as JSON STRING with this mandatory schema:
     onWidgetCallback()
   }
 
+  // Handle approval actions
+  const handleApprovalAllow = () => {
+    console.log('Approval allowed', currentAgentRunIdRef.current, toolInfo)
+    setShowApprovalModal(false)
+    setApprovalMessage(null)
+    
+    // Send approval action
+    if (currentAgentRunIdRef.current && toolInfo) {
+      _setAgentInputs({
+        action: 'submitToolApproval',
+        agentRunId: currentAgentRunIdRef.current,
+        effectiveAgentRunId: currentAgentRunIdRef.current,
+        effectiveAgentId: currentAgentIdRef.current,
+        decisions: [{
+          toolExecutionId: toolInfo.toolExecutionId,
+          toolId: toolInfo.toolId,
+          decision: 'approve'
+        }]
+      })
+      onSubmitQuery()
+      
+      // Don't restart polling here - let the agent resume processing after approval
+      console.log('Approval sent, waiting for agent to process and resume...')
+    }
+    
+    setToolInfo(null)
+  }
+
+  const handleApprovalDeny = () => {
+    console.log('Approval denied', currentAgentRunIdRef.current, toolInfo)
+    setShowApprovalModal(false)
+    setApprovalMessage(null)
+    
+    // Send denial action
+    if (currentAgentRunIdRef.current && toolInfo) {
+      _setAgentInputs({
+        action: 'submitToolApproval',
+        agentRunId: currentAgentRunIdRef.current,
+        effectiveAgentRunId: currentAgentRunIdRef.current,
+        effectiveAgentId: currentAgentIdRef.current,
+        decisions: [{
+          toolExecutionId: toolInfo.toolExecutionId,
+          toolId: toolInfo.toolId,
+          decision: 'reject'
+        }]
+      })
+      onSubmitQuery()
+      
+      // Mark this tool execution as processed (already in seen set)
+      // Don't restart polling here - let the agent resume processing after denial
+      console.log('Denial sent, waiting for agent to process and resume...')
+    }
+    
+    setToolInfo(null)
+  }
+
 
   return (
     <>
@@ -344,6 +563,16 @@ Return the response as JSON STRING with this mandatory schema:
           error={error}
           onRetry={retryPolling}
           onDismissError={() => setError(null)}
+        />
+        
+        {/* Approval Modal */}
+        <ApprovalModal
+          isVisible={showApprovalModal}
+          onAllow={handleApprovalAllow}
+          onDeny={handleApprovalDeny}
+          title="Approval Required"
+          message={approvalMessage || 'This action requires your approval before proceeding.'}
+          toolInfo={toolInfo || undefined}
         />
       </div>
     </>
