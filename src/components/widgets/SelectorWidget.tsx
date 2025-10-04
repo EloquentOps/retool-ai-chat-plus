@@ -27,7 +27,7 @@ export const SelectorWidget: FC<SelectorWidgetProps> = ({
       onWidgetCallback({ 
         selectedValue: value,
         selectedLabel: selectedOption?.label || value,
-        widgetType: 'selector'
+        widgetType: 'selector:changed'
       })
     }
   }
@@ -198,13 +198,15 @@ export const SelectorWidget: FC<SelectorWidgetProps> = ({
 // Export the instruction for this widget
 export const SelectorWidgetInstruction = {
   type: 'selector',
-  instructions: 'Use this widget when the user needs to select an option from a given predefined list. The source property value should be a JSON object with placeholder and options array.',
+  instructions: `Use this widget when the user is asked to select an option from a given predefined list. 
+  If prompt is provided, call the call.`,
   sourceDataModel: {
     placeholder: 'string',
     options: [
       {
         value: 'string',
-        label: 'string'
+        label: 'string',
+        prompt: 'string'
       }
     ]
   }

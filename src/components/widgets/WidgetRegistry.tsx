@@ -89,17 +89,19 @@ export const renderWidget = (content: { type: string; source: string; [key: stri
   return React.createElement(widgetConfig.component, props)
 }
 
-// Get all enabled widget instructions based on provided enabled widgets
-export const getAllWidgetInstructions = (enabledWidgets?: string[], widgetsOptions?: Record<string, unknown>) => {
-  // If no enabled widgets specified, return all widgets
-  if (!enabledWidgets) {
-    return Object.values(WIDGET_REGISTRY)
-      .filter(config => config.enabled)
-      .map(config => formatInstructionAsString(mergeWidgetInstruction(config.instruction, widgetsOptions)))
+// Get all enabled widget instructions based on widgetsOptions keys
+export const getAllWidgetInstructions = (widgetsOptions?: Record<string, unknown>) => {
+  // If no widgetsOptions provided or empty, only enable text widget
+  if (!widgetsOptions || Object.keys(widgetsOptions).length === 0) {
+    const textConfig = WIDGET_REGISTRY.text
+    return [formatInstructionAsString(mergeWidgetInstruction(textConfig.instruction, widgetsOptions))]
   }
   
-  // Always include text widget regardless of enabledWidgets array
-  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgets])]
+  // Get enabled widget types from widgetsOptions keys
+  const enabledWidgetTypes = Object.keys(widgetsOptions)
+  
+  // Always include text widget regardless of widgetsOptions keys
+  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgetTypes])]
   
   return Object.entries(WIDGET_REGISTRY)
     .filter(([widgetType, config]) => 
@@ -176,16 +178,18 @@ export const getEnabledWidgetTypes = () => {
 }
 
 // Helper function to get structured widget instructions (for future use)
-export const getStructuredWidgetInstructions = (enabledWidgets?: string[], widgetsOptions?: Record<string, unknown>): WidgetInstruction[] => {
-  // If no enabled widgets specified, return all widgets
-  if (!enabledWidgets) {
-    return Object.values(WIDGET_REGISTRY)
-      .filter(config => config.enabled)
-      .map(config => mergeWidgetInstruction(config.instruction, widgetsOptions))
+export const getStructuredWidgetInstructions = (widgetsOptions?: Record<string, unknown>): WidgetInstruction[] => {
+  // If no widgetsOptions provided or empty, only enable text widget
+  if (!widgetsOptions || Object.keys(widgetsOptions).length === 0) {
+    const textConfig = WIDGET_REGISTRY.text
+    return [mergeWidgetInstruction(textConfig.instruction, widgetsOptions)]
   }
   
-  // Always include text widget regardless of enabledWidgets array
-  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgets])]
+  // Get enabled widget types from widgetsOptions keys
+  const enabledWidgetTypes = Object.keys(widgetsOptions)
+  
+  // Always include text widget regardless of widgetsOptions keys
+  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgetTypes])]
   
   return Object.entries(WIDGET_REGISTRY)
     .filter(([widgetType, config]) => 

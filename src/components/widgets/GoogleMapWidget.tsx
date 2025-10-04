@@ -54,7 +54,7 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
         const center = mapInstance.getCenter()
         const zoom = mapInstance.getZoom()
         onWidgetCallback({
-          type: 'map_changed',
+          type: 'google_map:changed',
           center: {
             lat: center?.lat(),
             lng: center?.lng()

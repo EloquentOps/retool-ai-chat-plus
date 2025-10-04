@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { type FC } from 'react'
 
 interface ConfirmWidgetProps {
-  source: string
+  source: string | { label: string; prompt: string; autoSubmit?: boolean }
   variant?: 'primary' | 'secondary' | 'danger'
   size?: 'small' | 'medium' | 'large'
   disabled?: boolean
@@ -12,17 +12,20 @@ interface ConfirmWidgetProps {
 
 export const ConfirmWidget: FC<ConfirmWidgetProps> = ({ 
   source, 
-  variant = 'primary',
-  size = 'medium',
-  disabled = false,
   onWidgetCallback
 }) => {
   const [isHovered, setIsHovered] = useState(false)
+  
+  // Parse source to handle both string and object formats
+  const sourceData = typeof source === 'string' 
+    ? { label: source, prompt: source, autoSubmit: false }
+    : source
+  
   const getButtonStyles = () => {
     const baseStyles = {
       border: 'none',
       borderRadius: '6px',
-      cursor: disabled ? 'not-allowed' : 'pointer',
+      cursor: 'pointer',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontWeight: '500',
       transition: 'all 0.2s ease-in-out',
@@ -31,68 +34,27 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px',
-      transform: isHovered && !disabled ? 'scale(1.05)' : 'scale(1)'
-    }
-
-    const sizeStyles = {
-      small: {
-        padding: '6px 12px',
-        fontSize: '12px',
-        minHeight: '28px'
-      },
-      medium: {
-        padding: '8px 16px',
-        fontSize: '14px',
-        minHeight: '36px'
-      },
-      large: {
-        padding: '12px 24px',
-        fontSize: '16px',
-        minHeight: '44px'
-      }
-    }
-
-    const variantStyles = {
-      primary: {
-        backgroundColor: disabled ? '#e5e7eb' : (isHovered ? '#2563eb' : '#3b82f6'),
-        color: disabled ? '#9ca3af' : '#ffffff'
-      },
-      secondary: {
-        backgroundColor: disabled ? '#f3f4f6' : (isHovered ? '#f9fafb' : '#ffffff'),
-        color: disabled ? '#9ca3af' : '#374151',
-        border: '1px solid',
-        borderColor: disabled ? '#d1d5db' : (isHovered ? '#9ca3af' : '#d1d5db')
-      },
-      danger: {
-        backgroundColor: disabled ? '#fecaca' : (isHovered ? '#dc2626' : '#ef4444'),
-        color: disabled ? '#fca5a5' : '#ffffff'
-      }
+      transform: isHovered ? 'scale(1.05)' : 'scale(1)'
     }
 
     return {
       ...baseStyles,
-      ...sizeStyles[size],
-      ...variantStyles[variant]
     }
   }
 
   const handleClick = () => {
-    if (!disabled && onWidgetCallback) {
-      onWidgetCallback({})
-    }
-  }
-
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      handleClick()
+    if (onWidgetCallback) {
+      onWidgetCallback({
+        type: 'confirm:changed',
+        label: sourceData.label,
+        selfSubmit: true,
+        prompt: sourceData.prompt
+      })
     }
   }
 
   const handleMouseEnter = () => {
-    if (!disabled) {
-      setIsHovered(true)
-    }
+    setIsHovered(true)
   }
 
   const handleMouseLeave = () => {
@@ -103,15 +65,12 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
     <button
       style={getButtonStyles()}
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      disabled={disabled}
-      tabIndex={disabled ? -1 : 0}
       role="button"
-      aria-label={source}
+      aria-label={sourceData.label}
     >
-      {source}
+      {sourceData.label}
     </button>
   )
 }
@@ -119,6 +78,9 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
 // Export the instruction for this widget
 export const ConfirmWidgetInstruction = {
   type: 'confirm',
-  instructions: 'The source value should be the button text to display. Optional properties: variant: "primary" | "secondary" | "danger" (default: "primary"), size: "small" | "medium" | "large" (default: "medium"), disabled: boolean (default: false). Example: {"type": "confirm", "source": "Save Changes", "variant": "primary", "size": "medium", "disabled": false}',
-  sourceDataModel: 'string'
+  instructions: 'Use this widget when the user asks to confirm an action or decision.',
+  sourceDataModel: {
+      label: 'string',
+      prompt: 'string.<optional>'
+  }
 }

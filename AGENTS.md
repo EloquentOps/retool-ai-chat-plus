@@ -17,6 +17,8 @@ This guide provides comprehensive documentation for creating new widgets in the 
 11. [Advanced Features](#advanced-features)
 12. [Widget Examples Reference](#widget-examples-reference)
 
+
+
 ## Architecture Overview
 
 The widget system is built on a centralized registry pattern that allows for:
@@ -32,11 +34,11 @@ The widget system is built on a centralized registry pattern that allows for:
 src/components/widgets/
 ├── WidgetRegistry.tsx    # Central registry and renderer
 ├── index.ts              # Exports and interfaces
-├── TextWidget.tsx        # Example: Simple text widget
-├── ConfirmWidget.tsx     # Example: Interactive button widget
-├── GoogleMapWidget.tsx   # Example: External API integration
-└── ImageGridWidget.tsx   # Example: Complex data model widget
+├── TextWidget.tsx        # Mandatory: Core text widget
+├── ...Widget.tsx     		# Your widget: make your own
 ```
+
+
 
 ## Widget Interface
 
@@ -47,16 +49,17 @@ interface WidgetProps {
   source: string | object | array    // Main data input
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>  // Global widget configuration
-  [key: string]: unknown             // Additional widget-specific props
 }
 
 // Widget Instruction Object
 interface WidgetInstruction {
-  type: string                       // Unique widget identifier
+  type: string                      // Unique widget identifier
   instructions: string              // AI prompt instructions
   sourceDataModel: string | object  // Data structure specification
 }
 ```
+
+
 
 ## Configuration System
 
@@ -95,6 +98,7 @@ widgetsOptions: {
 #### Example of sourceDataModel:
 
 
+
 ## Creating a New Widget
 
 ### Step 1: Define the Widget Component
@@ -108,15 +112,10 @@ interface ExampleWidgetProps {
   source: string | YourDataType
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
-  // Add custom props with default values
-  theme?: 'light' | 'dark'
-  size?: 'small' | 'medium' | 'large'
 }
 
 export const ExampleWidget: FC<ExampleWidgetProps> = ({
   source,
-  theme = 'light',
-  size = 'medium',
   onWidgetCallback
 }) => {
   // Handle data validation
@@ -134,7 +133,7 @@ export const ExampleWidget: FC<ExampleWidgetProps> = ({
   }
 
   return (
-    <div className={`example-widget ${theme} ${size}`} onClick={handleClick}>
+    <div className={`example-widget`} onClick={handleClick}>
       {/* Your widget content */}
     </div>
   )
@@ -148,8 +147,8 @@ The instruction object tells AI agents when and how to use your widget:
 ```typescript
 export const ExampleWidgetInstruction = {
   type: 'example_widget',
-  instructions: 'Use this widget when the user requests interactive elements or data visualization. The source should contain the data to display.',
-  sourceDataModel: 'string' // or complex object structure
+  instructions: 'Use this widget when the user requests interactive elements or data visualization.',
+  sourceDataModel: 'The string value that need to be display' // or complex object structure
 }
 ```
 
@@ -170,13 +169,7 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
 }
 ```
 
-### Step 4: Export from Index
 
-Add to `widgets/index.ts`:
-
-```typescript
-export { ExampleWidget, ExampleWidgetInstruction } from './ExampleWidget'
-```
 
 ## Widget Registration
 
@@ -205,62 +198,30 @@ const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
 - `getEnabledWidgetTypes()`: Get list of enabled widget types
 - `getAllWidgetInstructions()`: Get formatted instructions for AI agents
 
+
+
 ## Data Models
 
 Widgets can accept various data types:
 
-### Simple Types
+### String Type
 
 ```typescript
-// String
-sourceDataModel: 'string'
-
-// Number  
-sourceDataModel: 'number'
-
-// Boolean
-sourceDataModel: 'boolean'
+sourceDataModel: 'A string representing the button label'
 ```
 
-### Complex Objects
+### Objects Type
 
 ```typescript
 // JSON Schema style
+// try to be semantic as much as possible
 sourceDataModel: {
-  type: 'object',
-  properties: {
-    title: { 
-      type: 'string',
-      description: 'Widget title' 
-    },
-    settings: { 
-      type: 'object',
-      description: 'Configuration options' 
-    },
-    data: { 
-      type: 'array',
-      description: 'Array of data items' 
-    }
-  },
-  required: ['title', 'data']
+  title: 'The title of the widget',
+  caption: 'The caption of the widget'
 }
 ```
 
-### Array Data Models
 
-```typescript
-sourceDataModel: {
-  type: 'array',
-  items: {
-    type: 'object',
-    properties: {
-      id: { type: 'string' },
-      name: { type: 'string' },
-      imageUrl: { type: 'string' }
-    }
-  }
-}
-```
 
 ## Widget Callbacks
 
@@ -277,21 +238,21 @@ onWidgetCallback(payload: Record<string, unknown>)
 ```typescript
 // User interaction
 onWidgetCallback({
-  type: 'button_clicked',
+  type: 'button:clicked',
   buttonId: 'save',
   data: formData
 })
 
 // Data selection
 onWidgetCallback({
-  type: 'item_selected',
+  type: 'image:selected',
   selectedItem: itemData,
   index: 0
 })
 
 // Status update
 onWidgetCallback({
-  type: 'status_changed',
+  type: 'status:changed',
   status: 'loading' | 'success' | 'error',
   message: 'Operation completed'
 })
@@ -304,6 +265,8 @@ onWidgetCallback({
 })
 ```
 
+
+
 ## Styling Guidelines
 
 ### Design Principles
@@ -313,44 +276,7 @@ onWidgetCallback({
 3. **Accessibility**: Include proper ARIA labels and keyboard navigation
 4. **Performance**: Use efficient rendering patterns
 
-### Styling Patterns
 
-```typescript
-// Inline styles approach (recommended)
-const widgetStyles: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '16px',
-  borderRadius: '8px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #e5e7eb',
-  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-}
-
-// Hover effects
-const hoverStyles: React.CSSProperties = {
-  transform: 'scale(1.02)',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-  transition: 'all 0.2s ease-in-out'
-}
-```
-
-### Color Palette
-
-```typescript
-const colors = {
-  primary: '#3b82f6',
-  secondary: '#6b7280', 
-  success: '#10b981',
-  warning: '#f59e0b',
-  danger: '#ef4444',
-  background: '#ffffff',
-  surface: '#f9fafb',
-  border: '#e5e7eb',
-  text: '#374151'
-}
-```
 
 ## Error Handling
 
@@ -386,24 +312,7 @@ if (error) {
 }
 ```
 
-### Validation Patterns
 
-```typescript
-// Data validation
-const validateData = (data: unknown): boolean => {
-  if (typeof data === 'string' && data.trim().length > 0) {
-    return true
-  }
-  return false
-}
-
-// Prop validation with defaults
-const {
-  theme = 'light',
-  size = 'medium',
-  disabled = false
-} = props
-```
 
 ## Best Practices
 
@@ -433,6 +342,8 @@ const {
 - **Clear Instructions**: Write specific, unambiguous instruction text
 - **Data Examples**: Use examples in your sourceDataModel descriptions
 - **Context Awareness**: Include when-to-use guidance in instructions
+
+
 
 ## Advanced Features
 

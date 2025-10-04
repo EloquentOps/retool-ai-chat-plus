@@ -13,11 +13,6 @@ export const AiChatPlus: FC = () => {
     initialValue: ''
   })
 
-  const [widgetsEnabled, _setWidgetsEnabled] = Retool.useStateArray({
-    name: 'widgetsEnabled',
-    initialValue: []
-  })
-
 
   // Add state to receive query responses
   const [queryResponse, _setQueryResponse] = Retool.useStateObject({
@@ -102,36 +97,54 @@ export const AiChatPlus: FC = () => {
     // Check if submitWithPayload has actually changed
     const currentValue = submitWithPayload || {}
     const previousValue = previousSubmitWithPayloadRef.current
+
+    console.log('submitWithPayload currentValue', currentValue)
+    console.log('submitWithPayload previousValue', previousValue)
     
     // Deep comparison to check if values are different
     const hasChanged = JSON.stringify(currentValue) !== JSON.stringify(previousValue)
     
     if (!hasChanged) return
     
-    // Update the ref with the current value
-    previousSubmitWithPayloadRef.current = { ...currentValue }
-    
     // Only proceed if there's actual content
-    if (Object.keys(currentValue).length === 0) return
+    if (Object.keys(currentValue).length === 0) {
+      // Update the ref even for empty values to track changes
+      previousSubmitWithPayloadRef.current = { ...currentValue }
+      return
+    }
 
     const { action, payload } = currentValue as { action?: string; payload?: string }
 
     console.log('submitWithPayload action detected:', action, 'payload:', payload)
 
     if (action === 'submit' && payload) {
+      // Update the ref BEFORE processing to prevent re-triggers
+      previousSubmitWithPayloadRef.current = { ...currentValue }
+      
       // Trigger submit with the provided payload
       console.log('Triggering submit with payload:', payload)
       onSubmitQueryCallback(payload)
+      
       // Reset the submitWithPayload to prevent repeated triggers
-      _setSubmitWithPayload({})
+      setTimeout(() => {
+        _setSubmitWithPayload({})
+      }, 0)
     } else if (action === 'stop') {
+      // Update the ref BEFORE processing to prevent re-triggers
+      previousSubmitWithPayloadRef.current = { ...currentValue }
+      
       // Stop the current submit/polling
       console.log('Triggering stop action')
       stopPolling()
+      
       // Reset the submitWithPayload to prevent repeated triggers
-      _setSubmitWithPayload({})
+      setTimeout(() => {
+        _setSubmitWithPayload({})
+      }, 0)
     } else {
       console.log('Unknown action or missing payload:', action, payload)
+      // Update the ref even for unknown actions
+      previousSubmitWithPayloadRef.current = { ...currentValue }
     }
   }, [submitWithPayload])
 
@@ -232,8 +245,6 @@ export const AiChatPlus: FC = () => {
   // Monitor queryResponse for status changes using useEffect to prevent infinite loops
   useEffect(() => {
     if (!queryResponse || Object.keys(queryResponse).length === 0) return
-
-    console.log('AAA queryResponse', queryResponse)
 
     // Update pagination tracking
     if (queryResponse.pagination && typeof queryResponse.pagination === 'object' && queryResponse.pagination !== null) {
@@ -426,7 +437,7 @@ export const AiChatPlus: FC = () => {
     _setAgentInputs({})
     
     // Set agent inputs for the query with initial system instructions and widget instructions
-    const widgetInstructions = getAllWidgetInstructions(widgetsEnabled as string[], widgetsOptions)
+    const widgetInstructions = getAllWidgetInstructions(widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
     const instructionMessage = {
       role: 'assistant' as const,
@@ -480,6 +491,12 @@ Return the response as JSON STRING with this mandatory schema:
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     _setWidgetPayload(safePayload as any)
     onWidgetCallback()
+
+    const { selfSubmit, prompt } = safePayload as { selfSubmit?: boolean; prompt?: string }
+    if (selfSubmit && prompt) {
+      console.log('safePayload', safePayload)
+      _setSubmitWithPayload({action: 'submit', payload: prompt})
+    }
   }
 
   // Handle approval actions

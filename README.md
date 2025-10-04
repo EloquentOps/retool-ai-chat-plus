@@ -1,6 +1,6 @@
-# AI Chat Plus - Custom Component Library
+# AI Chat Plus - Retool Custom Component
 
-A powerful custom component library for Retool that provides enhanced AI chat functionality with support for interactive widgets, rich content rendering, and seamless integration with AI agents.
+A powerful custom Chat component for Retool that provides enhanced AI chat functionality with support for rendering interactive widgets in the chat flow, rich content, and seamless integration with AI agents.
 
 ## Features
 
@@ -10,6 +10,113 @@ A powerful custom component library for Retool that provides enhanced AI chat fu
 - **Error Handling**: Comprehensive error handling with retry capabilities
 - **Customizable UI**: Configurable welcome messages, prompt chips, and styling options
 - **Real-time Updates**: Live status updates and message streaming
+
+## AI Agent Integration & Best Practices
+
+### Core Concept
+
+The AI Chat Plus component is designed to work seamlessly with Retool AI agents by injecting specialized prompt instructions that guide the LLM to respond with structured JSON containing specific widget parameters. This approach allows for rich, interactive content rendering while maintaining consistency and reliability.
+
+### How It Works
+
+1. **Prompt Injection**: The component automatically injects widget-specific instructions into your AI agent's prompt
+2. **JSON Response**: The LLM is guided to respond with structured JSON containing widget type and data
+3. **Widget Rendering**: The component parses the JSON response and renders the appropriate widget
+4. **User Interaction**: Widget interactions are captured and can trigger additional AI agent calls
+
+### LLM Model Compatibility
+
+**Recommended**: This component has been extensively tested with **OpenAI GPT-4.1** and shows the highest reliability and consistency in following widget instructions.
+
+**Alternative Models**: While the component can work with other LLM models, our testing shows reduced reliability in:
+- Following widget-specific instructions
+- Generating consistent JSON responses
+- Maintaining widget data structure integrity
+
+**Best Practice**: Use OpenAI GPT-4.1 for optimal results, especially in production environments.
+
+### Agent Architecture Best Practices
+
+#### 1. Specialized Agent Approach
+
+Instead of using many tools in a single agent, follow this pattern:
+
+```
+Chat Agent (Primary)
+├── Specialized for chat responses
+├── Uses widget instructions for rich content
+└── Delegates complex tasks to specialized agents
+
+Specialized Agents (Secondary)
+├── Focus on specific domains (get data and data processing)
+├── Can use different LLM models as needed
+├── Return results to chat agent for widget rendering
+└── Handle complex tool operations
+```
+
+#### 2. Agent Separation Strategy
+
+- **Chat Agent**: Handles conversation flow, widget responses, and user interaction
+- **Tool Agents**: Handle specific operations (data queries, API calls, complex processing)
+- **Result Integration**: Specialized agents return data that chat agent formats into widgets
+
+#### 3. Benefits of Specialized Agents
+
+- **Better Performance**: Each agent can be optimized for its specific task
+- **Model Flexibility**: Different agents can use different LLM models
+- **Error Isolation**: Failures in one agent don't affect the main chat experience
+- **Scalability**: Easy to add new specialized agents without affecting existing ones
+
+### Widget Instruction Customization
+
+Each widget includes customizable instructions that can be modified per widget for easy personalization:
+
+```javascript
+widgetsOptions: {
+  google_map: {
+    // Override default instructions
+    instructions: "Use this widget to display location-based information with interactive maps. Always include a brief description of the location and its significance.",
+    
+    // Add to existing instructions
+    addInstruction: "Include nearby points of interest when available",
+    
+    // Override expected data model
+    sourceDataModel: {
+      type: 'object',
+      properties: {
+        coordinates: { type: 'string', description: 'Latitude,longitude coordinates' },
+        title: { type: 'string', description: 'Location title' },
+        description: { type: 'string', description: 'Location description' }
+      }
+    }
+  }
+}
+```
+
+### Implementation Example
+
+```javascript
+// Chat Agent Configuration
+const chatAgent = {
+  model: "gpt-4",
+  systemPrompt: "You are a helpful assistant that can display rich content using widgets...",
+  // Widget instructions are automatically injected
+}
+
+// Specialized Data Agent
+const dataAgent = {
+  model: "gpt-4", // or gpt-3.5-turbo for cost optimization
+  tools: ["database", "api"],
+  systemPrompt: "You are a data analysis specialist..."
+}
+
+// Integration Flow
+1. User asks: "Show me sales data for Q1"
+2. Chat agent delegates to data agent
+3. Data agent processes request and returns structured data
+4. Chat agent formats response with appropriate widget
+5. Component renders interactive sales chart/grid
+```
 
 ## Available Widgets
 
@@ -115,11 +222,10 @@ Single image display with optional captions.
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `welcomeMessage` | string | "" | Welcome message displayed when chat is empty |
-| `widgetsEnabled` | array | [] | List of enabled widget types |
+| `widgetsOptions` | object | {} | Widget configuration options (keys determine enabled widgets, empty = only text widget) |
 | `promptChips` | array | [] | Suggested action chips for quick interactions |
 | `history` | array | [] | Chat message history |
 | `queryResponse` | object | {} | AI agent response data |
-| `widgetsOptions` | object | {} | Widget-specific configuration options |
 | `agentInputs` | object | {} | AI agent input parameters |
 | `widgetPayload` | object | {} | Widget interaction payload |
 | `submitWithPayload` | object | {} | Programmatic submit with payload |
@@ -173,13 +279,10 @@ npm run deploy
 
 ### Widget Configuration
 
-Enable specific widgets and configure their options:
+Configure specific widgets and their options. Only widgets with keys in `widgetsOptions` will be enabled (plus the text widget which is always enabled):
 
 ```javascript
-// Enable Google Maps and Image Grid widgets
-widgetsEnabled: ["google_map", "image_grid"]
-
-// Configure widget options
+// Configure widget options (keys determine enabled widgets)
 widgetsOptions: {
   google_map: {
     apiKey: "your_google_maps_api_key",
@@ -190,6 +293,9 @@ widgetsOptions: {
     maxImages: 6
   }
 }
+
+// Only text widget enabled (empty object)
+widgetsOptions: {}
 ```
 
 ### Prompt Chips
@@ -293,7 +399,7 @@ src/
 ### Common Issues
 
 1. **Google Maps not loading**: Ensure API key is properly configured
-2. **Widgets not rendering**: Check that widgets are enabled in `widgetsEnabled` array
+2. **Widgets not rendering**: Check that widgets are configured in `widgetsOptions` object
 3. **AI agent not responding**: Verify query connection and response format
 4. **Styling issues**: Check for CSS conflicts with Retool's default styles
 
