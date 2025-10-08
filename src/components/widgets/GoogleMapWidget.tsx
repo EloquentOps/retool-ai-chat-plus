@@ -3,7 +3,11 @@ import { type FC } from 'react'
 import { Loader } from '@googlemaps/js-api-loader'
 
 interface GoogleMapWidgetProps {
-  source: string
+  source: {
+    lat: number
+    lon: number
+    zoom?: number
+  }
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
 }
@@ -13,16 +17,15 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
   onWidgetCallback,
   widgetsOptions
 }) => {
-  // Get zoom level: prefer prop, then widgetsOptions, then default
-  const mapZoom = (widgetsOptions?.google_map as Record<string, unknown>)?.zoom as number || 
+  // Get zoom level: prefer source.zoom, then widgetsOptions, then default
+  const mapZoom = source?.zoom || 
+    (widgetsOptions?.google_map as Record<string, unknown>)?.zoom as number || 
     15
   
   // Get height: prefer widgetsOptions, then default
   const mapHeight = (widgetsOptions?.google_map as Record<string, unknown>)?.height as string || 
     '300px'
   
-  // Get center coordinates: prefer widgetsOptions, then use source
-  const mapCenter = (widgetsOptions?.google_map as Record<string, unknown>)?.center as [number, number] | undefined
   const _mapRef = useRef<HTMLDivElement>(null)
   const [_map, setMap] = useState<google.maps.Map | null>(null)
   const [_marker, setMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null)
@@ -67,8 +70,10 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
 
   useEffect(() => {
     const initializeMap = async () => {
-      if (!source) {
-        console.log('GoogleMapWidget: Missing location', { location: source })
+      if (!source || typeof source.lat !== 'number' || typeof source.lon !== 'number') {
+        console.log('GoogleMapWidget: Missing or invalid location data', { source })
+        setError('Invalid location data. Please provide lat and lon coordinates.')
+        setIsLoading(false)
         return
       }
 
@@ -84,7 +89,7 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
         // Get API key: prefer prop, then widgetsOptions, then window globals
         const mapsApiKey = (widgetsOptions?.google_map as Record<string, unknown>)?.apiKey as string
         
-        console.log('GoogleMapWidget: Initializing map', { location: source, mapsApiKey: !!mapsApiKey })
+        console.log('GoogleMapWidget: Initializing map', { source, mapsApiKey: !!mapsApiKey })
         
         if (!mapsApiKey) {
           const errorMsg = 'Google Maps API key is required. Please provide via apiKey prop, widgetsOptions.google_map.apiKey, or window.REACT_APP_GOOGLE_MAPS_API_KEY'
@@ -106,120 +111,41 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
         await loader.load()
         console.log('GoogleMapWidget: Google Maps API loaded successfully')
 
-        // Determine coordinates: prefer mapCenter from widgetsOptions, then parse source
-        let locationCoords: google.maps.LatLng
+        // Use coordinates from source object
+        const locationCoords = new google.maps.LatLng(source.lat, source.lon)
         
-        if (mapCenter && Array.isArray(mapCenter) && mapCenter.length === 2) {
-          // Use center from widgetsOptions
-          locationCoords = new google.maps.LatLng(mapCenter[0], mapCenter[1])
-        } else {
-          // Parse coordinates from source
-          const coordMatch = source.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/)
-          if (coordMatch) {
-            const lat = parseFloat(coordMatch[1])
-            const lng = parseFloat(coordMatch[2])
-            locationCoords = new google.maps.LatLng(lat, lng)
-          } else {
-            // Will be handled by geocoding below
-            locationCoords = new google.maps.LatLng(0, 0) // placeholder
-          }
-        }
-        
-        // If we have coordinates (either from mapCenter or parsed from source), create map directly
-        if (mapCenter || source.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/)) {
+        // Create map instance
+        const mapInstance = new google.maps.Map(containerEl, {
+          center: locationCoords,
+          zoom: mapZoom,
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          mapId: 'DEMO_MAP_ID', // Required for Advanced Markers
+          styles: [
+            { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+          ]
+        })
 
-          const mapInstance = new google.maps.Map(containerEl, {
-            center: locationCoords,
-            zoom: mapZoom,
-            mapTypeId: google.maps.MapTypeId.ROADMAP,
-            mapId: 'DEMO_MAP_ID', // Required for Advanced Markers
-            styles: [
-              { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
-            ]
-          })
+        // Create marker using AdvancedMarkerElement (recommended)
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary
+        const markerInstance = new AdvancedMarkerElement({
+          position: locationCoords,
+          map: mapInstance,
+          title: `Location: ${source.lat}, ${source.lon}`
+        })
 
-          // Create marker using AdvancedMarkerElement (recommended)
-          const { AdvancedMarkerElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary
-          const markerInstance = new AdvancedMarkerElement({
-            position: locationCoords,
-            map: mapInstance,
-            title: mapCenter ? `Custom Center: ${mapCenter[0]}, ${mapCenter[1]}` : source
-          })
+        const infoWindow = new google.maps.InfoWindow({
+          content: `<div style="padding: 8px;"><strong>Location</strong><br>Lat: ${source.lat}<br>Lon: ${source.lon}</div>`
+        })
+        markerInstance.addListener('click', () => infoWindow.open(mapInstance, markerInstance))
 
-          const infoWindow = new google.maps.InfoWindow({
-            content: `<div style="padding: 8px;"><strong>${mapCenter ? `Custom Center: ${mapCenter[0]}, ${mapCenter[1]}` : source}</strong></div>`
-          })
-          markerInstance.addListener('click', () => infoWindow.open(mapInstance, markerInstance))
+        // Listen for map changes (pan and zoom) with debouncing
+        mapInstance.addListener('center_changed', () => handleMapChangeDebounced(mapInstance))
+        mapInstance.addListener('zoom_changed', () => handleMapChangeDebounced(mapInstance))
 
-          // Listen for map changes (pan and zoom) with debouncing
-          mapInstance.addListener('center_changed', () => handleMapChangeDebounced(mapInstance))
-          mapInstance.addListener('zoom_changed', () => handleMapChangeDebounced(mapInstance))
-
-          console.log('GoogleMapWidget: Map created successfully (coords)')
-          setMap(mapInstance)
-          setMarker(markerInstance)
-          setIsLoading(false)
-        } else {
-          // Create geocoder instance
-          const geocoder = new google.maps.Geocoder()
-
-          // Geocode the location string to get coordinates
-          console.log('GoogleMapWidget: Geocoding location:', source)
-          geocoder.geocode({ address: source }, async (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
-            console.log('GoogleMapWidget: Geocoding result:', { status, resultsCount: results?.length })
-            
-            if (status === 'OK' && results && results[0]) {
-              const location_coords = results[0].geometry.location
-              console.log('GoogleMapWidget: Location coordinates:', location_coords.toString())
-
-              // Create map instance
-              const mapInstance = new google.maps.Map(containerEl, {
-                center: location_coords,
-                zoom: mapZoom,
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                mapId: 'DEMO_MAP_ID', // Required for Advanced Markers
-                styles: [
-                  {
-                    featureType: 'poi',
-                    elementType: 'labels',
-                    stylers: [{ visibility: 'off' }]
-                  }
-                ]
-              })
-
-              // Create marker using AdvancedMarkerElement (recommended)
-              const { AdvancedMarkerElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary
-              const markerInstance = new AdvancedMarkerElement({
-                position: location_coords,
-                map: mapInstance,
-                title: source
-              })
-
-              // Add info window
-              const infoWindow = new google.maps.InfoWindow({
-                content: `<div style=\"padding: 8px;\"><strong>${source}</strong></div>`
-              })
-
-              markerInstance.addListener('click', () => {
-                infoWindow.open(mapInstance, markerInstance)
-              })
-
-              // Listen for map changes (pan and zoom) with debouncing
-              mapInstance.addListener('center_changed', () => handleMapChangeDebounced(mapInstance))
-              mapInstance.addListener('zoom_changed', () => handleMapChangeDebounced(mapInstance))
-
-              console.log('GoogleMapWidget: Map created successfully')
-              setMap(mapInstance)
-              setMarker(markerInstance)
-              setIsLoading(false)
-            } else {
-              const errorMsg = `Geocoding failed: ${status}`
-              console.error('GoogleMapWidget:', errorMsg, { status, results })
-              setError(errorMsg)
-              setIsLoading(false)
-            }
-          })
-        }
+        console.log('GoogleMapWidget: Map created successfully')
+        setMap(mapInstance)
+        setMarker(markerInstance)
+        setIsLoading(false)
       } catch (err) {
         const errorMsg = `Failed to load Google Maps: ${err instanceof Error ? err.message : 'Unknown error'}`
         console.error('GoogleMapWidget: Error during initialization:', err)
@@ -229,7 +155,7 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
     }
 
     initializeMap()
-  }, [source, mapZoom, mapCenter, isRefReady])
+  }, [source, mapZoom, isRefReady])
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -283,6 +209,10 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
 // Export the instruction for this widget
 export const GoogleMapWidgetInstruction = {
   type: 'google_map',
-  instructions: 'Use this format when the user ask to show a map of a specific location. The source value should be the lat lon coordinates (e.g., "40.7128,-74.0060").',
-  sourceDataModel: 'string'
+  instructions: 'Use this widget when the user asks to show a map of a specific location. Provide coordinates as an object with lat and lon properties.',
+  sourceDataModel: {
+    lat: 'the latitude of the location (number)',
+    lon: 'the longitude of the location (number)', 
+    zoom: 'the optional zoom level of the map (number, default: 15)'
+  }
 }

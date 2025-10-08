@@ -1,13 +1,14 @@
 import React from 'react'
 import { type FC } from 'react'
 import { MessageList } from './MessageList'
-import { InputBar } from './InputBar'
+import { MentionsInputBar } from './MentionsInputBar'
 import { ErrorMessage } from './ErrorMessage'
 
 interface ChatContainerProps {
   messages: Array<{
     role: 'user' | 'assistant'
-    content: string | { type: string; source: string; [key: string]: unknown }
+    content: string | { type: string; source?: string; [key: string]: unknown }
+    hidden?: boolean // Optional flag to hide messages from display
   }>
   onSubmitQuery: (message: string) => void
   isLoading: boolean
@@ -38,7 +39,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onRetry,
   onDismissError
 }) => {
-  const isEmpty = messages.length === 0 && !isLoading
+  const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
+  const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && hasWelcomeContent
 
   return (
     <div style={{
@@ -78,11 +80,12 @@ export const ChatContainer: FC<ChatContainerProps> = ({
 
           {/* Centered input bar */}
           <div style={{ width: '100%', maxWidth: '720px' }}>
-            <InputBar 
+            <MentionsInputBar 
               onSubmitQuery={onSubmitQuery} 
               isLoading={isLoading} 
-              onStop={onStop}
+              onStop={onStop} 
               isCentered={true}
+              widgetsOptions={widgetsOptions}
             />
           </div>
 
@@ -140,7 +143,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             />
           )}
           <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={onWidgetCallback} widgetsOptions={widgetsOptions} />
-          <InputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} />
+          <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} />
         </>
       )}
     </div>

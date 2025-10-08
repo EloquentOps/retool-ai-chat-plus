@@ -4,7 +4,8 @@ import { MessageItem } from './MessageItem'
 
 interface Message {
   role: 'user' | 'assistant'
-  content: string | { type: string; source: string; [key: string]: unknown }
+  content: string | { type: string; source?: string; [key: string]: unknown }
+  hidden?: boolean // Optional flag to hide messages from display
 }
 
 interface MessageListProps {
@@ -22,6 +23,9 @@ export const MessageList: FC<MessageListProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Filter out hidden messages for display
+  const visibleMessages = messages.filter(message => !message.hidden)
+
   // Scroll to bottom when messages change or loading state changes
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -30,7 +34,7 @@ export const MessageList: FC<MessageListProps> = ({
         block: 'end'
       })
     }
-  }, [messages, isLoading])
+  }, [visibleMessages, isLoading])
 
   return (
     <div style={{
@@ -42,7 +46,7 @@ export const MessageList: FC<MessageListProps> = ({
       gap: '12px',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      {messages.length === 0 && !isLoading ? (
+      {visibleMessages.length === 0 && !isLoading ? (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -55,7 +59,7 @@ export const MessageList: FC<MessageListProps> = ({
         </div>
       ) : (
         <>
-          {messages.map((message, index) => (
+          {visibleMessages.map((message, index) => (
             <MessageItem
               key={index}
               message={message}

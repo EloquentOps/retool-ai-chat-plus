@@ -27,7 +27,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({ error, onRetry, onDismiss 
         <span>{error}</span>
       </div>
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button
+        {/* <button
           onClick={onRetry}
           style={{
             padding: '6px 12px',
@@ -48,7 +48,7 @@ export const ErrorMessage: FC<ErrorMessageProps> = ({ error, onRetry, onDismiss 
           }}
         >
           Retry
-        </button>
+        </button> */}
         <button
           onClick={onDismiss}
           style={{

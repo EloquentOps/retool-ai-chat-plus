@@ -113,17 +113,36 @@ export const AiChatPlus: FC = () => {
       return
     }
 
-    const { action, payload } = currentValue as { action?: string; payload?: string }
+    const { action, messages } = currentValue as { 
+      action?: string; 
+      messages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }> 
+    }
 
-    console.log('submitWithPayload action detected:', action, 'payload:', payload)
+    console.log('submitWithPayload action detected:', action, 'messages:', messages)
 
-    if (action === 'submit' && payload) {
+    if (action === 'submit' && messages && Array.isArray(messages) && messages.length > 0) {
       // Update the ref BEFORE processing to prevent re-triggers
       previousSubmitWithPayloadRef.current = { ...currentValue }
       
-      // Trigger submit with the provided payload
-      console.log('Triggering submit with payload:', payload)
-      onSubmitQueryCallback(payload)
+      // Process each message in the array
+      console.log('Triggering submit with messages:', messages)
+      
+      // Add all messages to history
+      const newMessages = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        ...(msg.hidden && { hidden: msg.hidden })
+      }))
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      _setHistory([...history, ...newMessages] as any)
+      
+      // If there are user messages, trigger the last one for processing
+      const userMessages = messages.filter(msg => msg.role === 'user')
+      if (userMessages.length > 0) {
+        const lastUserMessage = userMessages[userMessages.length - 1]
+        onSubmitQueryCallback(lastUserMessage.content)
+      }
       
       // Reset the submitWithPayload to prevent repeated triggers
       setTimeout(() => {
@@ -141,8 +160,48 @@ export const AiChatPlus: FC = () => {
       setTimeout(() => {
         _setSubmitWithPayload({})
       }, 0)
+    } else if (action === 'inject' && messages && Array.isArray(messages) && messages.length > 0) {
+      // Update the ref BEFORE processing to prevent re-triggers
+      previousSubmitWithPayloadRef.current = { ...currentValue }
+      
+      // Inject multiple hidden messages for context
+      console.log('Injecting hidden context messages:', messages)
+      const hiddenMessages = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        hidden: true // Flag to indicate these messages should not be displayed
+      }))
+      
+      // Add the hidden messages to history
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      _setHistory([...history, ...hiddenMessages] as any)
+      
+      // Reset the submitWithPayload to prevent repeated triggers
+      setTimeout(() => {
+        _setSubmitWithPayload({})
+      }, 0)
+    } else if (action === 'restore' && messages && Array.isArray(messages) && messages.length > 0) {
+      // Update the ref BEFORE processing to prevent re-triggers
+      previousSubmitWithPayloadRef.current = { ...currentValue }
+      
+      // Restore history with the provided messages
+      console.log('Restoring history with messages:', messages)
+      const restoredMessages = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        ...(msg.hidden && { hidden: msg.hidden })
+      }))
+      
+      // Replace the entire history with the restored messages
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      _setHistory(restoredMessages as any)
+      
+      // Reset the submitWithPayload to prevent repeated triggers
+      setTimeout(() => {
+        _setSubmitWithPayload({})
+      }, 0)
     } else {
-      console.log('Unknown action or missing payload:', action, payload)
+      console.log('Unknown action or missing messages:', action, messages)
       // Update the ref even for unknown actions
       previousSubmitWithPayloadRef.current = { ...currentValue }
     }
@@ -409,18 +468,32 @@ export const AiChatPlus: FC = () => {
   }
 
   // Function to normalize message content for agent input
-  // Uses standardized format: {type: "text", source: "content"}
-  const normalizeMessageForAgent = (message: { role: 'user' | 'assistant'; content: string | { type: string; source: string; [key: string]: unknown } }) => {
+  // Handles both string content and widget objects
+  const normalizeMessageForAgent = (message: { role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown } }) => {
     if (typeof message.content === 'string') {
       return message
     }
     
-    // Extract plain text from standardized JSON objects
-    const jsonContent = message.content as { type: string; source: string; [key: string]: unknown }
+    // Handle widget objects - extract plain text representation for the agent
+    const jsonContent = message.content as { type: string; source?: string; [key: string]: unknown }
+    
+    // If the object has a 'source' property, use it (standardized format)
+    if (jsonContent.source && typeof jsonContent.source === 'string') {
+      return {
+        role: message.role,
+        content: jsonContent.source
+      }
+    }
+    
+    // If the object doesn't have a 'source' property, it means the entire object IS the source data
+    // Convert it to a string representation that the agent can understand
+    // For widgets like Google Maps where the object itself contains the data (lat, lon, zoom, etc.)
+    const widgetType = jsonContent.type || 'widget'
+    const { type, ...widgetData } = jsonContent // Remove type from the data representation
     
     return {
       role: message.role,
-      content: jsonContent.source
+      content: `[Widget: ${widgetType}] ${JSON.stringify(widgetData)}`
     }
   }
 
@@ -454,6 +527,11 @@ export const AiChatPlus: FC = () => {
 ALWAYS RETURN THE RESPONSE AS JSON STRING:
 Return the response as JSON STRING with this mandatory schema: 
 {"type":"<type>", "source":"<answer formatted based on the type rules>"}.
+
+HOW TO SELECT THE TYPE DIFFERENT BY TEXT:
+If in the user question is present one of the available widget as mentioned TAG, such as @[GoogleMap](google_map), 
+then the type should be the widget type, (i.e. google_map).
+Otherwise, the type should be always "text".
 
 </TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
     }
@@ -495,7 +573,10 @@ Return the response as JSON STRING with this mandatory schema:
     const { selfSubmit, prompt } = safePayload as { selfSubmit?: boolean; prompt?: string }
     if (selfSubmit && prompt) {
       console.log('safePayload', safePayload)
-      _setSubmitWithPayload({action: 'submit', payload: prompt})
+      _setSubmitWithPayload({
+        action: 'submit', 
+        messages: [{ role: 'user', content: prompt }]
+      })
     }
   }
 
@@ -569,7 +650,7 @@ Return the response as JSON STRING with this mandatory schema:
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
         <ChatContainer
-          messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source: string; [key: string]: unknown } }>}
+          messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>}
           onSubmitQuery={onSubmitQueryCallback}
           isLoading={isLoading}
           onWidgetCallback={onWidgetCallbackHandler}

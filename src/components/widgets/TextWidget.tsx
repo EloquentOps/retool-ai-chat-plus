@@ -8,7 +8,16 @@ interface TextWidgetProps {
   widgetsOptions?: Record<string, unknown>
 }
 
+// Function to process special mention patterns like @[Image](image) to @Image in bold
+const processSpecialMentions = (text: string): string => {
+  // Match patterns like @[WidgetName](widget_type) and replace with **@WidgetName**
+  return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '**@$1**')
+}
+
 export const TextWidget: FC<TextWidgetProps> = ({ source }) => {
+  // Process the source text to handle special mentions
+  const processedSource = processSpecialMentions(source)
+  
   return (
     <div style={{
       fontSize: '14px',
@@ -17,7 +26,19 @@ export const TextWidget: FC<TextWidgetProps> = ({ source }) => {
       wordWrap: 'break-word',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      <ReactMarkdown>{source}</ReactMarkdown>
+      <style>
+        {`
+          .text-widget p:first-child {
+            margin-top: 0;
+          }
+          .text-widget p:last-child {
+            margin-bottom: 0;
+          }
+        `}
+      </style>
+      <div className="text-widget">
+        <ReactMarkdown>{processedSource}</ReactMarkdown>
+      </div>
     </div>
   )
 }

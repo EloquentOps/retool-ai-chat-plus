@@ -63,27 +63,38 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
 }
 
 // Generalized widget renderer function
-export const renderWidget = (content: { type: string; source: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void, widgetsOptions?: Record<string, unknown>) => {
+export const renderWidget = (content: { type: string; source?: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void, widgetsOptions?: Record<string, unknown>) => {
   const widgetConfig = WIDGET_REGISTRY[content.type]
   
   if (!widgetConfig || !widgetConfig.enabled) {
     // Fallback to text widget if widget type is not found or disabled
     const textConfig = WIDGET_REGISTRY.text
     return React.createElement(textConfig.component, { 
-      source: content.source,
+      source: content.source || JSON.stringify(content),
       onWidgetCallback,
       widgetsOptions
     })
   }
   
-  // Pass source and additional props directly to the widget
-  // Each widget is responsible for parsing and using the source value appropriately
-  const { source, ...otherContent } = content
+  // Handle two cases:
+  // 1. Standardized format: {type: "widget", source: "data"}
+  // 2. Direct format: {type: "widget", lat: 45.0703, lon: 7.6869, zoom: 15} (entire object is source)
+  const { type, source, ...otherContent } = content
+  
+  let widgetSource: string | object
+  
+  if (source !== undefined) {
+    // Case 1: Standardized format with explicit source property
+    widgetSource = source
+  } else {
+    // Case 2: Direct format - the entire object (minus type) is the source data
+    widgetSource = otherContent
+  }
+  
   const props = {
-    source,
+    source: widgetSource,
     onWidgetCallback,
-    widgetsOptions,
-    ...otherContent // Spread all other properties from content (excluding source)
+    widgetsOptions
   }
   
   return React.createElement(widgetConfig.component, props)
