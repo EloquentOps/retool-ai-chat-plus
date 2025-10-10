@@ -63,6 +63,7 @@ export const MessageList: FC<MessageListProps> = ({
             <MessageItem
               key={index}
               message={message}
+              messageIndex={index}
               onWidgetCallback={onWidgetCallback}
               widgetsOptions={widgetsOptions}
             />

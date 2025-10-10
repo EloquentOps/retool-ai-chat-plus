@@ -17,12 +17,14 @@ interface Message {
 
 interface MessageItemProps {
   message: Message
+  messageIndex: number
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
 }
 
 export const MessageItem: FC<MessageItemProps> = ({
   message,
+  messageIndex,
   onWidgetCallback,
   widgetsOptions
 }) => {
@@ -58,7 +60,7 @@ export const MessageItem: FC<MessageItemProps> = ({
       ) : (
         typeof message.content === 'string' 
           ? <TextWidget source={message.content} />
-          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions)
+          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, messageIndex)
       )}
     </div>
   )

@@ -6,6 +6,7 @@ interface TextWidgetProps {
   source: string
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
 }
 
 // Function to process special mention patterns like @[Image](image) to @Image in bold
@@ -14,7 +15,7 @@ const processSpecialMentions = (text: string): string => {
   return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '**@$1**')
 }
 
-export const TextWidget: FC<TextWidgetProps> = ({ source }) => {
+export const TextWidget: FC<TextWidgetProps> = ({ source, historyIndex }) => {
   // Process the source text to handle special mentions
   const processedSource = processSpecialMentions(source)
   

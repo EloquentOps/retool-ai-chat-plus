@@ -8,11 +8,13 @@ interface ConfirmWidgetProps {
   disabled?: boolean
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
 }
 
 export const ConfirmWidget: FC<ConfirmWidgetProps> = ({ 
   source, 
-  onWidgetCallback
+  onWidgetCallback,
+  historyIndex
 }) => {
   const [isHovered, setIsHovered] = useState(false)
   

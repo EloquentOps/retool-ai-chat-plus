@@ -7,6 +7,8 @@ import { GoogleMapWidget, GoogleMapWidgetInstruction } from './GoogleMapWidget'
 import { ConfirmWidget, ConfirmWidgetInstruction } from './ConfirmWidget'
 import { SelectorWidget, SelectorWidgetInstruction } from './SelectorWidget'
 import { ImageGridWidget, ImageGridWidgetInstruction } from './ImageGridWidget'
+import { TabulatorWidget, TabulatorWidgetInstruction } from './TabulatorWidget'
+import { InputWidget, InputWidgetInstruction } from './InputWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -59,11 +61,21 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     component: ImageGridWidget,
     instruction: ImageGridWidgetInstruction,
     enabled: true
+  },
+  tabulator: {
+    component: TabulatorWidget,
+    instruction: TabulatorWidgetInstruction,
+    enabled: true
+  },
+  input: {
+    component: InputWidget,
+    instruction: InputWidgetInstruction,
+    enabled: true
   }
 }
 
 // Generalized widget renderer function
-export const renderWidget = (content: { type: string; source?: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void, widgetsOptions?: Record<string, unknown>) => {
+export const renderWidget = (content: { type: string; source?: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void, widgetsOptions?: Record<string, unknown>, historyIndex?: number) => {
   const widgetConfig = WIDGET_REGISTRY[content.type]
   
   if (!widgetConfig || !widgetConfig.enabled) {
@@ -94,7 +106,8 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
   const props = {
     source: widgetSource,
     onWidgetCallback,
-    widgetsOptions
+    widgetsOptions,
+    historyIndex
   }
   
   return React.createElement(widgetConfig.component, props)

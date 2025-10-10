@@ -10,6 +10,7 @@ interface MentionsInputBarProps {
   onStop?: () => void
   isCentered?: boolean
   widgetsOptions?: Record<string, unknown>
+  placeholder?: string
 }
 
 interface WidgetData {
@@ -24,19 +25,24 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
   isLoading, 
   onStop, 
   isCentered = false,
-  widgetsOptions
+  widgetsOptions,
+  placeholder = "Type your message... (use @ to insert widgets)"
 }) => {
   const [inputValue, setInputValue] = useState('')
 
   // Convert widget registry to react-mentions format with useMemo
   const widgetData: WidgetData[] = useMemo(() => {
+    // Check if widgetsOptions is empty or only contains text widget
+    const isWidgetsOptionsEmpty = !widgetsOptions || Object.keys(widgetsOptions).length === 0
+    const isOnlyTextWidget = widgetsOptions && Object.keys(widgetsOptions).length === 1 && widgetsOptions.text !== undefined
+    
+    // If no widgets configured or only text widget, return empty array to disable mentions menu
+    if (isWidgetsOptionsEmpty || isOnlyTextWidget) {
+      return []
+    }
+    
     // Determine which widgets should be available based on widgetsOptions
-    const getAvailableWidgetTypes = (widgetsOptions?: Record<string, unknown>): string[] => {
-      // If no widgetsOptions provided or empty, only enable text widget
-      if (!widgetsOptions || Object.keys(widgetsOptions).length === 0) {
-        return ['text']
-      }
-      
+    const getAvailableWidgetTypes = (widgetsOptions: Record<string, unknown>): string[] => {
       // Get enabled widget types from widgetsOptions keys
       const enabledWidgetTypes = Object.keys(widgetsOptions)
       
@@ -103,16 +109,18 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
     }}>
       <form onSubmit={handleSubmit} style={{
         display: 'flex',
-        gap: '8px'
+        gap: '8px',
+        position: 'relative'
       }}>
         {/* Mentions Input */}
-        <div style={{ flex: 1 }}>
-          <MentionsInput
-            value={inputValue}
-            onChange={handleChange}
-            onKeyPress={handleKeyPress}
-            placeholder="Type your message... (use @ to insert widgets)"
-            singleLine={true}
+        <div style={{ flex: 1, position: 'relative' }}>
+            <MentionsInput
+              value={inputValue}
+              onChange={handleChange}
+              onKeyPress={handleKeyPress}
+              placeholder={placeholder}
+              singleLine={true}
+              forceSuggestionsAboveCursor={!isCentered}
             style={{
               control: {
                 backgroundColor: '#ffffff',

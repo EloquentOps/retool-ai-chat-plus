@@ -10,12 +10,14 @@ interface GoogleMapWidgetProps {
   }
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
 }
 
 export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({ 
   source, 
-  onWidgetCallback,
-  widgetsOptions
+  onWidgetCallback, 
+  widgetsOptions,
+  historyIndex 
 }) => {
   // Get zoom level: prefer source.zoom, then widgetsOptions, then default
   const mapZoom = source?.zoom || 
@@ -56,6 +58,8 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
       if (onWidgetCallback) {
         const center = mapInstance.getCenter()
         const zoom = mapInstance.getZoom()
+        
+        // Send regular callback for external event handling
         onWidgetCallback({
           type: 'google_map:changed',
           center: {
@@ -64,9 +68,22 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
           },
           zoom: zoom
         })
+        
+        // Send history update callback if historyIndex is available
+        if (typeof historyIndex === 'number') {
+          onWidgetCallback({
+            updateHistory: true,
+            historyIndex: historyIndex,
+            updatedSource: {
+              lat: center?.lat(),
+              lon: center?.lng(),
+              zoom: zoom
+            }
+          })
+        }
       }
     }, 750)
-  }, [onWidgetCallback])
+  }, [onWidgetCallback, historyIndex])
 
   useEffect(() => {
     const initializeMap = async () => {

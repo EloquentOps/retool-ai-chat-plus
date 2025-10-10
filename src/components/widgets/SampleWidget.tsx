@@ -5,10 +5,12 @@ interface SampleWidgetProps {
   source: string
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
 }
 
 export const SampleWidget: FC<SampleWidgetProps> = ({ 
-  source
+  source,
+  historyIndex
 }) => {
   return (
     <div style={{

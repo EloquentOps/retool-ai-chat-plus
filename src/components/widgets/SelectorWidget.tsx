@@ -8,13 +8,15 @@ interface SelectorWidgetProps {
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   defaultValue?: string
+  historyIndex?: number
 }
 
 export const SelectorWidget: FC<SelectorWidgetProps> = ({ 
   source,
   size = 'medium',
   onWidgetCallback,
-  defaultValue
+  defaultValue,
+  historyIndex
 }) => {
   // Parse the source to extract options and other properties
   const options: Array<{ value: string; label: string }> = source.options as Array<{ value: string; label: string }> || []
@@ -24,11 +26,24 @@ export const SelectorWidget: FC<SelectorWidgetProps> = ({
   const handleSelect = (value: string) => {
     if (onWidgetCallback) {
       const selectedOption = options.find((option: { value: string; label: string }) => option.value === value)
+      
+      // Send regular callback for external event handling
       onWidgetCallback({ 
         selectedValue: value,
         selectedLabel: selectedOption?.label || value,
         widgetType: 'selector:changed'
       })
+      
+      // Send history update callback if historyIndex is available
+      if (typeof historyIndex === 'number') {
+        onWidgetCallback({
+          updateHistory: true,
+          historyIndex: historyIndex,
+          updatedSource: {
+            selectedValue: value
+          }
+        })
+      }
     }
   }
   const [selectedValue, setSelectedValue] = useState<string>(parsedDefaultValue || '')
@@ -157,10 +172,10 @@ export const SelectorWidget: FC<SelectorWidgetProps> = ({
         role="combobox"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        aria-label={parsedPlaceholder}
+        aria-label={parsedPlaceholder as string}
       >
         <option value="">
-          {parsedPlaceholder}
+          {parsedPlaceholder as string}
         </option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -208,6 +223,7 @@ export const SelectorWidgetInstruction = {
         label: 'string',
         prompt: 'string'
       }
-    ]
+    ],
+    selectedValue: 'string'
   }
 }

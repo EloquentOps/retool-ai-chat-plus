@@ -9,6 +9,7 @@ declare module 'react-mentions' {
     singleLine?: boolean
     style?: Record<string, any>
     children: ReactNode
+    forceSuggestionsAboveCursor?: boolean
   }
 
   export interface MentionProps {

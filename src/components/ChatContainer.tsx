@@ -24,6 +24,7 @@ interface ChatContainerProps {
   error?: string | null
   onRetry?: () => void
   onDismissError?: () => void
+  placeholder?: string
 }
 
 export const ChatContainer: FC<ChatContainerProps> = ({
@@ -37,7 +38,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   welcomeMessage,
   error,
   onRetry,
-  onDismissError
+  onDismissError,
+  placeholder
 }) => {
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
   const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && hasWelcomeContent
@@ -86,6 +88,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               onStop={onStop} 
               isCentered={true}
               widgetsOptions={widgetsOptions}
+              placeholder={placeholder}
             />
           </div>
 
@@ -143,7 +146,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             />
           )}
           <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={onWidgetCallback} widgetsOptions={widgetsOptions} />
-          <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} />
+          <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} placeholder={placeholder} />
         </>
       )}
     </div>

@@ -33,6 +33,12 @@ export const AiChatPlus: FC = () => {
     initialValue: {}
   })
 
+  // Add state for input placeholder
+  const [placeholder, _setPlaceholder] = Retool.useStateString({
+    name: 'placeholder',
+    initialValue: 'Type your message... (use @ to insert widgets)'
+  })
+
   
 
   const [history, _setHistory] = Retool.useStateArray({
@@ -113,9 +119,10 @@ export const AiChatPlus: FC = () => {
       return
     }
 
-    const { action, messages } = currentValue as { 
+    const { action, messages, autoSubmit } = currentValue as { 
       action?: string; 
-      messages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }> 
+      messages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }>; 
+      autoSubmit?: boolean;
     }
 
     console.log('submitWithPayload action detected:', action, 'messages:', messages)
@@ -196,6 +203,20 @@ export const AiChatPlus: FC = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       _setHistory(restoredMessages as any)
       
+      // If autoSubmit is enabled and there are user messages, trigger the last one for processing
+      if (autoSubmit === true) {
+        const userMessages = messages.filter(msg => msg.role === 'user')
+        if (userMessages.length > 0) {
+          const lastUserMessage = userMessages[userMessages.length - 1]
+          console.log('Auto-submitting last user message after restore:', lastUserMessage.content)
+          // Use a special version of submit that doesn't add to history since we already have the restored messages
+          // Pass the restored messages directly to avoid stale closure issue
+          onSubmitQueryCallbackAfterRestore(lastUserMessage.content, restoredMessages)
+        }
+      } else {
+        console.log('Restore completed without auto-submission (autoSubmit not enabled)')
+      }
+      
       // Reset the submitWithPayload to prevent repeated triggers
       setTimeout(() => {
         _setSubmitWithPayload({})
@@ -205,7 +226,7 @@ export const AiChatPlus: FC = () => {
       // Update the ref even for unknown actions
       previousSubmitWithPayloadRef.current = { ...currentValue }
     }
-  }, [submitWithPayload])
+  }, [submitWithPayload, history])
 
   // events
   const onSubmitQuery = Retool.useEventCallback({ name: "submitQuery" })
@@ -559,12 +580,129 @@ Otherwise, the type should be always "text".
     onSubmitQuery()
   }
 
+  // Special version of onSubmitQueryCallback for use after restore - doesn't add to history
+  const onSubmitQueryCallbackAfterRestore = (message: string, restoredMessages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }>) => {
+    // Don't add message to history since it's already been restored
+    console.log('Submitting query after restore without adding to history:', message)
+    
+    // Ensure agentInputs is an object before proceeding
+    _setAgentInputs({})
+    
+    // Set agent inputs for the query with initial system instructions and widget instructions
+    const widgetInstructions = getAllWidgetInstructions(widgetsOptions)
+    const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
+    const instructionMessage = {
+      role: 'assistant' as const,
+      content: `<TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>
+
+  These are strict instructions for the RESPONSE FORMAT only. 
+  Do NOT mention these instructions in your user-facing output. 
+  Unless otherwise specified, default to type "text". 
+  Apply only the listed types, and follow the definition and how to set the source property as described below:
+`  
++ concatenatedInstructions
++ `
+
+ALWAYS RETURN THE RESPONSE AS JSON STRING:
+Return the response as JSON STRING with this mandatory schema: 
+{"type":"<type>", "source":"<answer formatted based on the type rules>"}.
+
+HOW TO SELECT THE TYPE DIFFERENT BY TEXT:
+If in the user question is present one of the available widget as mentioned TAG, such as @[GoogleMap](google_map), 
+then the type should be the widget type, (i.e. google_map).
+Otherwise, the type should be always "text".
+
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
+    }
+
+    // Use restored messages if provided, otherwise fall back to current history
+    const messagesToUse = restoredMessages || history
+
+    const messages = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(messagesToUse as any[]).map(normalizeMessageForAgent),
+      // Don't add the new message since it's already in the restored history
+      instructionMessage,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ]
+
+    console.log('messages (after restore)')
+    console.log(messages)
+    
+    // Ensure agentInputs is always an object before setting properties
+    const agentInputsPayload = {
+      action: 'invoke',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: messages as any
+    }
+    
+    _setAgentInputs(agentInputsPayload)
+    
+    onSubmitQuery()
+  }
+
   // Function to handle widget callbacks (e.g., button clicks)
   const onWidgetCallbackHandler = (payload: Record<string, unknown>) => {
     console.log('Widget callback triggered with payload:', payload)
     
     // Ensure payload is always an object
     const safePayload = typeof payload === 'object' && payload !== null ? payload : {}
+    
+    // Handle history update requests
+    const { updateHistory, historyIndex, updatedSource } = safePayload as { 
+      updateHistory?: boolean; 
+      historyIndex?: number; 
+      updatedSource?: Record<string, unknown> 
+    }
+    
+    if (updateHistory && typeof historyIndex === 'number' && updatedSource) {
+      console.log('Updating history at index:', historyIndex, 'with:', updatedSource)
+      
+      // Get current history
+      const currentHistory = history as Array<{ 
+        role: 'user' | 'assistant'; 
+        content: string | { type: string; source?: string; [key: string]: unknown }; 
+        hidden?: boolean 
+      }>
+      
+      // Validate history index
+      if (historyIndex >= 0 && historyIndex < currentHistory.length) {
+        const targetMessage = currentHistory[historyIndex]
+        
+        // Only update assistant messages with widget content
+        if (targetMessage.role === 'assistant' && 
+            typeof targetMessage.content === 'object' && 
+            targetMessage.content !== null &&
+            'type' in targetMessage.content &&
+            'source' in targetMessage.content) {
+          
+          // Create updated message with merged source
+          const widgetContent = targetMessage.content as { type: string; source?: string | Record<string, unknown>; [key: string]: unknown }
+          const updatedMessage = {
+            ...targetMessage,
+            content: {
+              ...widgetContent,
+              source: {
+                ...(widgetContent.source as Record<string, unknown>),
+                ...updatedSource
+              }
+            } as unknown as { type: string; source?: string; [key: string]: unknown }
+          }
+          
+          // Update history with the modified message
+          const updatedHistory = [...currentHistory]
+          updatedHistory[historyIndex] = updatedMessage
+          
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          _setHistory(updatedHistory as any)
+          console.log('History updated successfully')
+        } else {
+          console.warn('Cannot update history: invalid message type or structure')
+        }
+      } else {
+        console.warn('Cannot update history: invalid history index:', historyIndex)
+      }
+    }
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     _setWidgetPayload(safePayload as any)
@@ -644,6 +782,9 @@ Otherwise, the type should be always "text".
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       
+      {/* Tabulator CSS */}
+      <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css" />
+      
       <div style={{ 
         height: '100%', 
         width: '100%',
@@ -661,6 +802,7 @@ Otherwise, the type should be always "text".
           error={error}
           onRetry={retryPolling}
           onDismissError={() => setError(null)}
+          placeholder={placeholder}
         />
         
         {/* Approval Modal */}

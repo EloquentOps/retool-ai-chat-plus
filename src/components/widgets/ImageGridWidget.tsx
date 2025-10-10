@@ -10,11 +10,13 @@ interface ImageGridWidgetProps {
   source: ImageItem[]
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
 }
 
 export const ImageGridWidget: FC<ImageGridWidgetProps> = ({ 
   source, 
-  onWidgetCallback 
+  onWidgetCallback,
+  historyIndex 
 }) => {
   const handleImageClick = (imageItem: ImageItem, index: number) => {
     if (onWidgetCallback) {

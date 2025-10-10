@@ -8,7 +8,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
-    "react-mentions": "^4.4.10"
+    "react-mentions": "^4.4.10",
+    "tabulator-tables": "^6.3.1"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@types/google.maps": "^3.58.1",
     "@types/react": "^18.2.55",
+    "@types/tabulator-tables": "^6.2.11",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
     "eslint": "^8.57.0",
@@ -40,9 +42,9 @@
     "prettier": "^3.0.3"
   },
   "retoolCustomComponentLibraryConfig": {
-    "name": "AIChatPlus",
-    "label": "AI Chat Plus",
-    "description": "AI Chat Plus",
+    "name": "AiChatPlus",
+    "label": "Ai Chat Plus",
+    "description": "Ai Chat Plus",
     "entryPoint": "src/index.tsx",
     "outputPath": "dist"
   }

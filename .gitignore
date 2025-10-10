@@ -14,3 +14,4 @@ retool-custom-component-manifest.json
 .env
 dumps
 widgets_wip
+.DS_Store

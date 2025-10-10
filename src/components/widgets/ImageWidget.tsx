@@ -8,13 +8,15 @@ interface ImageWidgetProps {
   height?: number
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
 }
 
 export const ImageWidget: FC<ImageWidgetProps> = ({ 
   source, 
   alt = '', 
   width, 
-  height 
+  height,
+  historyIndex 
 }) => {
   const [isZoomed, setIsZoomed] = useState(false)
 
