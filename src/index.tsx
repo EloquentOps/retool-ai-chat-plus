@@ -33,6 +33,12 @@ export const AiChatPlus: FC = () => {
     initialValue: {}
   })
 
+  // Add state for tools configuration
+  const [tools, _setTools] = Retool.useStateObject({
+    name: 'tools',
+    initialValue: {}
+  })
+
   // Add state for input placeholder
   const [placeholder, _setPlaceholder] = Retool.useStateString({
     name: 'placeholder',
@@ -69,6 +75,9 @@ export const AiChatPlus: FC = () => {
   
   // Ref to track previous submitWithPayload value to prevent multiple triggers
   const previousSubmitWithPayloadRef = useRef<Record<string, unknown>>({})
+  
+  // Ref to track if auto-submit is currently in progress to prevent duplicate triggers
+  const autoSubmitInProgressRef = useRef<boolean>(false)
   
   // Local state for loading, error, and current agentRunId
   const [isLoading, setIsLoading] = useState(false)
@@ -110,7 +119,10 @@ export const AiChatPlus: FC = () => {
     // Deep comparison to check if values are different
     const hasChanged = JSON.stringify(currentValue) !== JSON.stringify(previousValue)
     
-    if (!hasChanged) return
+    if (!hasChanged) {
+      console.log('submitWithPayload unchanged, skipping processing')
+      return
+    }
     
     // Only proceed if there's actual content
     if (Object.keys(currentValue).length === 0) {
@@ -126,6 +138,7 @@ export const AiChatPlus: FC = () => {
     }
 
     console.log('submitWithPayload action detected:', action, 'messages:', messages)
+    console.log('autoSubmit extracted from currentValue:', autoSubmit, 'type:', typeof autoSubmit)
 
     if (action === 'submit' && messages && Array.isArray(messages) && messages.length > 0) {
       // Update the ref BEFORE processing to prevent re-triggers
@@ -188,6 +201,14 @@ export const AiChatPlus: FC = () => {
         _setSubmitWithPayload({})
       }, 0)
     } else if (action === 'restore' && messages && Array.isArray(messages) && messages.length > 0) {
+      // Check if we're already processing a restore action
+      if (autoSubmitInProgressRef.current) {
+        console.log('Restore action skipped: auto-submit already in progress')
+        // Update the ref to prevent re-triggers
+        previousSubmitWithPayloadRef.current = { ...currentValue }
+        return
+      }
+      
       // Update the ref BEFORE processing to prevent re-triggers
       previousSubmitWithPayloadRef.current = { ...currentValue }
       
@@ -204,17 +225,30 @@ export const AiChatPlus: FC = () => {
       _setHistory(restoredMessages as any)
       
       // If autoSubmit is enabled and there are user messages, trigger the last one for processing
+      console.log('autoSubmit value in restore action:', autoSubmit, 'type:', typeof autoSubmit)
       if (autoSubmit === true) {
         const userMessages = messages.filter(msg => msg.role === 'user')
         if (userMessages.length > 0) {
           const lastUserMessage = userMessages[userMessages.length - 1]
+          
+          // Check if auto-submit is already in progress or if we're already loading
+          if (autoSubmitInProgressRef.current || isLoading) {
+            console.log('Auto-submit skipped: already in progress or loading state active')
+            return
+          }
+          
+          // Set the flag to prevent duplicate triggers
+          autoSubmitInProgressRef.current = true
           console.log('Auto-submitting last user message after restore:', lastUserMessage.content)
+          
           // Use a special version of submit that doesn't add to history since we already have the restored messages
           // Pass the restored messages directly to avoid stale closure issue
           onSubmitQueryCallbackAfterRestore(lastUserMessage.content, restoredMessages)
         }
       } else {
         console.log('Restore completed without auto-submission (autoSubmit not enabled)')
+        // Reset the auto-submit flag since we're not auto-submitting
+        autoSubmitInProgressRef.current = false
       }
       
       // Reset the submitWithPayload to prevent repeated triggers
@@ -453,9 +487,6 @@ export const AiChatPlus: FC = () => {
       if (aiResponse) {
         let parsedContent: string | { type: string; [key: string]: unknown }
         
-        console.log('aiResponse')
-        console.log(aiResponse)
-
         try {
           // Try to parse as JSON first
           const jsonResponse = JSON.parse(aiResponse as string)
@@ -488,6 +519,43 @@ export const AiChatPlus: FC = () => {
     }
   }
 
+  // Function to extract mentions from a message
+  const extractMentions = (message: string): Array<{ display: string; key: string }> => {
+    const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
+    const mentions: Array<{ display: string; key: string }> = []
+    let match
+    
+    while ((match = mentionRegex.exec(message)) !== null) {
+      mentions.push({
+        display: match[1],
+        key: match[2]
+      })
+    }
+    
+    return mentions
+  }
+
+  // Function to generate tool call instructions based on detected tool mentions
+  const generateToolCallInstructions = (message: string, toolsConfig: Record<string, { tool: string; description: string }>): string => {
+    const mentions = extractMentions(message)
+    const toolMentions = mentions.filter(mention => toolsConfig[mention.key])
+    
+    if (toolMentions.length === 0) {
+      return ''
+    }
+    
+    const instructions = toolMentions.map(mention => {
+      const toolConfig = toolsConfig[mention.key]
+      return `- If the tag [${mention.display}](${mention.key}) is present, use the tool ${toolConfig.tool} for your answer.`
+    }).join('\n')
+    
+    return `<DIRECT_TOOL_CALL_INSTRUCTION>
+
+${instructions}
+
+</DIRECT_TOOL_CALL_INSTRUCTION>`
+  }
+
   // Function to normalize message content for agent input
   // Handles both string content and widget objects
   const normalizeMessageForAgent = (message: { role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown } }) => {
@@ -514,7 +582,7 @@ export const AiChatPlus: FC = () => {
     
     return {
       role: message.role,
-      content: `[Widget: ${widgetType}] ${JSON.stringify(widgetData)}`
+      content: `[${widgetType}] ${JSON.stringify(widgetData)}`
     }
   }
 
@@ -533,6 +601,7 @@ export const AiChatPlus: FC = () => {
     // Set agent inputs for the query with initial system instructions and widget instructions
     const widgetInstructions = getAllWidgetInstructions(widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
+    const toolCallInstructions = generateToolCallInstructions(message, tools as Record<string, { tool: string; description: string }>)
     const instructionMessage = {
       role: 'assistant' as const,
       content: `<TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>
@@ -554,7 +623,7 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>${toolCallInstructions}`
     }
 
     const messages = [
@@ -591,6 +660,7 @@ Otherwise, the type should be always "text".
     // Set agent inputs for the query with initial system instructions and widget instructions
     const widgetInstructions = getAllWidgetInstructions(widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
+    const toolCallInstructions = generateToolCallInstructions(message, tools as Record<string, { tool: string; description: string }>)
     const instructionMessage = {
       role: 'assistant' as const,
       content: `<TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>
@@ -612,7 +682,7 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>${toolCallInstructions}`
     }
 
     // Use restored messages if provided, otherwise fall back to current history
@@ -639,6 +709,12 @@ Otherwise, the type should be always "text".
     _setAgentInputs(agentInputsPayload)
     
     onSubmitQuery()
+    
+    // Reset the auto-submit flag after a short delay to allow the query to start
+    setTimeout(() => {
+      autoSubmitInProgressRef.current = false
+      console.log('Auto-submit flag reset')
+    }, 1000) // 1 second delay to ensure query has started
   }
 
   // Function to handle widget callbacks (e.g., button clicks)
@@ -798,6 +874,7 @@ Otherwise, the type should be always "text".
           onStop={stopPolling}
           promptChips={promptChips as Array<{ icon: string; label: string; question: string }>}
           widgetsOptions={widgetsOptions as Record<string, unknown>}
+          tools={tools as Record<string, { tool: string; description: string }>}
           welcomeMessage={welcomeMessage}
           error={error}
           onRetry={retryPolling}

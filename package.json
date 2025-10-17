@@ -15,6 +15,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "login": "npx retool-ccl login",
     "dev": "npx retool-ccl dev",
     "deploy": "npx retool-ccl deploy"
   },

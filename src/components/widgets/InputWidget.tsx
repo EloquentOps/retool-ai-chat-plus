@@ -173,7 +173,7 @@ export const InputWidget: FC<InputWidgetProps> = ({
         marginTop: '8px',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        Press Enter to submit
+        Press Enter to confirm
       </div>
     </div>
   )
@@ -182,9 +182,10 @@ export const InputWidget: FC<InputWidgetProps> = ({
 // Export the instruction for this widget
 export const InputWidgetInstruction = {
   type: 'input',
-  instructions: 'Use this widget when the user needs to input text with validation. The widget provides real-time validation feedback, updates history on every change, and submits the value when Enter is pressed.',
+  instructions: 'Use this when the user needs to input some value with specific validation.',
   sourceDataModel: {
     value: 'string',
+    placeholder: 'string (optional) - placeholder for the input field',
     validationRegex: 'string (optional) - regex pattern for validation',
     validMessage: 'string (optional) - message shown when input is valid',
     invalidMessage: 'string (optional) - message shown when input is invalid',

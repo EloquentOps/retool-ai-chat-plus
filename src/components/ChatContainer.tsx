@@ -19,7 +19,8 @@ interface ChatContainerProps {
     label: string
     question: string
   }>
-  widgetsOptions?: Record<string, any>
+  widgetsOptions?: Record<string, unknown>
+  tools?: Record<string, { tool: string; description: string }>
   welcomeMessage?: string
   error?: string | null
   onRetry?: () => void
@@ -35,6 +36,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onStop,
   promptChips = [],
   widgetsOptions,
+  tools,
   welcomeMessage,
   error,
   onRetry,
@@ -88,6 +90,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               onStop={onStop} 
               isCentered={true}
               widgetsOptions={widgetsOptions}
+              tools={tools}
               placeholder={placeholder}
             />
           </div>
@@ -146,7 +149,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             />
           )}
           <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={onWidgetCallback} widgetsOptions={widgetsOptions} />
-          <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} placeholder={placeholder} />
+          <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} />
         </>
       )}
     </div>

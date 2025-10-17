@@ -10,13 +10,14 @@ interface MentionsInputBarProps {
   onStop?: () => void
   isCentered?: boolean
   widgetsOptions?: Record<string, unknown>
+  tools?: Record<string, { tool: string; description: string }>
   placeholder?: string
 }
 
 interface WidgetData {
   id: string
   display: string
-  description: string
+  description?: string
 }
 
 
@@ -26,40 +27,57 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
   onStop, 
   isCentered = false,
   widgetsOptions,
+  tools,
   placeholder = "Type your message... (use @ to insert widgets)"
 }) => {
   const [inputValue, setInputValue] = useState('')
 
-  // Convert widget registry to react-mentions format with useMemo
+  // Convert widget registry and tools to react-mentions format with useMemo
   const widgetData: WidgetData[] = useMemo(() => {
+    const mentionData: WidgetData[] = []
+    
+    // Add widgets
     // Check if widgetsOptions is empty or only contains text widget
     const isWidgetsOptionsEmpty = !widgetsOptions || Object.keys(widgetsOptions).length === 0
     const isOnlyTextWidget = widgetsOptions && Object.keys(widgetsOptions).length === 1 && widgetsOptions.text !== undefined
     
-    // If no widgets configured or only text widget, return empty array to disable mentions menu
-    if (isWidgetsOptionsEmpty || isOnlyTextWidget) {
-      return []
-    }
-    
-    // Determine which widgets should be available based on widgetsOptions
-    const getAvailableWidgetTypes = (widgetsOptions: Record<string, unknown>): string[] => {
-      // Get enabled widget types from widgetsOptions keys
-      const enabledWidgetTypes = Object.keys(widgetsOptions)
-      
-      // Always include text widget regardless of widgetsOptions keys
-      return [...new Set(['text', ...enabledWidgetTypes])]
-    }
+    // If widgets are configured and not just text widget, add them
+    if (!isWidgetsOptionsEmpty && !isOnlyTextWidget) {
+      // Determine which widgets should be available based on widgetsOptions
+      const getAvailableWidgetTypes = (widgetsOptions: Record<string, unknown>): string[] => {
+        // Get enabled widget types from widgetsOptions keys
+        const enabledWidgetTypes = Object.keys(widgetsOptions)
+        
+        // Always include text widget regardless of widgetsOptions keys
+        return [...new Set(['text', ...enabledWidgetTypes])]
+      }
 
-    const availableWidgetTypes = getAvailableWidgetTypes(widgetsOptions)
+      const availableWidgetTypes = getAvailableWidgetTypes(widgetsOptions)
+      
+      const widgetMentions = Object.entries(WIDGET_REGISTRY)
+        .filter(([key, config]) => config.enabled && availableWidgetTypes.includes(key))
+        .map(([key, config]) => ({
+          id: key,
+          display: 'Widget: ' + formatWidgetDisplayName(key),
+          description: config.instruction.instructions || 'Widget description not available'
+        }))
+      
+      mentionData.push(...widgetMentions)
+    }
     
-    return Object.entries(WIDGET_REGISTRY)
-      .filter(([key, config]) => config.enabled && availableWidgetTypes.includes(key))
-      .map(([key, config]) => ({
+    // Add tools
+    if (tools && Object.keys(tools).length > 0) {
+      const toolMentions = Object.entries(tools).map(([key, toolConfig]) => ({
         id: key,
-        display: formatWidgetDisplayName(key),
-        description: config.instruction.instructions
+        display: 'Tool: ' + key.charAt(0).toUpperCase() + key.slice(1), // Capitalize first letter
+        description: toolConfig.description || ''
       }))
-  }, [widgetsOptions])
+      
+      mentionData.push(...toolMentions)
+    }
+    
+    return mentionData
+  }, [widgetsOptions, tools])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -233,9 +251,9 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
                     color: '#888',
                     lineHeight: '1.4'
                   }}>
-                    {entry.description.length > 80 
+                    {entry.description && entry.description.length > 80 
                       ? entry.description.substring(0, 80) + '...' 
-                      : entry.description
+                      : entry.description || 'No description available'
                     }
                   </div>
                 </div>

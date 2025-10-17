@@ -55,7 +55,7 @@ export const MessageList: FC<MessageListProps> = ({
           color: '#666',
           fontSize: '14px'
         }}>
-          Start a conversation...
+          
         </div>
       ) : (
         <>
