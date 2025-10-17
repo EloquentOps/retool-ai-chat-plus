@@ -8,10 +8,92 @@ interface InputWidgetProps {
     validMessage?: string
     invalidMessage?: string
     initialValue?: string
+    inputType?: 'text' | 'email' | 'number' | 'date' | 'datetime-local' | 'time' | 'url' | 'tel' | 'password'
+    fieldName?: string
+    min?: number
+    max?: number
+    step?: number
   }
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   historyIndex?: number
+}
+
+// Helper function to detect input type based on field name or placeholder
+const detectInputType = (fieldName?: string, placeholder?: string): string => {
+  const text = `${fieldName || ''} ${placeholder || ''}`.toLowerCase()
+  
+  if (text.includes('email') || text.includes('mail')) return 'email'
+  if (text.includes('phone') || text.includes('tel') || text.includes('mobile')) return 'tel'
+  if (text.includes('url') || text.includes('website') || text.includes('link')) return 'url'
+  if (text.includes('password') || text.includes('pass')) return 'password'
+  if (text.includes('date') && !text.includes('time')) return 'date'
+  if (text.includes('time') && !text.includes('date')) return 'time'
+  if (text.includes('datetime') || (text.includes('date') && text.includes('time'))) return 'datetime-local'
+  if (text.includes('number') || text.includes('amount') || text.includes('quantity') || text.includes('count')) return 'number'
+  
+  return 'text'
+}
+
+// Helper function to validate input based on type
+const validateByType = (value: string, inputType: string): { isValid: boolean; message: string } => {
+  if (!value) return { isValid: true, message: '' }
+  
+  switch (inputType) {
+    case 'email':
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      return {
+        isValid: emailRegex.test(value),
+        message: emailRegex.test(value) ? 'Valid email address' : 'Please enter a valid email address'
+      }
+    
+    case 'url':
+      try {
+        new URL(value)
+        return { isValid: true, message: 'Valid URL' }
+      } catch {
+        return { isValid: false, message: 'Please enter a valid URL' }
+      }
+    
+    case 'tel':
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/
+      const cleanPhone = value.replace(/[\s\-\(\)]/g, '')
+      return {
+        isValid: phoneRegex.test(cleanPhone),
+        message: phoneRegex.test(cleanPhone) ? 'Valid phone number' : 'Please enter a valid phone number'
+      }
+    
+    case 'number':
+      const numValue = parseFloat(value)
+      if (isNaN(numValue)) {
+        return { isValid: false, message: 'Please enter a valid number' }
+      }
+      return { isValid: true, message: 'Valid number' }
+    
+    case 'date':
+      const date = new Date(value)
+      return {
+        isValid: !isNaN(date.getTime()),
+        message: !isNaN(date.getTime()) ? 'Valid date' : 'Please enter a valid date'
+      }
+    
+    case 'time':
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/
+      return {
+        isValid: timeRegex.test(value),
+        message: timeRegex.test(value) ? 'Valid time' : 'Please enter a valid time (HH:MM or HH:MM:SS)'
+      }
+    
+    case 'datetime-local':
+      const dateTime = new Date(value)
+      return {
+        isValid: !isNaN(dateTime.getTime()),
+        message: !isNaN(dateTime.getTime()) ? 'Valid date and time' : 'Please enter a valid date and time'
+      }
+    
+    default:
+      return { isValid: true, message: '' }
+  }
 }
 
 const InputWidgetComponent: FC<InputWidgetProps> = ({ 
@@ -26,14 +108,24 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         validationRegex: '', 
         validMessage: 'Valid input', 
         invalidMessage: 'Invalid input',
-        initialValue: ''
+        initialValue: '',
+        inputType: detectInputType(undefined, source),
+        fieldName: undefined,
+        min: undefined,
+        max: undefined,
+        step: undefined
       }
     : {
         placeholder: source.placeholder || 'Enter text...',
         validationRegex: source.validationRegex || '',
         validMessage: source.validMessage || 'Valid input',
         invalidMessage: source.invalidMessage || 'Invalid input',
-        initialValue: source.initialValue || ''
+        initialValue: source.initialValue || '',
+        inputType: source.inputType || detectInputType(source.fieldName, source.placeholder),
+        fieldName: source.fieldName,
+        min: source.min,
+        max: source.max,
+        step: source.step
       }
 
   const [inputValue, setInputValue] = useState(sourceData.initialValue)
@@ -42,26 +134,47 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
 
   // Validate input whenever it changes
   useEffect(() => {
-    if (sourceData.validationRegex && inputValue !== '') {
+    if (inputValue === '') {
+      // Reset validation state when input is empty
+      setIsValid(null)
+      setValidationMessage('')
+      return
+    }
+
+    // First, validate by input type
+    const typeValidation = validateByType(inputValue, sourceData.inputType)
+    
+    // If custom regex is provided, also validate with that
+    if (sourceData.validationRegex) {
       try {
         const regex = new RegExp(sourceData.validationRegex)
-        const valid = regex.test(inputValue)
-        setIsValid(valid)
-        setValidationMessage(valid ? sourceData.validMessage : sourceData.invalidMessage)
+        const regexValid = regex.test(inputValue)
         
+        // Both type and regex validation must pass
+        const finalValid = typeValidation.isValid && regexValid
+        setIsValid(finalValid)
+        
+        if (finalValid) {
+          setValidationMessage(sourceData.validMessage || typeValidation.message)
+        } else {
+          // Show the more specific error message
+          if (!typeValidation.isValid) {
+            setValidationMessage(typeValidation.message)
+          } else {
+            setValidationMessage(sourceData.invalidMessage)
+          }
+        }
       } catch (error) {
         // Invalid regex pattern
         setIsValid(false)
         setValidationMessage('Invalid regex pattern')
-        
       }
-    } else if (inputValue === '') {
-      // Reset validation state when input is empty
-      setIsValid(null)
-      setValidationMessage('')
-     
+    } else {
+      // Only use type-based validation
+      setIsValid(typeValidation.isValid)
+      setValidationMessage(typeValidation.message)
     }
-  }, [inputValue, sourceData.validationRegex, sourceData.validMessage, sourceData.invalidMessage, onWidgetCallback])
+  }, [inputValue, sourceData.validationRegex, sourceData.validMessage, sourceData.invalidMessage, sourceData.inputType])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
@@ -76,13 +189,17 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         onWidgetCallback({
           type: 'input:submitted',
           value: inputValue,
+          inputType: sourceData.inputType,
+          fieldName: sourceData.fieldName,
           isValid: isValid,
           validationMessage: validationMessage,
           selfSubmit: true,
           updateHistory: true,
           historyIndex: _historyIndex,
           updatedSource: {
-            value: inputValue
+            value: inputValue,
+            inputType: sourceData.inputType,
+            fieldName: sourceData.fieldName
           }
         })
       }
@@ -148,7 +265,7 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
   return (
     <div style={{ width: '100%', maxWidth: '400px' }}>
       <input
-        type="text"
+        type={sourceData.inputType}
         value={inputValue}
         onChange={handleInputChange}
         onKeyPress={handleKeyPress}
@@ -156,6 +273,9 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         style={getInputStyles()}
         aria-label={sourceData.placeholder}
         aria-describedby={validationMessage ? 'validation-message' : undefined}
+        min={sourceData.min !== undefined ? sourceData.min : undefined}
+        max={sourceData.max !== undefined ? sourceData.max : undefined}
+        step={sourceData.step !== undefined ? sourceData.step : undefined}
       />
       {validationMessage && (
         <div 
@@ -173,7 +293,6 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         marginTop: '8px',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        Press Enter to confirm
       </div>
     </div>
   )
@@ -182,14 +301,18 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
 // Export the instruction for this widget
 export const InputWidgetInstruction = {
   type: 'input',
-  instructions: 'Use this when the user needs to input some value with specific validation.',
+  instructions: 'Use this when the user needs to input some value. The widget automatically detects input type based on field name or placeholder, but you can also specify it explicitly. Supports text, email, number, date, time, datetime-local, url, tel, and password input types with built-in validation.',
   sourceDataModel: {
-    value: 'string',
     placeholder: 'string (optional) - placeholder for the input field',
-    validationRegex: 'string (optional) - regex pattern for validation',
+    inputType: 'string (optional) - one of: text, email, number, date, datetime-local, time, url, tel, password. If not specified, will be auto-detected from fieldName or placeholder',
+    fieldName: 'string (optional) - name of the field (used for auto-detection of input type)',
+    validationRegex: 'string (optional) - regex pattern for additional validation (combined with type validation)',
     validMessage: 'string (optional) - message shown when input is valid',
     invalidMessage: 'string (optional) - message shown when input is invalid',
-    initialValue: 'string (optional) - initial value for the input field'
+    initialValue: 'string (optional) - initial value for the input field',
+    min: 'number (optional) - minimum value for number/date inputs',
+    max: 'number (optional) - maximum value for number/date inputs',
+    step: 'number (optional) - step value for number inputs'
   }
 }
 
