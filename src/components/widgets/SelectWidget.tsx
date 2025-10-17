@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { type FC } from 'react'
 
-interface SelectorWidgetProps {
+interface SelectWidgetProps {
   source: Record<string, unknown>
   placeholder?: string
   size?: 'small' | 'medium' | 'large'
@@ -11,7 +11,7 @@ interface SelectorWidgetProps {
   historyIndex?: number
 }
 
-export const SelectorWidget: FC<SelectorWidgetProps> = ({ 
+const SelectWidgetComponent: FC<SelectWidgetProps> = ({ 
   source,
   size = 'medium',
   onWidgetCallback,
@@ -31,7 +31,7 @@ export const SelectorWidget: FC<SelectorWidgetProps> = ({
       onWidgetCallback({ 
         selectedValue: value,
         selectedLabel: selectedOption?.label || value,
-        widgetType: 'selector:changed'
+        widgetType: 'select:changed'
       })
       
       // Send history update callback if historyIndex is available
@@ -211,8 +211,8 @@ export const SelectorWidget: FC<SelectorWidgetProps> = ({
 }
 
 // Export the instruction for this widget
-export const SelectorWidgetInstruction = {
-  type: 'selector',
+export const SelectWidgetInstruction = {
+  type: 'select',
   instructions: `Use this widget when the user is asked to select an option from a given predefined list. 
   If prompt is provided, call the call.`,
   sourceDataModel: {
@@ -227,3 +227,25 @@ export const SelectorWidgetInstruction = {
     selectedValue: 'string'
   }
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const SelectWidget = React.memo(SelectWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  const prevSource = prevProps.source
+  const nextSource = nextProps.source
+  
+  // Compare source data (options object)
+  if (JSON.stringify(prevSource) !== JSON.stringify(nextSource)) {
+    return false // Source changed, allow re-render
+  }
+  
+  // Compare other props
+  if (prevProps.size !== nextProps.size ||
+      prevProps.defaultValue !== nextProps.defaultValue ||
+      prevProps.historyIndex !== nextProps.historyIndex) {
+    return false // Other props changed, allow re-render
+  }
+  
+  // Props are the same, prevent re-render
+  return true
+})

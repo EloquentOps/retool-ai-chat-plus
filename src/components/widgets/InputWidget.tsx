@@ -14,7 +14,7 @@ interface InputWidgetProps {
   historyIndex?: number
 }
 
-export const InputWidget: FC<InputWidgetProps> = ({ 
+const InputWidgetComponent: FC<InputWidgetProps> = ({ 
   source, 
   onWidgetCallback,
   historyIndex: _historyIndex
@@ -192,3 +192,22 @@ export const InputWidgetInstruction = {
     initialValue: 'string (optional) - initial value for the input field'
   }
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const InputWidget = React.memo(InputWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  const prevSource = prevProps.source
+  const nextSource = nextProps.source
+  
+  // Compare source data (string or object)
+  if (typeof prevSource === 'string' && typeof nextSource === 'string') {
+    return prevSource === nextSource
+  }
+  
+  if (typeof prevSource === 'object' && typeof nextSource === 'object') {
+    return JSON.stringify(prevSource) === JSON.stringify(nextSource)
+  }
+  
+  // Different types, allow re-render
+  return false
+})

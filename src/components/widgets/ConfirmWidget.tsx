@@ -11,7 +11,7 @@ interface ConfirmWidgetProps {
   historyIndex?: number
 }
 
-export const ConfirmWidget: FC<ConfirmWidgetProps> = ({ 
+const ConfirmWidgetComponent: FC<ConfirmWidgetProps> = ({ 
   source, 
   onWidgetCallback,
   historyIndex
@@ -76,6 +76,26 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
     </button>
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const ConfirmWidget = React.memo(ConfirmWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  const prevSource = prevProps.source
+  const nextSource = nextProps.source
+  
+  // Compare source data (string or object)
+  if (typeof prevSource === 'string' && typeof nextSource === 'string') {
+    return prevSource === nextSource && prevProps.historyIndex === nextProps.historyIndex
+  }
+  
+  if (typeof prevSource === 'object' && typeof nextSource === 'object') {
+    return JSON.stringify(prevSource) === JSON.stringify(nextSource) && 
+           prevProps.historyIndex === nextProps.historyIndex
+  }
+  
+  // Different types, allow re-render
+  return false
+})
 
 // Export the instruction for this widget
 export const ConfirmWidgetInstruction = {

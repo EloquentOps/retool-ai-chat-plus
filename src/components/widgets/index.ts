@@ -1,6 +1,6 @@
 // Export individual widgets for direct use if needed
 export { TextWidget, TextWidgetInstruction } from './TextWidget'
-export { SelectorWidget, SelectorWidgetInstruction } from './SelectorWidget'
+export { SelectWidget, SelectWidgetInstruction } from './SelectWidget'
 export { ImageGridWidget, ImageGridWidgetInstruction } from './ImageGridWidget'
 export { TabulatorWidget, TabulatorWidgetInstruction } from './TabulatorWidget'
 export { InputWidget, InputWidgetInstruction } from './InputWidget'
@@ -10,6 +10,7 @@ export {
   WIDGET_REGISTRY,
   renderWidget,
   getAllWidgetInstructions,
+  getWidgetInstructionsForTypes,
   setWidgetEnabled,
   getEnabledWidgetTypes,
   getStructuredWidgetInstructions

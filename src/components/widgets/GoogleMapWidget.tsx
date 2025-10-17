@@ -13,7 +13,7 @@ interface GoogleMapWidgetProps {
   historyIndex?: number
 }
 
-export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({ 
+const GoogleMapWidgetComponent: FC<GoogleMapWidgetProps> = ({ 
   source, 
   onWidgetCallback, 
   widgetsOptions,
@@ -99,6 +99,29 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
         return
       }
 
+      // Check if we already have a map instance and if the coordinates are the same
+      if (_map && _marker) {
+        const currentCenter = _map.getCenter()
+        const currentZoom = _map.getZoom()
+        
+        // Only update if coordinates or zoom have actually changed
+        if (currentCenter && 
+            Math.abs(currentCenter.lat() - source.lat) < 0.0001 && 
+            Math.abs(currentCenter.lng() - source.lon) < 0.0001 &&
+            currentZoom === mapZoom) {
+          console.log('GoogleMapWidget: Map already initialized with same coordinates, skipping re-initialization')
+          return
+        }
+        
+        // Update existing map instead of recreating
+        console.log('GoogleMapWidget: Updating existing map with new coordinates')
+        const newLocationCoords = new google.maps.LatLng(source.lat, source.lon)
+        _map.setCenter(newLocationCoords)
+        _map.setZoom(mapZoom)
+        _marker.position = newLocationCoords
+        return
+      }
+
       try {
         setIsLoading(true)
         setError(null)
@@ -172,7 +195,7 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
     }
 
     initializeMap()
-  }, [source, mapZoom, isRefReady])
+  }, [source, mapZoom, isRefReady, _map, _marker])
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -222,6 +245,38 @@ export const GoogleMapWidget: FC<GoogleMapWidgetProps> = ({
     </div>
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const GoogleMapWidget = React.memo(GoogleMapWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  const prevSource = prevProps.source
+  const nextSource = nextProps.source
+  
+  // Compare source data (coordinates and zoom)
+  if (prevSource.lat !== nextSource.lat || 
+      prevSource.lon !== nextSource.lon || 
+      prevSource.zoom !== nextSource.zoom) {
+    return false // Props changed, allow re-render
+  }
+  
+  // Compare widgetsOptions for google_map specific settings
+  const prevOptions = prevProps.widgetsOptions?.google_map as Record<string, unknown>
+  const nextOptions = nextProps.widgetsOptions?.google_map as Record<string, unknown>
+  
+  if (prevOptions?.apiKey !== nextOptions?.apiKey ||
+      prevOptions?.height !== nextOptions?.height ||
+      prevOptions?.zoom !== nextOptions?.zoom) {
+    return false // Options changed, allow re-render
+  }
+  
+  // Compare historyIndex
+  if (prevProps.historyIndex !== nextProps.historyIndex) {
+    return false // History index changed, allow re-render
+  }
+  
+  // Props are the same, prevent re-render
+  return true
+})
 
 // Export the instruction for this widget
 export const GoogleMapWidgetInstruction = {

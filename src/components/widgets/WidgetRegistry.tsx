@@ -5,7 +5,7 @@ import { SampleWidget, SampleWidgetInstruction } from './SampleWidget'
 import { ImageWidget, ImageWidgetInstruction } from './ImageWidget'
 import { GoogleMapWidget, GoogleMapWidgetInstruction } from './GoogleMapWidget'
 import { ConfirmWidget, ConfirmWidgetInstruction } from './ConfirmWidget'
-import { SelectorWidget, SelectorWidgetInstruction } from './SelectorWidget'
+import { SelectWidget, SelectWidgetInstruction } from './SelectWidget'
 import { ImageGridWidget, ImageGridWidgetInstruction } from './ImageGridWidget'
 import { TabulatorWidget, TabulatorWidgetInstruction } from './TabulatorWidget'
 import { InputWidget, InputWidgetInstruction } from './InputWidget'
@@ -52,9 +52,9 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     instruction: ConfirmWidgetInstruction,
     enabled: true
   },
-  selector: {
-    component: SelectorWidget,
-    instruction: SelectorWidgetInstruction,
+  select: {
+    component: SelectWidget,
+    instruction: SelectWidgetInstruction,
     enabled: true
   },
   image_grid: {
@@ -81,10 +81,13 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
   if (!widgetConfig || !widgetConfig.enabled) {
     // Fallback to text widget if widget type is not found or disabled
     const textConfig = WIDGET_REGISTRY.text
+    const fallbackKey = `widget-${historyIndex || 'unknown'}-text-fallback`
     return React.createElement(textConfig.component, { 
+      key: fallbackKey,
       source: content.source || JSON.stringify(content),
       onWidgetCallback,
-      widgetsOptions
+      widgetsOptions,
+      historyIndex
     })
   }
   
@@ -103,7 +106,12 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
     widgetSource = otherContent
   }
   
+  // Generate a stable key for the widget based on message index and widget type
+  // This ensures React can properly identify and preserve widget instances during re-renders
+  const widgetKey = `widget-${historyIndex || 'unknown'}-${type}`
+  
   const props = {
+    key: widgetKey,
     source: widgetSource,
     onWidgetCallback,
     widgetsOptions,
@@ -130,6 +138,21 @@ export const getAllWidgetInstructions = (widgetsOptions?: Record<string, unknown
   return Object.entries(WIDGET_REGISTRY)
     .filter(([widgetType, config]) => 
       config.enabled && effectiveEnabledWidgets.includes(widgetType)
+    )
+    .map(([, config]) => formatInstructionAsString(mergeWidgetInstruction(config.instruction, widgetsOptions)))
+}
+
+// Get widget instructions for specific widget types
+export const getWidgetInstructionsForTypes = (
+  widgetTypes: string[], 
+  widgetsOptions?: Record<string, unknown>
+) => {
+  // Always include text widget
+  const effectiveTypes = [...new Set(['text', ...widgetTypes])]
+  
+  return Object.entries(WIDGET_REGISTRY)
+    .filter(([widgetType, config]) => 
+      config.enabled && effectiveTypes.includes(widgetType)
     )
     .map(([, config]) => formatInstructionAsString(mergeWidgetInstruction(config.instruction, widgetsOptions)))
 }
@@ -220,4 +243,24 @@ export const getStructuredWidgetInstructions = (widgetsOptions?: Record<string, 
       config.enabled && effectiveEnabledWidgets.includes(widgetType)
     )
     .map(([, config]) => mergeWidgetInstruction(config.instruction, widgetsOptions))
+}
+
+// Helper function to cleanup widget resources (for complex widgets that need cleanup)
+export const cleanupWidgetResources = (widgetType: string, widgetInstance?: unknown) => {
+  // This function can be extended to handle specific cleanup for different widget types
+  // For now, it's a placeholder for future widget-specific cleanup logic
+  console.log(`WidgetRegistry: Cleanup requested for widget type: ${widgetType}`)
+  
+  // Example: If we had a global cleanup mechanism, we could implement it here
+  // switch (widgetType) {
+  //   case 'google_map':
+  //     // Cleanup Google Maps resources
+  //     break
+  //   case 'tabulator':
+  //     // Cleanup Tabulator resources
+  //     break
+  //   default:
+  //     // No specific cleanup needed
+  //     break
+  // }
 }

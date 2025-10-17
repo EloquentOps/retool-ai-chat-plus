@@ -11,7 +11,7 @@ interface ImageWidgetProps {
   historyIndex?: number
 }
 
-export const ImageWidget: FC<ImageWidgetProps> = ({ 
+const ImageWidgetComponent: FC<ImageWidgetProps> = ({ 
   source, 
   alt = '', 
   width, 
@@ -92,6 +92,16 @@ export const ImageWidget: FC<ImageWidgetProps> = ({
     </>
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const ImageWidget = React.memo(ImageWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  return prevProps.source === nextProps.source &&
+         prevProps.alt === nextProps.alt &&
+         prevProps.width === nextProps.width &&
+         prevProps.height === nextProps.height &&
+         prevProps.historyIndex === nextProps.historyIndex
+})
 
 // Export the instruction for this widget
 export const ImageWidgetInstruction = {

@@ -15,7 +15,7 @@ interface TabulatorRow {
   getPosition: () => number
 }
 
-export const TabulatorWidget: FC<TabulatorWidgetProps> = ({ 
+const TabulatorWidgetComponent: FC<TabulatorWidgetProps> = ({ 
   source, 
   onWidgetCallback, 
   widgetsOptions,
@@ -70,6 +70,30 @@ export const TabulatorWidget: FC<TabulatorWidgetProps> = ({
   useEffect(() => {
     if (!tableRef.current || !source || !Array.isArray(source)) {
       return
+    }
+
+    // Check if we already have a table instance and if the data is the same
+    if (tabulatorRef.current) {
+      const currentData = tabulatorRef.current.getData()
+      
+      // Simple comparison - if data length is the same and first/last items match, assume data is the same
+      if (currentData.length === source.length && 
+          currentData.length > 0 && 
+          JSON.stringify(currentData[0]) === JSON.stringify(source[0]) &&
+          JSON.stringify(currentData[currentData.length - 1]) === JSON.stringify(source[source.length - 1])) {
+        console.log('TabulatorWidget: Data appears unchanged, skipping table recreation')
+        return
+      }
+      
+      // Data has changed, update existing table instead of recreating
+      console.log('TabulatorWidget: Updating existing table with new data')
+      try {
+        tabulatorRef.current.replaceData(source)
+        return
+      } catch (err) {
+        console.warn('TabulatorWidget: Failed to update existing table, will recreate:', err)
+        // Fall through to recreate the table
+      }
     }
 
     setIsLoading(true)
@@ -186,6 +210,55 @@ export const TabulatorWidget: FC<TabulatorWidgetProps> = ({
     </div>
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const TabulatorWidget = React.memo(TabulatorWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  const prevSource = prevProps.source
+  const nextSource = nextProps.source
+  
+  // Deep comparison of source data (array of objects)
+  if (prevSource.length !== nextSource.length) {
+    return false // Array length changed, allow re-render
+  }
+  
+  // Compare each object in the array
+  for (let i = 0; i < prevSource.length; i++) {
+    const prevObj = prevSource[i]
+    const nextObj = nextSource[i]
+    
+    // Compare object keys
+    const prevKeys = Object.keys(prevObj).sort()
+    const nextKeys = Object.keys(nextObj).sort()
+    
+    if (prevKeys.length !== nextKeys.length) {
+      return false // Different number of keys, allow re-render
+    }
+    
+    // Compare each key-value pair
+    for (let j = 0; j < prevKeys.length; j++) {
+      if (prevKeys[j] !== nextKeys[j] || prevObj[prevKeys[j]] !== nextObj[nextKeys[j]]) {
+        return false // Key or value changed, allow re-render
+      }
+    }
+  }
+  
+  // Compare widgetsOptions for tabulator specific settings
+  const prevOptions = prevProps.widgetsOptions?.tabulator as Record<string, unknown>
+  const nextOptions = nextProps.widgetsOptions?.tabulator as Record<string, unknown>
+  
+  if (JSON.stringify(prevOptions) !== JSON.stringify(nextOptions)) {
+    return false // Options changed, allow re-render
+  }
+  
+  // Compare historyIndex
+  if (prevProps.historyIndex !== nextProps.historyIndex) {
+    return false // History index changed, allow re-render
+  }
+  
+  // Props are the same, prevent re-render
+  return true
+})
 
 // Export the instruction for this widget
 export const TabulatorWidgetInstruction = {

@@ -13,7 +13,7 @@ interface ImageGridWidgetProps {
   historyIndex?: number
 }
 
-export const ImageGridWidget: FC<ImageGridWidgetProps> = ({ 
+const ImageGridWidgetComponent: FC<ImageGridWidgetProps> = ({ 
   source, 
   onWidgetCallback,
   historyIndex 
@@ -166,4 +166,34 @@ export const ImageGridWidgetInstruction = {
     }
   }
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const ImageGridWidget = React.memo(ImageGridWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  const prevSource = prevProps.source
+  const nextSource = nextProps.source
+  
+  // Compare array length
+  if (prevSource.length !== nextSource.length) {
+    return false // Array length changed, allow re-render
+  }
+  
+  // Compare each image item
+  for (let i = 0; i < prevSource.length; i++) {
+    const prevItem = prevSource[i]
+    const nextItem = nextSource[i]
+    
+    if (prevItem.imageUrl !== nextItem.imageUrl || prevItem.caption !== nextItem.caption) {
+      return false // Image data changed, allow re-render
+    }
+  }
+  
+  // Compare historyIndex
+  if (prevProps.historyIndex !== nextProps.historyIndex) {
+    return false // History index changed, allow re-render
+  }
+  
+  // Props are the same, prevent re-render
+  return true
+})
 

@@ -4,7 +4,7 @@ import { type FC } from 'react'
 import { Retool } from '@tryretool/custom-component-support'
 import { ChatContainer } from './components'
 import { ApprovalModal } from './components/ApprovalModal'
-import { getAllWidgetInstructions } from './components/widgets'
+import { getWidgetInstructionsForTypes, WIDGET_REGISTRY } from './components/widgets'
 
 export const AiChatPlus: FC = () => {
   // Add state for welcome message
@@ -535,26 +535,15 @@ export const AiChatPlus: FC = () => {
     return mentions
   }
 
-  // Function to generate tool call instructions based on detected tool mentions
-  const generateToolCallInstructions = (message: string, toolsConfig: Record<string, { tool: string; description: string }>): string => {
+  // Function to extract widget mentions from a message
+  const extractWidgetMentions = (message: string): string[] => {
     const mentions = extractMentions(message)
-    const toolMentions = mentions.filter(mention => toolsConfig[mention.key])
-    
-    if (toolMentions.length === 0) {
-      return ''
-    }
-    
-    const instructions = toolMentions.map(mention => {
-      const toolConfig = toolsConfig[mention.key]
-      return `- If the tag [${mention.display}](${mention.key}) is present, use the tool ${toolConfig.tool} for your answer.`
-    }).join('\n')
-    
-    return `<DIRECT_TOOL_CALL_INSTRUCTION>
-
-${instructions}
-
-</DIRECT_TOOL_CALL_INSTRUCTION>`
+    const widgetTypes = mentions
+      .map(mention => mention.key)
+      .filter(key => WIDGET_REGISTRY[key] !== undefined)
+    return widgetTypes
   }
+
 
   // Function to normalize message content for agent input
   // Handles both string content and widget objects
@@ -598,10 +587,19 @@ ${instructions}
     // Ensure agentInputs is an object before proceeding
     _setAgentInputs({})
     
-    // Set agent inputs for the query with initial system instructions and widget instructions
-    const widgetInstructions = getAllWidgetInstructions(widgetsOptions)
+    // Check for widget mentions
+    const mentionedWidgets = extractWidgetMentions(message)
+
+    const messages = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(history as any[]).map(normalizeMessageForAgent),
+      newMessage,
+    ]
+
+    // Always add instruction message - with mentioned widgets if any, otherwise just text widget
+    const widgetInstructions = getWidgetInstructionsForTypes(mentionedWidgets, widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
-    const toolCallInstructions = generateToolCallInstructions(message, tools as Record<string, { tool: string; description: string }>)
+    
     const instructionMessage = {
       role: 'assistant' as const,
       content: `<TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>
@@ -623,16 +621,10 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>${toolCallInstructions}`
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
     }
-
-    const messages = [
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(history as any[]).map(normalizeMessageForAgent),
-      newMessage,
-      instructionMessage,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ]
+    
+    messages.push(instructionMessage)
 
     console.log('messages')
     console.log(messages)
@@ -657,10 +649,22 @@ Otherwise, the type should be always "text".
     // Ensure agentInputs is an object before proceeding
     _setAgentInputs({})
     
-    // Set agent inputs for the query with initial system instructions and widget instructions
-    const widgetInstructions = getAllWidgetInstructions(widgetsOptions)
+    // Check for widget mentions
+    const mentionedWidgets = extractWidgetMentions(message)
+
+    // Use restored messages if provided, otherwise fall back to current history
+    const messagesToUse = restoredMessages || history
+
+    const messages = [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...(messagesToUse as any[]).map(normalizeMessageForAgent),
+      // Don't add the new message since it's already in the restored history
+    ]
+
+    // Always add instruction message - with mentioned widgets if any, otherwise just text widget
+    const widgetInstructions = getWidgetInstructionsForTypes(mentionedWidgets, widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
-    const toolCallInstructions = generateToolCallInstructions(message, tools as Record<string, { tool: string; description: string }>)
+    
     const instructionMessage = {
       role: 'assistant' as const,
       content: `<TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>
@@ -682,19 +686,10 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>${toolCallInstructions}`
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
     }
-
-    // Use restored messages if provided, otherwise fall back to current history
-    const messagesToUse = restoredMessages || history
-
-    const messages = [
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(messagesToUse as any[]).map(normalizeMessageForAgent),
-      // Don't add the new message since it's already in the restored history
-      instructionMessage,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ]
+    
+    messages.push(instructionMessage)
 
     console.log('messages (after restore)')
     console.log(messages)

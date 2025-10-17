@@ -8,7 +8,7 @@ interface SampleWidgetProps {
   historyIndex?: number
 }
 
-export const SampleWidget: FC<SampleWidgetProps> = ({ 
+const SampleWidgetComponent: FC<SampleWidgetProps> = ({ 
   source,
   historyIndex
 }) => {
@@ -24,6 +24,12 @@ export const SampleWidget: FC<SampleWidgetProps> = ({
     }} />
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const SampleWidget = React.memo(SampleWidgetComponent, (prevProps, nextProps) => {
+  // Simple comparison for sample widget - only re-render if source color changes
+  return prevProps.source === nextProps.source && prevProps.historyIndex === nextProps.historyIndex
+})
 
 // Export the instruction for this widget
 export const SampleWidgetInstruction = {

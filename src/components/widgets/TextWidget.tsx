@@ -15,7 +15,7 @@ const processSpecialMentions = (text: string): string => {
   return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '**@$1**')
 }
 
-export const TextWidget: FC<TextWidgetProps> = ({ source, historyIndex }) => {
+const TextWidgetComponent: FC<TextWidgetProps> = ({ source, historyIndex }) => {
   // Process the source text to handle special mentions
   const processedSource = processSpecialMentions(source)
   
@@ -43,6 +43,12 @@ export const TextWidget: FC<TextWidgetProps> = ({ source, historyIndex }) => {
     </div>
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const TextWidget = React.memo(TextWidgetComponent, (prevProps, nextProps) => {
+  // Simple comparison for text widget - only re-render if source text changes
+  return prevProps.source === nextProps.source && prevProps.historyIndex === nextProps.historyIndex
+})
 
 // Export the instruction for this widget
 export const TextWidgetInstruction = {

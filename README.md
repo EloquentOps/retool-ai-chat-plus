@@ -187,13 +187,13 @@ Interactive button for user confirmations and actions.
 - `size`: "small" | "medium" | "large"
 - `disabled`: boolean
 
-### Selector Widget
-Dropdown selector for choosing from predefined options.
+### Select Widget
+Dropdown select for choosing from predefined options.
 
 **Usage**: For option selection
 ```json
 {
-  "type": "selector",
+  "type": "select",
   "source": {
     "placeholder": "Select an option...",
     "options": [

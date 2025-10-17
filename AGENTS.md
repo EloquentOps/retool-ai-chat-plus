@@ -101,7 +101,9 @@ widgetsOptions: {
 
 ## Creating a New Widget
 
-### Step 1: Define the Widget Component
+### Step 1: Define the Widget Component with Memoization
+
+**IMPORTANT**: All widgets must use React.memo to prevent unnecessary re-renders during polling. This is the default pattern for all widgets.
 
 ```typescript
 // ExampleWidget.tsx
@@ -112,11 +114,14 @@ interface ExampleWidgetProps {
   source: string | YourDataType
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
 }
 
-export const ExampleWidget: FC<ExampleWidgetProps> = ({
+// Define the component implementation
+const ExampleWidgetComponent: FC<ExampleWidgetProps> = ({
   source,
-  onWidgetCallback
+  onWidgetCallback,
+  historyIndex
 }) => {
   // Handle data validation
   if (!source) {
@@ -138,6 +143,41 @@ export const ExampleWidget: FC<ExampleWidgetProps> = ({
     </div>
   )
 }
+
+// Export the memoized component with custom comparison
+export const ExampleWidget = React.memo(ExampleWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
+  
+  // For simple widgets, compare source and historyIndex
+  if (typeof prevProps.source === 'string' && typeof nextProps.source === 'string') {
+    return prevProps.source === nextProps.source && prevProps.historyIndex === nextProps.historyIndex
+  }
+  
+  // For complex objects, use JSON comparison
+  if (typeof prevProps.source === 'object' && typeof nextProps.source === 'object') {
+    return JSON.stringify(prevProps.source) === JSON.stringify(nextProps.source) && 
+           prevProps.historyIndex === nextProps.historyIndex
+  }
+  
+  // For arrays, perform deep comparison
+  if (Array.isArray(prevProps.source) && Array.isArray(nextProps.source)) {
+    if (prevProps.source.length !== nextProps.source.length) {
+      return false // Different lengths, allow re-render
+    }
+    
+    // Compare each item
+    for (let i = 0; i < prevProps.source.length; i++) {
+      if (JSON.stringify(prevProps.source[i]) !== JSON.stringify(nextProps.source[i])) {
+        return false // Item changed, allow re-render
+      }
+    }
+    
+    return prevProps.historyIndex === nextProps.historyIndex
+  }
+  
+  // Different types, allow re-render
+  return false
+})
 ```
 
 ### Step 2: Define the Widget Instruction
@@ -314,6 +354,73 @@ if (error) {
 
 
 
+## Performance Optimization
+
+### React.memo Pattern (MANDATORY)
+
+All widgets must implement React.memo to prevent unnecessary re-renders during polling. This is the default pattern for all widgets in the system.
+
+#### Why Memoization is Required
+
+During polling, the entire message history is re-rendered, which can cause:
+- Complex widgets (GoogleMap, Tabulator) to flash and lose state
+- Unnecessary API calls and resource consumption
+- Poor user experience with flickering interfaces
+
+#### Memoization Implementation Patterns
+
+**Simple Widgets (String/Number data):**
+```typescript
+export const SimpleWidget = React.memo(SimpleWidgetComponent, (prevProps, nextProps) => {
+  return prevProps.source === nextProps.source && 
+         prevProps.historyIndex === nextProps.historyIndex
+})
+```
+
+**Object-based Widgets:**
+```typescript
+export const ObjectWidget = React.memo(ObjectWidgetComponent, (prevProps, nextProps) => {
+  return JSON.stringify(prevProps.source) === JSON.stringify(nextProps.source) && 
+         prevProps.historyIndex === nextProps.historyIndex
+})
+```
+
+**Array-based Widgets:**
+```typescript
+export const ArrayWidget = React.memo(ArrayWidgetComponent, (prevProps, nextProps) => {
+  if (prevProps.source.length !== nextProps.source.length) {
+    return false
+  }
+  
+  for (let i = 0; i < prevProps.source.length; i++) {
+    if (JSON.stringify(prevProps.source[i]) !== JSON.stringify(nextProps.source[i])) {
+      return false
+    }
+  }
+  
+  return prevProps.historyIndex === nextProps.historyIndex
+})
+```
+
+**Complex Widgets with State Preservation:**
+```typescript
+// For widgets like GoogleMap, Tabulator that need to preserve internal state
+export const ComplexWidget = React.memo(ComplexWidgetComponent, (prevProps, nextProps) => {
+  // Custom comparison that checks if meaningful data has changed
+  // and preserves widget state when possible
+  return customComparisonLogic(prevProps, nextProps)
+})
+```
+
+### Widget State Preservation
+
+For complex widgets that manage external resources (maps, tables, charts):
+
+1. **Check for existing instances** before recreating
+2. **Update existing instances** instead of destroying/recreating
+3. **Preserve user interactions** (selections, positions, etc.)
+4. **Minimize API calls** to external services
+
 ## Best Practices
 
 ### 1. Widget Design
@@ -321,7 +428,8 @@ if (error) {
 - **Single Responsibility**: One widget = one purpose
 - **Reusable Configuration**: Support customization via props and options
 - **Graceful Degradation**: Handle missing data elegantly
-- **Performance**: Use React.memo for expensive rendering
+- **Performance**: **ALWAYS** use React.memo for all widgets
+- **State Preservation**: Preserve widget state during re-renders
 
 ### 2. Data Handling
 
@@ -329,6 +437,7 @@ if (error) {
 - **Validation**: Always validate incoming data
 - **Fallbacks**: Provide sensible defaults
 - **Error Recovery**: Allow retry mechanisms
+- **Memoization**: Implement proper comparison functions
 
 ### 3. User Experience
 
@@ -336,6 +445,7 @@ if (error) {
 - **Interactive Feedback**: Provide visual feedback on interactions
 - **Accessibility**: Ensure keyboard navigation and screen reader support
 - **Mobile Friendly**: Test on different devices
+- **No Flashing**: Prevent widget flickering during polling
 
 ### 4. AI Integration
 
@@ -440,7 +550,7 @@ const testWidget = (testCases) => {
 ### Simple Display Widget
 
 ```typescript
-export const TextWidget: FC<TextWidgetProps> = ({ source }) => {
+const TextWidgetComponent: FC<TextWidgetProps> = ({ source, historyIndex }) => {
   return (
     <div style={{ 
       fontSize: '14px', 
@@ -452,6 +562,12 @@ export const TextWidget: FC<TextWidgetProps> = ({ source }) => {
   )
 }
 
+// Memoized component to prevent unnecessary re-renders
+export const TextWidget = React.memo(TextWidgetComponent, (prevProps, nextProps) => {
+  // Simple comparison for text widget - only re-render if source text changes
+  return prevProps.source === nextProps.source && prevProps.historyIndex === nextProps.historyIndex
+})
+
 export const TextWidgetInstruction = {
   type: 'text',
   instructions: 'Use for displaying markdown-formatted text content',
@@ -462,10 +578,11 @@ export const TextWidgetInstruction = {
 ### Interactive Widget
 
 ```typescript
-export const ConfirmWidget: FC<ConfirmWidgetProps> = ({ 
+const ConfirmWidgetComponent: FC<ConfirmWidgetProps> = ({ 
   source, 
   variant = 'primary',
-  onWidgetCallback 
+  onWidgetCallback,
+  historyIndex
 }) => {
   const [isHovered, setIsHovered] = useState(false)
   
@@ -484,14 +601,31 @@ export const ConfirmWidget: FC<ConfirmWidgetProps> = ({
     </button>
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const ConfirmWidget = React.memo(ConfirmWidgetComponent, (prevProps, nextProps) => {
+  // Compare source data (string or object)
+  if (typeof prevProps.source === 'string' && typeof nextProps.source === 'string') {
+    return prevProps.source === nextProps.source && prevProps.historyIndex === nextProps.historyIndex
+  }
+  
+  if (typeof prevProps.source === 'object' && typeof nextProps.source === 'object') {
+    return JSON.stringify(prevProps.source) === JSON.stringify(nextProps.source) && 
+           prevProps.historyIndex === nextProps.historyIndex
+  }
+  
+  // Different types, allow re-render
+  return false
+})
 ```
 
 ### Data Visualization Widget
 
 ```typescript
-export const ImageGridWidget: FC<ImageGridWidgetProps> = ({ 
+const ImageGridWidgetComponent: FC<ImageGridWidgetProps> = ({ 
   source, 
-  onWidgetCallback 
+  onWidgetCallback,
+  historyIndex
 }) => {
   const handleImageClick = (imageItem, index) => {
     onWidgetCallback?.({
@@ -512,6 +646,32 @@ export const ImageGridWidget: FC<ImageGridWidgetProps> = ({
     </div>
   )
 }
+
+// Memoized component to prevent unnecessary re-renders
+export const ImageGridWidget = React.memo(ImageGridWidgetComponent, (prevProps, nextProps) => {
+  // Compare array length
+  if (prevProps.source.length !== nextProps.source.length) {
+    return false // Array length changed, allow re-render
+  }
+  
+  // Compare each image item
+  for (let i = 0; i < prevProps.source.length; i++) {
+    const prevItem = prevProps.source[i]
+    const nextItem = nextProps.source[i]
+    
+    if (prevItem.imageUrl !== nextItem.imageUrl || prevItem.caption !== nextItem.caption) {
+      return false // Image data changed, allow re-render
+    }
+  }
+  
+  // Compare historyIndex
+  if (prevProps.historyIndex !== nextProps.historyIndex) {
+    return false // History index changed, allow re-render
+  }
+  
+  // Props are the same, prevent re-render
+  return true
+})
 ```
 
 This guide provides everything needed to create robust, maintainable widgets for the AI Chat Plus system. For additional examples and patterns, refer to the existing widget implementations in the `src/components/widgets/` directory.
