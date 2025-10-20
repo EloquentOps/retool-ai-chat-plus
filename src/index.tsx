@@ -200,7 +200,7 @@ export const AiChatPlus: FC = () => {
       setTimeout(() => {
         _setSubmitWithPayload({})
       }, 0)
-    } else if (action === 'restore' && messages && Array.isArray(messages) && messages.length > 0) {
+    } else if (action === 'restore' && messages && Array.isArray(messages)) {
       // Check if we're already processing a restore action
       if (autoSubmitInProgressRef.current) {
         console.log('Restore action skipped: auto-submit already in progress')
