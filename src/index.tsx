@@ -53,11 +53,11 @@ export const AiChatPlus: FC = () => {
   })
 
   // Add state for last user message submitted
-  const [_message, _setMessage] = Retool.useStateString({
-    name: 'message',
+  const [_lastMessage, _setLastMessage] = Retool.useStateString({
+    name: 'lastMessage',
     initialValue: ''
   })
-  
+
   const [_agentInputs, _setAgentInputs] = Retool.useStateObject({
     name: 'agentInputs',
     initialValue: {}
@@ -615,7 +615,7 @@ export const AiChatPlus: FC = () => {
 
   const onSubmitQueryCallback = (message: string, providedHistory?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>) => {
     // Update the exposed message state with the last user-submitted message
-    _setMessage(message)
+    _setLastMessage(message)
     
     const newMessage = {
       role: 'user' as const,
@@ -705,7 +705,7 @@ Otherwise, the type should be always "text".
   // Special version of onSubmitQueryCallback for use after restore - doesn't add to history
   const onSubmitQueryCallbackAfterRestore = (message: string, restoredMessages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }>) => {
     // Update the exposed message state with the last user-submitted message
-    _setMessage(message)
+    _setLastMessage(message)
     
     // Don't add message to history since it's already been restored
     console.log('Submitting query after restore without adding to history:', message)
