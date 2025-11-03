@@ -99,6 +99,9 @@ export const AiChatPlus: FC = () => {
   // Track seen tool execution IDs to prevent duplicate approval modals
   const seenToolExecutionIdsRef = useRef<Set<string>>(new Set())
   const lastLogUUIDRef = useRef<string | null>(null)
+  
+  // Ref to track latest history to avoid stale closure issues
+  const historyRef = useRef<Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>>([])
 
   // Ensure internal state variables are always empty objects on mount
   useEffect(() => {
@@ -106,6 +109,12 @@ export const AiChatPlus: FC = () => {
     _setAgentInputs({})
     _setWidgetPayload({})
   }, [])
+  
+  // Keep historyRef in sync with history state
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    historyRef.current = history as any
+  }, [history])
 
   // Monitor submitWithPayload changes
   useEffect(() => {
@@ -154,14 +163,25 @@ export const AiChatPlus: FC = () => {
         ...(msg.hidden && { hidden: msg.hidden })
       }))
       
+      // Create updated history that includes the new messages
+      // Use historyRef.current to get the latest history and avoid stale closure issue
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      _setHistory([...history, ...newMessages] as any)
+      const updatedHistory = [...historyRef.current, ...newMessages]
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      _setHistory(updatedHistory as any)
+      
+      // Update historyRef immediately to keep it in sync
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      historyRef.current = updatedHistory as any
       
       // If there are user messages, trigger the last one for processing
       const userMessages = messages.filter(msg => msg.role === 'user')
       if (userMessages.length > 0) {
         const lastUserMessage = userMessages[userMessages.length - 1]
-        onSubmitQueryCallback(lastUserMessage.content)
+        // Pass the updated history to avoid stale closure issue
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onSubmitQueryCallback(lastUserMessage.content, updatedHistory as any)
       }
       
       // Reset the submitWithPayload to prevent repeated triggers
@@ -193,8 +213,13 @@ export const AiChatPlus: FC = () => {
       }))
       
       // Add the hidden messages to history
+      // Use historyRef.current to get the latest history and avoid stale closure issue
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      _setHistory([...history, ...hiddenMessages] as any)
+      const updatedHistoryWithHidden = [...historyRef.current, ...hiddenMessages]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      _setHistory(updatedHistoryWithHidden as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      historyRef.current = updatedHistoryWithHidden as any
       
       // Reset the submitWithPayload to prevent repeated triggers
       setTimeout(() => {
@@ -223,6 +248,9 @@ export const AiChatPlus: FC = () => {
       // Replace the entire history with the restored messages
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       _setHistory(restoredMessages as any)
+      // Update historyRef to keep it in sync
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      historyRef.current = restoredMessages as any
       
       // If autoSubmit is enabled and there are user messages, trigger the last one for processing
       console.log('autoSubmit value in restore action:', autoSubmit, 'type:', typeof autoSubmit)
@@ -504,8 +532,13 @@ export const AiChatPlus: FC = () => {
         console.log('parsedContent')
         console.log(parsedContent)
 
+        // Use historyRef to get the latest history and avoid stale closure issue
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        _setHistory([...history, assistantMessage] as any)
+        const updatedHistoryWithResponse = [...historyRef.current, assistantMessage]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        _setHistory(updatedHistoryWithResponse as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        historyRef.current = updatedHistoryWithResponse as any
       }
     }
   }, [queryResponse, isLoading]) // Dependencies: only re-run when queryResponse or isLoading changes
@@ -575,14 +608,24 @@ export const AiChatPlus: FC = () => {
     }
   }
 
-  const onSubmitQueryCallback = (message: string) => {
+  const onSubmitQueryCallback = (message: string, providedHistory?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>) => {
     const newMessage = {
       role: 'user' as const,
       content: message
     }
     
-    // Add message to history
-    _setHistory([...history, newMessage])
+    // Use provided history if available (to avoid stale closure), otherwise use current history from ref
+    const currentHistory = providedHistory || historyRef.current
+    
+    // Only add message to history if it wasn't already added (i.e., if history wasn't provided)
+    if (!providedHistory) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatedHistory = [...historyRef.current, newMessage]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      _setHistory(updatedHistory as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      historyRef.current = updatedHistory as any
+    }
     
     // Ensure agentInputs is an object before proceeding
     _setAgentInputs({})
@@ -590,10 +633,20 @@ export const AiChatPlus: FC = () => {
     // Check for widget mentions
     const mentionedWidgets = extractWidgetMentions(message)
 
+    // Check if the last message in currentHistory is already the same as newMessage
+    // This prevents duplication when providedHistory already includes the message
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lastMessage = currentHistory.length > 0 ? (currentHistory[currentHistory.length - 1] as any) : null
+    const isMessageAlreadyInHistory = lastMessage && 
+      lastMessage.role === 'user' && 
+      typeof lastMessage.content === 'string' && 
+      lastMessage.content === message
+
     const messages = [
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(history as any[]).map(normalizeMessageForAgent),
-      newMessage,
+      ...(currentHistory as any[]).map(normalizeMessageForAgent),
+      // Only add newMessage if it's not already the last message in history
+      ...(isMessageAlreadyInHistory ? [] : [newMessage]),
     ]
 
     // Always add instruction message - with mentioned widgets if any, otherwise just text widget
@@ -652,8 +705,8 @@ Otherwise, the type should be always "text".
     // Check for widget mentions
     const mentionedWidgets = extractWidgetMentions(message)
 
-    // Use restored messages if provided, otherwise fall back to current history
-    const messagesToUse = restoredMessages || history
+    // Use restored messages if provided, otherwise fall back to current history from ref
+    const messagesToUse = restoredMessages || historyRef.current
 
     const messages = [
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -729,8 +782,9 @@ Otherwise, the type should be always "text".
     if (updateHistory && typeof historyIndex === 'number' && updatedSource) {
       console.log('Updating history at index:', historyIndex, 'with:', updatedSource)
       
-      // Get current history
-      const currentHistory = history as Array<{ 
+      // Get current history from ref to avoid stale closure
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentHistory = historyRef.current as Array<{ 
         role: 'user' | 'assistant'; 
         content: string | { type: string; source?: string; [key: string]: unknown }; 
         hidden?: boolean 
@@ -766,6 +820,9 @@ Otherwise, the type should be always "text".
           
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           _setHistory(updatedHistory as any)
+          // Update historyRef to keep it in sync
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          historyRef.current = updatedHistory as any
           console.log('History updated successfully')
         } else {
           console.warn('Cannot update history: invalid message type or structure')
@@ -777,7 +834,12 @@ Otherwise, the type should be always "text".
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     _setWidgetPayload(safePayload as any)
-    onWidgetCallback()
+    
+    // Only dispatch to Retool if this is NOT just a history update
+    // History updates are internal and shouldn't trigger external events
+    if (!updateHistory) {
+      onWidgetCallback()
+    }
 
     const { selfSubmit, prompt } = safePayload as { selfSubmit?: boolean; prompt?: string }
     if (selfSubmit && prompt) {
