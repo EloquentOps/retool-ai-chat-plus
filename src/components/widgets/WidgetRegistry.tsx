@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { type FC } from 'react'
 import { TextWidget, TextWidgetInstruction } from './TextWidget'
 import { SampleWidget, SampleWidgetInstruction } from './SampleWidget'
@@ -9,6 +9,7 @@ import { SelectWidget, SelectWidgetInstruction } from './SelectWidget'
 import { ImageGridWidget, ImageGridWidgetInstruction } from './ImageGridWidget'
 import { TabulatorWidget, TabulatorWidgetInstruction } from './TabulatorWidget'
 import { InputWidget, InputWidgetInstruction } from './InputWidget'
+import { ChartWidget, ChartWidgetInstruction } from './ChartWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -23,6 +24,93 @@ interface WidgetConfig {
   component: FC<any>
   instruction: WidgetInstruction
   enabled: boolean
+}
+
+// Widget wrapper component with hover footer and remove button
+interface WidgetWrapperProps {
+  children?: React.ReactElement
+  historyIndex?: number
+  onWidgetCallback?: (payload: Record<string, unknown>) => void
+  widgetType: string
+}
+
+const WidgetWrapper: FC<WidgetWrapperProps> = ({
+  children,
+  historyIndex,
+  onWidgetCallback,
+  widgetType
+}) => {
+  const [isHovered, setIsHovered] = useState(false)
+
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onWidgetCallback?.({
+      type: 'widget:remove',
+      messageIndex: historyIndex,
+      widgetType: widgetType,
+      timestamp: Date.now()
+    })
+  }
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%'
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {children || null}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          right: 0,
+          height: '20px',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0 4px',
+          opacity: isHovered ? 1 : 0,
+          transition: 'opacity 0.15s ease-in-out',
+          pointerEvents: isHovered ? 'auto' : 'none',
+          borderTopLeftRadius: '4px',
+          zIndex: 10
+        }}
+      >
+        <button
+          onClick={handleRemove}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            padding: '0',
+            fontSize: '11px',
+            lineHeight: '1',
+            width: '16px',
+            height: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '2px',
+            transition: 'background-color 0.15s ease-in-out'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }}
+          title="Remove widget"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  )
 }
 
 // Widget registry map
@@ -71,6 +159,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     component: InputWidget,
     instruction: InputWidgetInstruction,
     enabled: true
+  },
+  chart: {
+    component: ChartWidget,
+    instruction: ChartWidgetInstruction,
+    enabled: true
   }
 }
 
@@ -82,13 +175,21 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
     // Fallback to text widget if widget type is not found or disabled
     const textConfig = WIDGET_REGISTRY.text
     const fallbackKey = `widget-${historyIndex || 'unknown'}-text-fallback`
-    return React.createElement(textConfig.component, { 
+    const fallbackWidgetElement = React.createElement(textConfig.component, { 
       key: fallbackKey,
       source: content.source || JSON.stringify(content),
       onWidgetCallback,
       widgetsOptions,
       historyIndex
     })
+    
+    // Wrap the fallback widget with the footer wrapper
+    return React.createElement(WidgetWrapper, {
+      key: `wrapper-${fallbackKey}`,
+      historyIndex,
+      onWidgetCallback,
+      widgetType: 'text'
+    }, fallbackWidgetElement)
   }
   
   // Handle two cases:
@@ -118,7 +219,15 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
     historyIndex
   }
   
-  return React.createElement(widgetConfig.component, props)
+  const widgetElement = React.createElement(widgetConfig.component, props)
+  
+  // Wrap the widget with the footer wrapper (skip for text widget when it's a fallback)
+  return React.createElement(WidgetWrapper, {
+    key: `wrapper-${widgetKey}`,
+    historyIndex,
+    onWidgetCallback,
+    widgetType: type
+  }, widgetElement)
 }
 
 // Get all enabled widget instructions based on widgetsOptions keys
@@ -246,7 +355,7 @@ export const getStructuredWidgetInstructions = (widgetsOptions?: Record<string, 
 }
 
 // Helper function to cleanup widget resources (for complex widgets that need cleanup)
-export const cleanupWidgetResources = (widgetType: string, widgetInstance?: unknown) => {
+export const cleanupWidgetResources = (widgetType: string, _widgetInstance?: unknown) => {
   // This function can be extended to handle specific cleanup for different widget types
   // For now, it's a placeholder for future widget-specific cleanup logic
   console.log(`WidgetRegistry: Cleanup requested for widget type: ${widgetType}`)

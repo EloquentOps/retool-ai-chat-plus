@@ -45,14 +45,19 @@ export const AiChatPlus: FC = () => {
     initialValue: 'Type your message... (use @ to insert widgets)'
   })
 
-  
+
 
   const [history, _setHistory] = Retool.useStateArray({
     name: 'history',
     initialValue: []
   })
 
-
+  // Add state for last user message submitted
+  const [_message, _setMessage] = Retool.useStateString({
+    name: 'message',
+    initialValue: ''
+  })
+  
   const [_agentInputs, _setAgentInputs] = Retool.useStateObject({
     name: 'agentInputs',
     initialValue: {}
@@ -609,6 +614,9 @@ export const AiChatPlus: FC = () => {
   }
 
   const onSubmitQueryCallback = (message: string, providedHistory?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>) => {
+    // Update the exposed message state with the last user-submitted message
+    _setMessage(message)
+    
     const newMessage = {
       role: 'user' as const,
       content: message
@@ -696,6 +704,9 @@ Otherwise, the type should be always "text".
 
   // Special version of onSubmitQueryCallback for use after restore - doesn't add to history
   const onSubmitQueryCallbackAfterRestore = (message: string, restoredMessages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }>) => {
+    // Update the exposed message state with the last user-submitted message
+    _setMessage(message)
+    
     // Don't add message to history since it's already been restored
     console.log('Submitting query after restore without adding to history:', message)
     
@@ -771,6 +782,46 @@ Otherwise, the type should be always "text".
     
     // Ensure payload is always an object
     const safePayload = typeof payload === 'object' && payload !== null ? payload : {}
+    
+    // Handle widget removal requests
+    const { type, messageIndex } = safePayload as { 
+      type?: string;
+      messageIndex?: number;
+    }
+    
+    if (type === 'widget:remove' && typeof messageIndex === 'number') {
+      console.log('Removing widget at message index:', messageIndex)
+      
+      // Get current history from ref to avoid stale closure
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentHistory = historyRef.current as Array<{ 
+        role: 'user' | 'assistant'; 
+        content: string | { type: string; source?: string; [key: string]: unknown }; 
+        hidden?: boolean 
+      }>
+      
+      // Validate message index
+      if (messageIndex >= 0 && messageIndex < currentHistory.length) {
+        // Mark the message as hidden
+        const updatedHistory = [...currentHistory]
+        updatedHistory[messageIndex] = {
+          ...updatedHistory[messageIndex],
+          hidden: true
+        }
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        _setHistory(updatedHistory as any)
+        // Update historyRef to keep it in sync
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        historyRef.current = updatedHistory as any
+        console.log('Widget removed successfully (message hidden)')
+        
+        // Don't dispatch to Retool for internal removal actions
+        return
+      } else {
+        console.warn('Cannot remove widget: invalid message index:', messageIndex)
+      }
+    }
     
     // Handle history update requests
     const { updateHistory, historyIndex, updatedSource } = safePayload as { 
