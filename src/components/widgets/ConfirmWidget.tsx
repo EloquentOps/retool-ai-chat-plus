@@ -100,6 +100,7 @@ export const ConfirmWidget = React.memo(ConfirmWidgetComponent, (prevProps, next
 // Export the instruction for this widget
 export const ConfirmWidgetInstruction = {
   type: 'confirm',
+  hint: 'Add a confirmation button to the conversation',
   instructions: 'Use this widget when the user asks to confirm an action or decision.',
   sourceDataModel: {
       label: 'string',

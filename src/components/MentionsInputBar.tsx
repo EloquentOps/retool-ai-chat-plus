@@ -17,6 +17,7 @@ interface MentionsInputBarProps {
 interface WidgetData {
   id: string
   display: string
+  hint?: string
   description?: string
 }
 
@@ -59,7 +60,8 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
         .map(([key, config]) => ({
           id: key,
           display: formatWidgetDisplayName(key),
-          description: config.instruction.instructions || 'Widget description not available'
+          hint: config.instruction.hint,
+          description: config.instruction.instructions || ''
         }))
       
       mentionData.push(...widgetMentions)
@@ -251,10 +253,7 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
                     color: '#888',
                     lineHeight: '1.4'
                   }}>
-                    {entry.description && entry.description.length > 80 
-                      ? entry.description.substring(0, 80) + '...' 
-                      : entry.description || 'No description available'
-                    }
+                    {entry.hint}
                   </div>
                 </div>
               )}

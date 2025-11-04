@@ -1,28 +1,64 @@
 # AI Chat Plus - Retool Custom Component
 
-A powerful custom Chat component for Retool that provides enhanced AI chat functionality with support for rendering interactive widgets in the chat flow, rich content, and seamless integration with AI agents.
+A powerful custom Chat component for Retool that provides enhanced AI chat functionality with support for rendering interactive widgets in the chat flow, rich content, and seamless integration with **both Retool AI Query and Retool Agent Query**.
 
 ## Features
 
-- **Interactive Chat Interface**: Modern, responsive chat UI with message history
+- **Interactive Chat Interface**: Modern chat UI with message history
 - **Widget System**: Extensible widget framework for rich content display
-- **AI Agent Integration**: Built-in support for Retool AI agents with polling and status management
+- **Dual Query Support**: Compatible with both **Retool AI Query** (simple LLM calls) and **Retool Agent Query** (full agent workflows with polling, tool approvals, and status management)
 - **Error Handling**: Comprehensive error handling with retry capabilities
 - **Customizable UI**: Configurable welcome messages, prompt chips, and styling options
-- **Real-time Updates**: Live status updates and message streaming
+- **Tool call permission handling** when used with **Retool Agent Query**
 
-## AI Agent Integration & Best Practices
+
+
+## AI Query Integration & Best Practices
 
 ### Core Concept
 
-The AI Chat Plus component is designed to work seamlessly with Retool AI agents by injecting specialized prompt instructions that guide the LLM to respond with structured JSON containing specific widget parameters. This approach allows for rich, interactive content rendering while maintaining consistency and reliability.
+The AI Chat Plus component is designed to work seamlessly with **both Retool AI Query and Retool Agent Query** by injecting specialized prompt instructions that guide the LLM to respond with structured JSON containing specific widget parameters. This approach allows for rich, interactive content rendering while maintaining consistency and reliability.
+
+### Query Type Support
+
+The component automatically detects and handles two different query response formats:
+
+#### 1. Retool AI Query (Simple Format)
+
+**Best for**: Simple LLM calls without complex workflows, tools, or multi-step processes.
+
+**Characteristics**:
+
+- Immediate response (no polling required)
+- No status tracking
+- No tool approvals
+- Faster, simpler integration
+- Perfect for basic chat interactions
+
+#### 2. Retool Agent Query (Complex Format)
+
+**Best for**: Advanced workflows with tools, multi-step reasoning, and complex operations.
+
+**Characteristics**:
+
+- Polling-based status updates
+- Tool approval support
+- Multi-step workflow handling
+- Error recovery and retry logic
+- Comprehensive trace and pagination support
+
+
 
 ### How It Works
 
-1. **Prompt Injection**: The component automatically injects widget-specific instructions into your AI agent's prompt
-2. **JSON Response**: The LLM is guided to respond with structured JSON containing widget type and data
-3. **Widget Rendering**: The component parses the JSON response and renders the appropriate widget
-4. **User Interaction**: Widget interactions are captured and can trigger additional AI agent calls
+1. **Prompt Injection**: The component automatically injects widget-specific instructions into your AI query's prompt
+2. **Response Detection**: The component automatically detects whether you're using AI Query (simple) or Agent Query (complex) format
+3. **JSON Response**: The LLM is guided to respond with structured JSON containing widget type and data
+4. **Widget Rendering**: The component parses the JSON response and renders the appropriate widget
+5. **Status Management**: For Agent Query, the component handles polling, status updates, and tool approvals automatically
+6. **User Interaction**: Widget interactions are captured and can trigger additional AI queries
+
+
 
 ### LLM Model Compatibility
 
@@ -34,6 +70,10 @@ The AI Chat Plus component is designed to work seamlessly with Retool AI agents 
 - Maintaining widget data structure integrity
 
 **Best Practice**: Use OpenAI GPT-4.1 for optimal results, especially in production environments.
+
+We've experienced a good compromise of reliability and cost with  OpenAI o3-mini
+
+
 
 ### Agent Architecture Best Practices
 
@@ -93,17 +133,57 @@ widgetsOptions: {
 }
 ```
 
-### Implementation Example
+### Implementation Examples
+
+#### Example 1: Using Retool AI Query (Simple)
 
 ```javascript
-// Chat Agent Configuration
+// AI Query Configuration
+const aiQuery = {
+  model: "gpt-4",
+  systemPrompt: "You are a helpful assistant that can display rich content using widgets...",
+  // Widget instructions are automatically injected by the component
+}
+
+// Integration Flow
+1. User submits message: "Show me a map of New York City"
+2. Component formats message and triggers AI Query
+3. AI Query returns: { "type": "google_map", "source": "40.7128,-74.0060" }
+4. Component immediately renders the Google Map widget
+```
+
+#### Example 2: Using Retool Agent Query (Complex)
+
+```javascript
+// Agent Query Configuration
+const agentQuery = {
+  model: "gpt-4",
+  systemPrompt: "You are a helpful assistant that can display rich content using widgets...",
+  tools: ["database", "api", "google_maps"],
+  // Widget instructions are automatically injected by the component
+}
+
+// Integration Flow
+1. User submits message: "Analyze Q1 sales and show results"
+2. Component formats message and triggers Agent Query
+3. Agent Query returns status: "PENDING" with agentRunId
+4. Component starts polling for status updates
+5. Agent processes request, may pause for tool approvals
+6. Agent completes and returns: { "status": "COMPLETED", "content": "{...}" }
+7. Component renders the appropriate widget
+```
+
+#### Example 3: Specialized Agent Architecture
+
+```javascript
+// Chat Agent (Primary) - Uses AI Query for simplicity
 const chatAgent = {
   model: "gpt-4",
   systemPrompt: "You are a helpful assistant that can display rich content using widgets...",
   // Widget instructions are automatically injected
 }
 
-// Specialized Data Agent
+// Specialized Data Agent (Secondary) - Uses Agent Query for complex operations
 const dataAgent = {
   model: "gpt-4", // or gpt-3.5-turbo for cost optimization
   tools: ["database", "api"],
@@ -112,8 +192,8 @@ const dataAgent = {
 
 // Integration Flow
 1. User asks: "Show me sales data for Q1"
-2. Chat agent delegates to data agent
-3. Data agent processes request and returns structured data
+2. Chat agent (AI Query) delegates to data agent (Agent Query)
+3. Data agent processes request with tools and returns structured data
 4. Chat agent formats response with appropriate widget
 5. Component renders interactive sales chart/grid
 ```
@@ -273,9 +353,13 @@ npm run deploy
 ### Basic Chat Setup
 
 1. Add the AI Chat Plus component to your Retool app
-2. Connect it to your AI agent query
-3. Configure the `submitQuery` event to trigger your agent
-4. Set up the `queryResponse` property to receive agent responses
+2. Connect it to your AI Query or Agent Query
+3. Configure the `submitQuery` event to trigger your query
+4. Set up the `queryResponse` property to receive query responses
+
+**Choosing Between AI Query and Agent Query**:
+- Use **AI Query** for simple LLM interactions without tools or complex workflows
+- Use **Agent Query** for advanced workflows requiring tools, multi-step reasoning, or approval workflows
 
 ### Widget Configuration
 
@@ -317,13 +401,19 @@ promptChips: [
 ]
 ```
 
-### AI Agent Integration
+### AI Query Integration
 
 The component automatically handles:
-- Message formatting for AI agents
-- Response parsing and widget rendering
-- Status polling and updates
-- Error handling and retry logic
+- **For Both Query Types**:
+  - Message formatting for AI queries
+  - Response parsing and widget rendering
+  - Error handling and retry logic
+  
+- **For Agent Query Only**:
+  - Status polling and updates
+  - Tool approval workflow handling
+  - Pagination and trace management
+  - Resume/retry after approvals
 
 ## Advanced Configuration
 
@@ -400,8 +490,11 @@ src/
 
 1. **Google Maps not loading**: Ensure API key is properly configured
 2. **Widgets not rendering**: Check that widgets are configured in `widgetsOptions` object
-3. **AI agent not responding**: Verify query connection and response format
-4. **Styling issues**: Check for CSS conflicts with Retool's default styles
+3. **AI Query not responding**: Verify query connection and response format
+   - For AI Query: Ensure response format is `{type, source}` JSON
+   - For Agent Query: Ensure response includes `status` and `agentRunId` fields
+4. **Polling not working**: Only applies to Agent Query - check that `agentRunId` is present in response
+5. **Styling issues**: Check for CSS conflicts with Retool's default styles
 
 ### Debug Mode
 
@@ -428,4 +521,4 @@ For issues and questions:
 
 ---
 
-**Note**: This component requires Retool's custom component library support and is designed to work with Retool AI agents.
+**Note**: This component requires Retool's custom component library support and is designed to work with both **Retool AI Query** (for simple LLM interactions) and **Retool Agent Query** (for complex workflows with tools and approvals).

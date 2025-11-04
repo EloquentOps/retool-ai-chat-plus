@@ -281,6 +281,7 @@ export const GoogleMapWidget = React.memo(GoogleMapWidgetComponent, (prevProps, 
 // Export the instruction for this widget
 export const GoogleMapWidgetInstruction = {
   type: 'google_map',
+  hint: 'Add a Google map',
   instructions: 'Use this widget when the user asks to show a map of a specific location. Provide coordinates as an object with lat and lon properties.',
   sourceDataModel: {
     lat: 'the latitude of the location (number)',

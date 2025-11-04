@@ -55,18 +55,21 @@ export const AiChatPlus: FC = () => {
   // Add state for last user message submitted
   const [_lastMessage, _setLastMessage] = Retool.useStateString({
     name: 'lastMessage',
-    initialValue: ''
+    initialValue: '',
+    inspector: 'hidden',
   })
 
   const [_agentInputs, _setAgentInputs] = Retool.useStateObject({
     name: 'agentInputs',
-    initialValue: {}
+    initialValue: {},
+    inspector: 'hidden',
   })
 
   // Add state for widget payload
   const [_widgetPayload, _setWidgetPayload] = Retool.useStateObject({
     name: 'widgetPayload',
-    initialValue: {}
+    initialValue: {},
+    inspector: 'hidden',
   })
 
   // Add state for submit with payload
@@ -104,6 +107,8 @@ export const AiChatPlus: FC = () => {
   // Track seen tool execution IDs to prevent duplicate approval modals
   const seenToolExecutionIdsRef = useRef<Set<string>>(new Set())
   const lastLogUUIDRef = useRef<string | null>(null)
+  // Track last processed simple response to prevent infinite loops
+  const lastProcessedSimpleResponseRef = useRef<string | null>(null)
   
   // Ref to track latest history to avoid stale closure issues
   const historyRef = useRef<Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>>([])
@@ -127,8 +132,8 @@ export const AiChatPlus: FC = () => {
     const currentValue = submitWithPayload || {}
     const previousValue = previousSubmitWithPayloadRef.current
 
-    console.log('submitWithPayload currentValue', currentValue)
-    console.log('submitWithPayload previousValue', previousValue)
+    // console.log('submitWithPayload currentValue', currentValue)
+    // console.log('submitWithPayload previousValue', previousValue)
     
     // Deep comparison to check if values are different
     const hasChanged = JSON.stringify(currentValue) !== JSON.stringify(previousValue)
@@ -391,6 +396,52 @@ export const AiChatPlus: FC = () => {
 
   // Monitor queryResponse for status changes using useEffect to prevent infinite loops
   useEffect(() => {
+    console.log('AAA queryResponse changed:', queryResponse)
+    
+    // Early detection for simple response format (simple LLM call)
+    // Simple format: object with {type, source} structure, no status/agentRunId
+    // Complex format: object with status, agentRunId, pagination, etc.
+    if (queryResponse && typeof queryResponse === 'object' && !Array.isArray(queryResponse)) {
+      // Check if it's NOT the complex flow format (missing status/agentRunId)
+      const isSimpleFormat = !queryResponse.status && !queryResponse.agentRunId && !queryResponse.pagination
+      
+      if (isSimpleFormat && queryResponse.type) {
+        // Check if we've already processed this exact response to prevent infinite loops
+        const responseKey = JSON.stringify(queryResponse)
+        if (lastProcessedSimpleResponseRef.current === responseKey) {
+          console.log('Simple response already processed, skipping')
+          return // Already processed, skip to prevent infinite loop
+        }
+        
+        // Mark this response as processed
+        lastProcessedSimpleResponseRef.current = responseKey
+        
+        // This is the simple format - use the object directly as content
+        const parsedContent: string | { type: string; [key: string]: unknown } = queryResponse as { type: string; [key: string]: unknown }
+        
+        const assistantMessage = {
+          role: 'assistant' as const,
+          content: parsedContent
+        }
+
+        console.log('Simple response format detected, parsedContent:', parsedContent)
+
+        // Use historyRef to get the latest history and avoid stale closure issue
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updatedHistoryWithResponse = [...historyRef.current, assistantMessage]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        _setHistory(updatedHistoryWithResponse as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        historyRef.current = updatedHistoryWithResponse as any
+        
+        // Clear loading state and errors
+        setIsLoading(false)
+        setError(null)
+        return // Early return to skip all complex flow logic
+      }
+    }
+
+    // Continue with complex flow logic for object responses
     if (!queryResponse || Object.keys(queryResponse).length === 0) return
 
     // Update pagination tracking
@@ -820,6 +871,50 @@ Otherwise, the type should be always "text".
         return
       } else {
         console.warn('Cannot remove widget: invalid message index:', messageIndex)
+      }
+    }
+    
+    if (type === 'widget:try_again' && typeof messageIndex === 'number') {
+      console.log('Try again triggered for widget at message index:', messageIndex)
+      
+      // Get current history from ref to avoid stale closure
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentHistory = historyRef.current as Array<{ 
+        role: 'user' | 'assistant'; 
+        content: string | { type: string; source?: string; [key: string]: unknown }; 
+        hidden?: boolean 
+      }>
+      
+      // Validate message index
+      if (messageIndex >= 0 && messageIndex < currentHistory.length) {
+        // Find the previous user message before this widget message
+        let previousUserMessage: string | null = null
+        
+        // Look backwards from the widget message to find the last user message
+        for (let i = messageIndex - 1; i >= 0; i--) {
+          const message = currentHistory[i]
+          if (message.role === 'user' && typeof message.content === 'string' && !message.hidden) {
+            previousUserMessage = message.content
+            break
+          }
+        }
+        
+        if (previousUserMessage) {
+          console.log('Found previous user message, resubmitting:', previousUserMessage)
+          
+          // Create history up to (but not including) the widget message
+          const historyBeforeWidget = currentHistory.slice(0, messageIndex)
+          
+          // Resubmit the previous user message
+          onSubmitQueryCallback(previousUserMessage, historyBeforeWidget)
+          
+          // Don't dispatch to Retool for internal try again actions
+          return
+        } else {
+          console.warn('Cannot try again: no previous user message found')
+        }
+      } else {
+        console.warn('Cannot try again: invalid message index:', messageIndex)
       }
     }
     

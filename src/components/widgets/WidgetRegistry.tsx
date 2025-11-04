@@ -16,6 +16,7 @@ interface WidgetInstruction {
   type: string
   instructions: string
   sourceDataModel: string | object
+  hint?: string
 }
 
 // Widget configuration interface
@@ -52,6 +53,16 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
     })
   }
 
+  const handleTryAgain = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onWidgetCallback?.({
+      type: 'widget:try_again',
+      messageIndex: historyIndex,
+      widgetType: widgetType,
+      timestamp: Date.now()
+    })
+  }
+
   return (
     <div
       style={{
@@ -67,12 +78,12 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
           position: 'absolute',
           bottom: 0,
           right: 0,
-          height: '20px',
           backgroundColor: 'rgba(0, 0, 0, 0.75)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '0 4px',
+          padding: '4px',
+          gap: '4px',
           opacity: isHovered ? 1 : 0,
           transition: 'opacity 0.15s ease-in-out',
           pointerEvents: isHovered ? 'auto' : 'none',
@@ -81,17 +92,15 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
         }}
       >
         <button
-          onClick={handleRemove}
+          onClick={handleTryAgain}
           style={{
             background: 'transparent',
             border: 'none',
             color: '#fff',
             cursor: 'pointer',
             padding: '0',
-            fontSize: '11px',
-            lineHeight: '1',
-            width: '16px',
-            height: '16px',
+            width: '20px',
+            height: '20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -104,9 +113,46 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent'
           }}
-          title="Remove widget"
+          title="Try again"
         >
-          ✕
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+            <path d="M3 21v-5h5" />
+          </svg>
+        </button>
+        <button
+          onClick={handleRemove}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            padding: '0',
+            width: '20px',
+            height: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '2px',
+            transition: 'background-color 0.15s ease-in-out'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }}
+          title="Delete"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18" />
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+          </svg>
         </button>
       </div>
     </div>
