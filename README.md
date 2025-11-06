@@ -2,6 +2,8 @@
 
 A powerful custom chat component for Retool that provides enhanced AI chat functionality with support for rendering interactive widgets in the chat flow, rich content, and seamless integration with **both Retool AI Query and Retool Agent Query**.
 
+<video src="https://bespoke-bunny-7b87c7.netlify.app/chatplus.mp4" autoplay mute></video>
+
 ## Features
 
 - **Interactive Chat Interface**: Modern chat UI (welcome step, chips) with mentionable interactive custom widgets
