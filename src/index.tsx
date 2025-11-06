@@ -36,7 +36,8 @@ export const AiChatPlus: FC = () => {
   // Add state for tools configuration
   const [tools, _setTools] = Retool.useStateObject({
     name: 'tools',
-    initialValue: {}
+    initialValue: {},
+    inspector: 'hidden',
   })
 
   // Add state for input placeholder
