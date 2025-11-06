@@ -19,6 +19,7 @@
   "scripts": {
     "login": "npx retool-ccl login",
     "dev": "npx retool-ccl dev",
+    "init": "npx retool-ccl init",
     "deploy": "npx retool-ccl deploy"
   },
   "browserslist": {
