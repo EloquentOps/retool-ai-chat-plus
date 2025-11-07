@@ -64,6 +64,8 @@ Pay attention to the **transform results** panel.
 
 ![retool-ai-query](docs/retool-ai-query.png)
 
+---
+
 #### Agent Query
 
 Use an Agent Query when you need complex agentic flow, to call tools, and let the agent solve user requests more independently.
@@ -102,7 +104,7 @@ Here's the minimal configuration to make the Chat Plus component work with a Ret
 
 
 
-### List of built-in widgets (all in beta)
+## List of built-in widgets (all in beta)
 
 Here the `widgetsOptions` object to enable all the present widgets in the component:
 
@@ -133,9 +135,9 @@ It renders a full Google Map positioned with a given location.
 
 It requires a valid API Key from Google.
 
-![](docs/widgets/google_map.png)
+![](docs/widgets/google_map.jpg)
 
-
+---
 
 #### Chart
 
@@ -145,11 +147,15 @@ It renders an EChart component. The chart type is defined by the LLM, according 
 
 ![](docs/widgets/chart-2.png)
 
+---
+
 #### Image
 
 It renders an image, that can be zoomed in and out.
 
 ![](docs/widgets/image.jpg)
+
+---
 
 #### Select
 
@@ -157,17 +163,23 @@ It renders a select component
 
 ![](docs/widgets/select.png)
 
+---
+
 #### Tabulator
 
 It renders a table using Tabulator library.
 
 ![](docs/widgets/tabulator.png)
 
+---
+
 #### ImageGrid
 
 It renders a list of images in a grid layout.
 
 ![](docs/widgets/image_grid.jpg)
+
+---
 
 #### Input
 
@@ -177,7 +189,7 @@ It renders an input field with validation reg-ex and message
 
 
 
-### How It Works
+## How It Works
 
 1. **Prompt Injection**: The component automatically injects widget-specific instructions into your AI query's prompt when mentioned by the user.
 2. **Response Detection**: The component automatically detects whether you're using AI Query (simple) or Agent Query (complex) format
@@ -188,7 +200,7 @@ It renders an input field with validation reg-ex and message
 
 
 
-### LLM Model Compatibility
+## LLM Model Compatibility
 
 **Recommended**: This component has been extensively tested with **OpenAI GPT-4.1** and shows the highest reliability and consistency in following widget instructions.
 
