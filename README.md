@@ -111,14 +111,13 @@ Here the `widgetsOptions` object to enable all the present widgets in the compon
   "google_map": {
     "apiKey": "....required...."
   },
-  "input":{},
-  "tabulator":{},
-  "confirm": {},
-  "image_grid": {},
+  "chart": {},
   "image": {},
-  "sample": {},
   "select": {},
-  "chart": {}
+  "tabulator":{},
+  "image_grid": {},
+  "input":{}
+
 }
 ```
 
@@ -128,7 +127,53 @@ Widgets need to be enabled in order to be listed in the mention list. Only one w
 
 
 
+#### GoogleMap
 
+It renders a full Google Map positioned with a given location.
+
+It requires a valid API Key from Google.
+
+![](docs/widgets/google_map.png)
+
+
+
+#### Chart
+
+It renders an EChart component. The chart type is defined by the LLM, according to the user hints and the type of data is needs to show.
+
+![](docs/widgets/chart-1.png)
+
+![](docs/widgets/chart-2.png)
+
+#### Image
+
+It renders an image, that can be zoomed in and out.
+
+![](docs/widgets/image.jpg)
+
+#### Select
+
+It renders a select component 
+
+![](docs/widgets/select.png)
+
+#### Tabulator
+
+It renders a table using Tabulator library.
+
+![](docs/widgets/tabulator.png)
+
+#### ImageGrid
+
+It renders a list of images in a grid layout.
+
+![](docs/widgets/image_grid.jpg)
+
+#### Input
+
+It renders an input field with validation reg-ex and message
+
+![](docs/widgets/input.png)
 
 
 
