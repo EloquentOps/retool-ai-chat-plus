@@ -82,7 +82,28 @@ Here's the minimal configuration to make the Chat Plus component work with a Ret
 
 ![retool-agent-query](docs/component-options.png)
 
-#### Options
+
+
+#### Welcome view
+
+By setting one or both of the following properties:
+
+- welcomeMessage
+- promptChips
+
+A welcome view will be rendered before the chat flow.
+
+The `welcomeMessage` allow to configure the top message:
+
+![](docs/welcomeMessage.png)
+
+The `promptChips` array allows to add one or more interactive buttons at the bottom to let the user quickly launch pre-configured questions:
+
+![](docs/promptChips.png)
+
+
+
+#### Options list
 
 | Property            | Type   | Default | Description                                                  |
 | ------------------- | ------ | ------- | ------------------------------------------------------------ |
