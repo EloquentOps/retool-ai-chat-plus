@@ -26,6 +26,7 @@ interface ChatContainerProps {
   onRetry?: () => void
   onDismissError?: () => void
   placeholder?: string
+  stylePreferences?: Record<string, unknown>
 }
 
 export const ChatContainer: FC<ChatContainerProps> = ({
@@ -41,18 +42,22 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   error,
   onRetry,
   onDismissError,
-  placeholder
+  placeholder,
+  stylePreferences = {}
 }) => {
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
   const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && hasWelcomeContent
 
+  // Determine wrapper border visibility based on stylePreferences
+  const wrapperBorder = stylePreferences.wrapperBorder
+  const isBorderHidden = wrapperBorder === 'hidden'
+  
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
       height: 'calc(100% - 3px)',
-      border: '1px solid #e0e0e0',
-      borderRadius: '8px',
+      ...(isBorderHidden ? {} : { border: '1px solid #e0e0e0', borderRadius: '8px' }),
       backgroundColor: isEmpty ? '#f5f5f5' : '#ffffff',
       overflow: 'hidden',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'

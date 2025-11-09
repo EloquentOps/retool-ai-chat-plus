@@ -84,7 +84,7 @@ Here's the minimal configuration to make the Chat Plus component work with a Ret
 
 
 
-#### Welcome view
+### Welcome view
 
 By setting one or both of the following properties:
 
@@ -102,6 +102,17 @@ The `promptChips` array allows to add one or more interactive buttons at the bot
 ![](docs/promptChips.png)
 
 
+### Style Preferences
+
+The `stylePreferences` object is to customize the style and look&feel of the component.
+Available properties are:
+
+```
+{
+  "wrapperBorder": "visible" // default, you can set "hidden" to hide the border
+}
+```
+
 
 #### Options list
 
@@ -112,6 +123,7 @@ The `promptChips` array allows to add one or more interactive buttons at the bot
 | `promptChips`       | array  | []      | Suggested action in Welcome view chips for quick interactions, object schema: {label:'', icon:'', question:''} |
 | `history`           | array  | []      | Chat message history                                         |
 | `queryResponse`     | object | {}      | AI agent response data                                       |
+| `stylePreferences`  | object | {}      | Options for style preferences                                |
 | `agentInputs`       | object | {}      | Read only, required to wire the component with the query     |
 | `widgetPayload`     | object | {}      | Widget interaction payload                                   |
 | `submitWithPayload` | object | {}      | Programmatic submit with payload                             |
