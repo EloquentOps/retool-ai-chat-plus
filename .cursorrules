@@ -1,0 +1,125 @@
+# Cursor Rules for Retool AI Chat Plus
+
+## Project Overview
+This is a Retool Custom Component Library for an AI Chat component with extensible widget system. The component supports both Retool AI Query and Retool Agent Query.
+
+## Project Structure
+- `src/components/` - Main React components (ChatContainer, MessageList, InputBar, etc.)
+- `src/components/widgets/` - Widget components and registry
+- `src/utils/` - Utility functions
+- `src/types/` - TypeScript type definitions
+- `dist/` - Built output for Retool
+
+## Widget Development Guidelines
+
+### Widget Architecture
+- All widgets must be registered in `WidgetRegistry.tsx`
+- Do NOT export new individual widgets for direct use in `src/components/widgets/index.ts`
+- Each widget needs:
+  1. Component implementation (React.FC)
+  2. Instruction object (WidgetInstruction) with type, instructions, and sourceDataModel
+  3. Export both component and instruction
+
+### Widget Interface
+```typescript
+interface WidgetProps {
+  source: string | object | array
+  onWidgetCallback?: (payload: Record<string, unknown>) => void
+  widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
+}
+
+interface WidgetInstruction {
+  type: string
+  instructions: string
+  sourceDataModel: string | object
+}
+```
+
+### Widget Registration Pattern
+```typescript
+// In WidgetRegistry.tsx
+export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
+  widget_name: {
+    component: WidgetComponent,
+    instruction: WidgetInstruction,
+    enabled: true
+  }
+}
+```
+
+## Code Style & Conventions
+
+### TypeScript
+- Use TypeScript for all new code
+- Prefer explicit types over `any`
+- Use interfaces for props and data structures
+- Export types when used across files
+
+### React Patterns
+- Use functional components with hooks
+- Use `React.FC` type for component props
+- Prefer named exports over default exports
+- Use React.memo for performance optimization when needed
+
+### File Naming
+- Components: PascalCase (e.g., `ChatContainer.tsx`)
+- Utilities: camelCase (e.g., `widgetUtils.ts`)
+- Types: camelCase with `.d.ts` extension if needed
+
+## Key Dependencies
+- React 18.2.0
+- @tryretool/custom-component-support (latest)
+- react-markdown for text rendering
+- react-mentions for mention support
+- echarts for charts
+- tabulator-tables for tables
+- @googlemaps/js-api-loader for maps
+
+## Retool Integration
+- Component entry point: `src/index.tsx`
+- Output path: `dist/`
+- Component name: `AiChatPlus`
+- Use Retool's custom component support utilities
+
+## Widget System Details
+- Widgets are mentioned in chat input using `@widget_name` syntax
+- Widget instructions are injected into AI prompts automatically
+- Widgets can accept string, object, or array data
+- Widget callbacks communicate user interactions back to chat system
+- Widget options can override instructions and sourceDataModel per widget type
+
+## Common Patterns
+
+### Creating a New Widget
+1. Create widget component file in `src/components/widgets/`
+2. Define WidgetInstruction object
+3. Export both component and instruction
+4. Register in `WidgetRegistry.tsx`
+5. Add to `src/components/widgets/index.ts` exports
+
+### Widget Callback Pattern
+```typescript
+onWidgetCallback?.({
+  type: 'interaction_type',
+  data: interactionData,
+  timestamp: Date.now()
+})
+```
+
+## Testing Considerations
+- Widgets should handle missing or invalid data gracefully
+- Always validate source data before rendering
+- Provide fallback UI for error states
+- Test with both AI Query and Agent Query formats
+
+## Performance
+- Use React.memo for expensive widget components
+- Avoid unnecessary re-renders
+- Clean up resources in useEffect cleanup functions for complex widgets
+
+## Documentation
+- Document widget instructions clearly for AI agents
+- Include examples in sourceDataModel descriptions
+- Update README.md when adding new widgets
+

@@ -125,14 +125,14 @@ Available properties are:
 | `queryResponse`     | object | {}      | AI agent response data                                       |
 | `stylePreferences`  | object | {}      | Options for style preferences                                |
 | `agentInputs`       | object | {}      | Read only, required to wire the component with the query     |
-| `widgetPayload`     | object | {}      | Widget interaction payload                                   |
+| `widgetPayload`     | object | {}      | Widget payload you can read after `widgetCallback` event     |
 | `submitWithPayload` | object | {}      | Programmatic submit with payload                             |
 
 #### Events
 
 | Event            | Description                                         |
 | ---------------- | --------------------------------------------------- |
-| `submitQuery`    | Triggered when a query is submitted to the AI agent |
+| `submitQuery`    | It triggers the LLM query to get the response for the chat |
 | `widgetCallback` | Triggered when a widget interaction occurs          |
 
 
@@ -146,12 +146,13 @@ Here the `widgetsOptions` object to enable all the present widgets in the compon
   "google_map": {
     "apiKey": "....required...."
   },
-  "chart": {},
-  "image": {},
-  "select": {},
+  "chart":{},
+  "image":{},
+  "select":{},
   "tabulator":{},
-  "image_grid": {},
-  "input":{}
+  "image_grid":{},
+  "input":{},
+  "checklist":{} 
 
 }
 ```
@@ -220,7 +221,35 @@ It renders an input field with validation reg-ex and message
 
 ![](docs/widgets/input.png)
 
+---
 
+#### CheckList
+
+It renders an interactive checklist with checkbox
+
+![](docs/widgets/checklist.png)
+
+---
+
+
+### Widget Callback
+
+A widget can implement a callback call with payload.
+When implemented, the component user can exploit the `widgetCallback` event wired with a JS Query such as:
+
+```js
+const payload = aiChatPlus1.widgetPayload
+
+if(payload.type === 'google_map'){
+  utils.confetti()
+}
+```
+
+You can use both the event trigger and the payload from `widgetPayload` property.
+You can then inspect the object and decide what to do with it.
+
+
+---
 
 ## How It Works
 
