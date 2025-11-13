@@ -10,6 +10,7 @@ import { ImageGridWidget, ImageGridWidgetInstruction } from './ImageGridWidget'
 import { TabulatorWidget, TabulatorWidgetInstruction } from './TabulatorWidget'
 import { InputWidget, InputWidgetInstruction } from './InputWidget'
 import { ChartWidget, ChartWidgetInstruction } from './ChartWidget'
+import { CheckListWidget, CheckListWidgetInstruction } from './CheckListWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -209,6 +210,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
   chart: {
     component: ChartWidget,
     instruction: ChartWidgetInstruction,
+    enabled: true
+  },
+  checklist: {
+    component: CheckListWidget,
+    instruction: CheckListWidgetInstruction,
     enabled: true
   }
 }

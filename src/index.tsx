@@ -991,7 +991,10 @@ Otherwise, the type should be always "text".
     // Only dispatch to Retool if this is NOT just a history update
     // History updates are internal and shouldn't trigger external events
     if (!updateHistory) {
-      onWidgetCallback()
+      // Defer dispatch so widgetPayload state is flushed before Retool reads it
+      requestAnimationFrame(() => {
+        onWidgetCallback()
+      })
     }
 
     const { selfSubmit, prompt } = safePayload as { selfSubmit?: boolean; prompt?: string }
