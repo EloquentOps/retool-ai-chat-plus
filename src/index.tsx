@@ -1074,6 +1074,11 @@ Otherwise, the type should be always "text".
       {/* Tabulator CSS */}
       <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css" />
       
+      {/* FullCalendar CSS */}
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/main.min.css" />
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/main.min.css" />
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/main.min.css" />
+      
       <div style={{ 
         height: '100%', 
         width: '100%',

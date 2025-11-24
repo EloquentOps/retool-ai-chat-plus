@@ -11,6 +11,7 @@ import { TabulatorWidget, TabulatorWidgetInstruction } from './TabulatorWidget'
 import { InputWidget, InputWidgetInstruction } from './InputWidget'
 import { ChartWidget, ChartWidgetInstruction } from './ChartWidget'
 import { CheckListWidget, CheckListWidgetInstruction } from './CheckListWidget'
+import { FullCalendarWidget, FullCalendarWidgetInstruction } from './FullCalendarWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -215,6 +216,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
   checklist: {
     component: CheckListWidget,
     instruction: CheckListWidgetInstruction,
+    enabled: true
+  },
+  fullcalendar: {
+    component: FullCalendarWidget,
+    instruction: FullCalendarWidgetInstruction,
     enabled: true
   }
 }
