@@ -152,7 +152,8 @@ Here the `widgetsOptions` object to enable all the present widgets in the compon
   "tabulator":{},
   "image_grid":{},
   "input":{},
-  "checklist":{} 
+  "checklist":{},
+  "fullcalendar":{} 
 
 }
 ```
@@ -161,7 +162,7 @@ Widgets need to be enabled in order to be listed in the mention list. Only one w
 
 ![mention-widgets](docs/mention-widgets.png)
 
-
+---
 
 #### GoogleMap
 
@@ -231,6 +232,14 @@ It renders an interactive checklist with checkbox
 
 ---
 
+#### Fullcalendar
+
+It renders an interactive fullcalendar.js component
+
+![](docs/widgets/fullcalendar.png)
+
+---
+
 
 ### Widget Callback
 
@@ -247,6 +256,51 @@ if(payload.type === 'google_map'){
 
 You can use both the event trigger and the payload from `widgetPayload` property.
 You can then inspect the object and decide what to do with it.
+
+
+
+---
+
+### Submit With Payload
+
+This is a powerful way to imperatively control the chat flow of the component at run-time.
+
+
+
+Here are the wiring requirements to enable this feature. Use a Retool variable as a bridge and set it as the `submitWithPayload` parameter in the component. Then, set that variable with a payload to feed the component at run-time.
+
+The variable must follow this schema:
+
+```js
+{
+  action: 'restore|inject',
+  messages: [
+    {role: 'user|assistant', content: 'your content 1', hidden: true},
+    {role: 'user|assistant', content: 'your content 2', autoSubmit:true}
+  ]
+}
+```
+
+Here are the meanings of the `action` values:
+
+- restore: replace the whole chat feed and history with a custom payload
+- inject: add a payload to the current chat feed and history
+
+The message object can contain the optional `autoSubmit` property to trigger an internal submit of the chat component.
+
+It can also have the optional `hidden` property to hide that content from the chat interface, while still keeping it present in the history and context.
+
+Wire the variable with the component:
+
+![](docs/payload-1.png)
+
+Set the variable at run-time:
+
+![](docs/payload-2.png)
+
+After clicking the button, the chat component will contain that context, and the LLM will be affected by it:
+
+![](docs/payload-3.png)
 
 
 ---
