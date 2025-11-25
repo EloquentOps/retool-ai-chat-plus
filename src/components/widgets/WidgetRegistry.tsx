@@ -12,6 +12,7 @@ import { InputWidget, InputWidgetInstruction } from './InputWidget'
 import { ChartWidget, ChartWidgetInstruction } from './ChartWidget'
 import { CheckListWidget, CheckListWidgetInstruction } from './CheckListWidget'
 import { FullCalendarWidget, FullCalendarWidgetInstruction } from './FullCalendarWidget'
+import { VideoWidget, VideoWidgetInstruction } from './VideoWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -222,6 +223,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
     component: FullCalendarWidget,
     instruction: FullCalendarWidgetInstruction,
     enabled: true
+  },
+  video: {
+    component: VideoWidget,
+    instruction: VideoWidgetInstruction,
+    enabled: true
   }
 }
 
@@ -288,6 +294,27 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
   }, widgetElement)
 }
 
+// Helper function to get widget types that should always be injected
+const getAlwaysInjectedWidgetTypes = (widgetsOptions?: Record<string, unknown>): string[] => {
+  const alwaysInjected: string[] = ['text'] // text widget is always included by default
+  
+  if (!widgetsOptions) {
+    return alwaysInjected
+  }
+  
+  // Check each widget configuration for injectAlways: true
+  Object.entries(widgetsOptions).forEach(([widgetType, widgetOptions]) => {
+    if (typeof widgetOptions === 'object' && widgetOptions !== null) {
+      const options = widgetOptions as Record<string, unknown>
+      if (options.injectAlways === true && WIDGET_REGISTRY[widgetType]?.enabled) {
+        alwaysInjected.push(widgetType)
+      }
+    }
+  })
+  
+  return [...new Set(alwaysInjected)] // Remove duplicates
+}
+
 // Get all enabled widget instructions based on widgetsOptions keys
 export const getAllWidgetInstructions = (widgetsOptions?: Record<string, unknown>) => {
   // If no widgetsOptions provided or empty, only enable text widget
@@ -299,8 +326,9 @@ export const getAllWidgetInstructions = (widgetsOptions?: Record<string, unknown
   // Get enabled widget types from widgetsOptions keys
   const enabledWidgetTypes = Object.keys(widgetsOptions)
   
-  // Always include text widget regardless of widgetsOptions keys
-  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgetTypes])]
+  // Always include text widget and any widgets with injectAlways: true
+  const alwaysInjectedTypes = getAlwaysInjectedWidgetTypes(widgetsOptions)
+  const effectiveEnabledWidgets = [...new Set([...alwaysInjectedTypes, ...enabledWidgetTypes])]
   
   return Object.entries(WIDGET_REGISTRY)
     .filter(([widgetType, config]) => 
@@ -314,8 +342,9 @@ export const getWidgetInstructionsForTypes = (
   widgetTypes: string[], 
   widgetsOptions?: Record<string, unknown>
 ) => {
-  // Always include text widget
-  const effectiveTypes = [...new Set(['text', ...widgetTypes])]
+  // Always include text widget and any widgets with injectAlways: true
+  const alwaysInjectedTypes = getAlwaysInjectedWidgetTypes(widgetsOptions)
+  const effectiveTypes = [...new Set([...alwaysInjectedTypes, ...widgetTypes])]
   
   return Object.entries(WIDGET_REGISTRY)
     .filter(([widgetType, config]) => 
@@ -402,8 +431,9 @@ export const getStructuredWidgetInstructions = (widgetsOptions?: Record<string, 
   // Get enabled widget types from widgetsOptions keys
   const enabledWidgetTypes = Object.keys(widgetsOptions)
   
-  // Always include text widget regardless of widgetsOptions keys
-  const effectiveEnabledWidgets = [...new Set(['text', ...enabledWidgetTypes])]
+  // Always include text widget and any widgets with injectAlways: true
+  const alwaysInjectedTypes = getAlwaysInjectedWidgetTypes(widgetsOptions)
+  const effectiveEnabledWidgets = [...new Set([...alwaysInjectedTypes, ...enabledWidgetTypes])]
   
   return Object.entries(WIDGET_REGISTRY)
     .filter(([widgetType, config]) => 

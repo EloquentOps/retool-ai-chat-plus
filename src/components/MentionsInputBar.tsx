@@ -133,7 +133,8 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
         position: 'relative'
       }}>
         {/* Mentions Input */}
-        <div style={{ flex: 1, position: 'relative' }}>
+        {/* overflow: hidden */}
+        <div style={{ flex: 1, position: 'relative'}}>
             <MentionsInput
               value={inputValue}
               onChange={handleChange}

@@ -157,8 +157,14 @@ Here the `widgetsOptions` object to enable all the present widgets in the compon
 
 }
 ```
+Widgets need to be enabled in order to be listed in the mention list (just the key present with an empty object is enough). 
 
-Widgets need to be enabled in order to be listed in the mention list. Only one widget can be mentioned in the question text. That widget will be then rendered. It's an explicit mechanism, to avoid to pollute the context, making very difficult the model to pick up the right widget. 
+Shared properties:
+- injectAlways: boolean, default false // always inject the widget instruction, so explicit user mention is not necessary.
+
+Only one widget can be mentioned in the question text at a time. That widget will then be rendered. This is an explicit mechanism to avoid polluting the context, making it very difficult for the model to pick up the right widget. 
+
+You can always inject per-widget instructions, but take into account that the more instructions present, the less reliable the LLM is at choosing the right one.
 
 ![mention-widgets](docs/mention-widgets.png)
 
