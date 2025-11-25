@@ -6,6 +6,9 @@ interface Message {
   role: 'user' | 'assistant'
   content: string | { type: string; source?: string; [key: string]: unknown }
   hidden?: boolean // Optional flag to hide messages from display
+  blockId?: number // ID of the block this message belongs to
+  blockIndex?: number // Index within the block (0-based)
+  blockTotal?: number // Total widgets in the block
 }
 
 interface MessageListProps {
@@ -25,6 +28,38 @@ export const MessageList: FC<MessageListProps> = ({
 
   // Filter out hidden messages for display
   const visibleMessages = messages.filter(message => !message.hidden)
+
+  // Group consecutive assistant messages with the same blockId together
+  const groupedMessages: Array<{ messages: Message[]; isBlock: boolean }> = []
+  let currentBlock: Message[] | null = null
+  
+  visibleMessages.forEach((message, index) => {
+    if (message.role === 'assistant' && message.blockId !== undefined) {
+      // This is part of a widget block
+      if (currentBlock === null || currentBlock[0]?.blockId !== message.blockId) {
+        // Start a new block
+        if (currentBlock !== null && currentBlock.length > 0) {
+          groupedMessages.push({ messages: currentBlock, isBlock: true })
+        }
+        currentBlock = [message]
+      } else {
+        // Continue current block
+        currentBlock.push(message)
+      }
+    } else {
+      // This is not part of a block (user message or assistant without blockId)
+      if (currentBlock !== null && currentBlock.length > 0) {
+        groupedMessages.push({ messages: currentBlock, isBlock: true })
+        currentBlock = null
+      }
+      groupedMessages.push({ messages: [message], isBlock: false })
+    }
+  })
+  
+  // Don't forget the last block if it exists
+  if (currentBlock !== null && currentBlock.length > 0) {
+    groupedMessages.push({ messages: currentBlock, isBlock: true })
+  }
 
   // Scroll to bottom when messages change or loading state changes
   useEffect(() => {
@@ -59,15 +94,49 @@ export const MessageList: FC<MessageListProps> = ({
         </div>
       ) : (
         <>
-          {visibleMessages.map((message, index) => (
-            <MessageItem
-              key={index}
-              message={message}
-              messageIndex={index}
-              onWidgetCallback={onWidgetCallback}
-              widgetsOptions={widgetsOptions}
-            />
-          ))}
+          {groupedMessages.map((group, groupIndex) => {
+            if (group.isBlock) {
+              // Render widgets in a block together
+              return (
+                <div
+                  key={`block-${group.messages[0]?.blockId || groupIndex}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    width: '100%',
+                    gap: '4px' // Reduced spacing between widgets in same block
+                  }}
+                >
+                  {group.messages.map((message, msgIndex) => {
+                    const originalIndex = visibleMessages.indexOf(message)
+                    return (
+                      <MessageItem
+                        key={`block-${group.messages[0]?.blockId || groupIndex}-${msgIndex}`}
+                        message={message}
+                        messageIndex={originalIndex}
+                        onWidgetCallback={onWidgetCallback}
+                        widgetsOptions={widgetsOptions}
+                      />
+                    )
+                  })}
+                </div>
+              )
+            } else {
+              // Render single message normally
+              const message = group.messages[0]
+              const originalIndex = visibleMessages.indexOf(message)
+              return (
+                <MessageItem
+                  key={`single-${originalIndex}`}
+                  message={message}
+                  messageIndex={originalIndex}
+                  onWidgetCallback={onWidgetCallback}
+                  widgetsOptions={widgetsOptions}
+                />
+              )
+            }
+          })}
           {isLoading && (
             <div style={{
               display: 'flex',

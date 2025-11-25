@@ -118,7 +118,7 @@ export const AiChatPlus: FC = () => {
   const lastProcessedSimpleResponseRef = useRef<string | null>(null)
   
   // Ref to track latest history to avoid stale closure issues
-  const historyRef = useRef<Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>>([])
+  const historyRef = useRef<Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>>([])
 
   // Ensure internal state variables are always empty objects on mount
   useEffect(() => {
@@ -159,7 +159,7 @@ export const AiChatPlus: FC = () => {
 
     const { action, messages, autoSubmit } = currentValue as { 
       action?: string; 
-      messages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }>; 
+      messages?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>; 
       autoSubmit?: boolean;
     }
 
@@ -173,11 +173,14 @@ export const AiChatPlus: FC = () => {
       // Process each message in the array
       console.log('Triggering submit with messages:', messages)
       
-      // Add all messages to history
+      // Add all messages to history, preserving block properties
       const newMessages = messages.map(msg => ({
         role: msg.role,
         content: msg.content,
-        ...(msg.hidden && { hidden: msg.hidden })
+        ...(msg.hidden && { hidden: msg.hidden }),
+        ...(msg.blockId !== undefined && { blockId: msg.blockId }),
+        ...(msg.blockIndex !== undefined && { blockIndex: msg.blockIndex }),
+        ...(msg.blockTotal !== undefined && { blockTotal: msg.blockTotal })
       }))
       
       // Create updated history that includes the new messages
@@ -196,9 +199,13 @@ export const AiChatPlus: FC = () => {
       const userMessages = messages.filter(msg => msg.role === 'user')
       if (userMessages.length > 0) {
         const lastUserMessage = userMessages[userMessages.length - 1]
+        // Extract string content (user messages should always be strings)
+        const messageContent = typeof lastUserMessage.content === 'string' 
+          ? lastUserMessage.content 
+          : JSON.stringify(lastUserMessage.content)
         // Pass the updated history to avoid stale closure issue
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onSubmitQueryCallback(lastUserMessage.content, updatedHistory as any)
+        onSubmitQueryCallback(messageContent, updatedHistory as any)
       }
       
       // Reset the submitWithPayload to prevent repeated triggers
@@ -221,12 +228,15 @@ export const AiChatPlus: FC = () => {
       // Update the ref BEFORE processing to prevent re-triggers
       previousSubmitWithPayloadRef.current = { ...currentValue }
       
-      // Inject multiple hidden messages for context
+      // Inject multiple hidden messages for context, preserving block properties
       console.log('Injecting hidden context messages:', messages)
       const hiddenMessages = messages.map(msg => ({
         role: msg.role,
         content: msg.content,
-        hidden: true // Flag to indicate these messages should not be displayed
+        hidden: true, // Flag to indicate these messages should not be displayed
+        ...(msg.blockId !== undefined && { blockId: msg.blockId }),
+        ...(msg.blockIndex !== undefined && { blockIndex: msg.blockIndex }),
+        ...(msg.blockTotal !== undefined && { blockTotal: msg.blockTotal })
       }))
       
       // Add the hidden messages to history
@@ -254,12 +264,15 @@ export const AiChatPlus: FC = () => {
       // Update the ref BEFORE processing to prevent re-triggers
       previousSubmitWithPayloadRef.current = { ...currentValue }
       
-      // Restore history with the provided messages
+      // Restore history with the provided messages, preserving block properties
       console.log('Restoring history with messages:', messages)
       const restoredMessages = messages.map(msg => ({
         role: msg.role,
         content: msg.content,
-        ...(msg.hidden && { hidden: msg.hidden })
+        ...(msg.hidden && { hidden: msg.hidden }),
+        ...(msg.blockId !== undefined && { blockId: msg.blockId }),
+        ...(msg.blockIndex !== undefined && { blockIndex: msg.blockIndex }),
+        ...(msg.blockTotal !== undefined && { blockTotal: msg.blockTotal })
       }))
       
       // Replace the entire history with the restored messages
@@ -282,13 +295,18 @@ export const AiChatPlus: FC = () => {
             return
           }
           
+          // Extract string content (user messages should always be strings)
+          const messageContent = typeof lastUserMessage.content === 'string' 
+            ? lastUserMessage.content 
+            : JSON.stringify(lastUserMessage.content)
+          
           // Set the flag to prevent duplicate triggers
           autoSubmitInProgressRef.current = true
-          console.log('Auto-submitting last user message after restore:', lastUserMessage.content)
+          console.log('Auto-submitting last user message after restore:', messageContent)
           
           // Use a special version of submit that doesn't add to history since we already have the restored messages
           // Pass the restored messages directly to avoid stale closure issue
-          onSubmitQueryCallbackAfterRestore(lastUserMessage.content, restoredMessages)
+          onSubmitQueryCallbackAfterRestore(messageContent, restoredMessages)
         }
       } else {
         console.log('Restore completed without auto-submission (autoSubmit not enabled)')
@@ -405,14 +423,68 @@ export const AiChatPlus: FC = () => {
   useEffect(() => {
     console.log('AAA queryResponse changed:', queryResponse)
     
-    // Early detection for simple response format (simple LLM call)
-    // Simple format: object with {type, source} structure, no status/agentRunId
-    // Complex format: object with status, agentRunId, pagination, etc.
+    // Early return if queryResponse is null/undefined/empty
+    if (!queryResponse || (typeof queryResponse === 'object' && Object.keys(queryResponse).length === 0 && !Array.isArray(queryResponse))) {
+      return
+    }
+    
+    // queryResponse is always an object from Retool.useStateObject
+    // The LLM response array is stored in queryResponse.widgets
+    // Check if widgets property exists and is an array (simple Query format)
     if (queryResponse && typeof queryResponse === 'object' && !Array.isArray(queryResponse)) {
-      // Check if it's NOT the complex flow format (missing status/agentRunId)
+      // Check if it has widgets property (simple Query format)
+      if (queryResponse.widgets && Array.isArray(queryResponse.widgets)) {
+        // Check if we've already processed this exact response to prevent infinite loops
+        const responseKey = JSON.stringify(queryResponse.widgets)
+        if (lastProcessedSimpleResponseRef.current === responseKey) {
+          console.log('Simple widgets response already processed, skipping')
+          return // Already processed, skip to prevent infinite loop
+        }
+        
+        // Mark this response as processed
+        lastProcessedSimpleResponseRef.current = responseKey
+        
+        // Process widgets array
+        const widgetArray = queryResponse.widgets as Array<{ type: string; source?: string; [key: string]: unknown }>
+        
+        // If empty array, allow it (render nothing)
+        if (widgetArray.length === 0) {
+          console.log('Empty widgets array, skipping message creation')
+          setIsLoading(false)
+          setError(null)
+          return
+        }
+        
+        // Create message entries for each widget with block tracking
+        const blockId = Date.now() // Unique ID for this response block
+        const assistantMessages = widgetArray.map((widget, index) => ({
+          role: 'assistant' as const,
+          content: widget,
+          blockId: blockId,
+          blockIndex: index,
+          blockTotal: widgetArray.length
+        }))
+
+        console.log('Simple widgets response format detected, widgetArray:', widgetArray, 'assistantMessages:', assistantMessages)
+
+        // Use historyRef to get the latest history and avoid stale closure issue
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updatedHistoryWithResponse = [...historyRef.current, ...assistantMessages]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        _setHistory(updatedHistoryWithResponse as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        historyRef.current = updatedHistoryWithResponse as any
+        
+        // Clear loading state and errors
+        setIsLoading(false)
+        setError(null)
+        return // Early return to skip all complex flow logic
+      }
+      
+      // Legacy support: Check if it's a simple object format with type property (not complex flow format)
       const isSimpleFormat = !queryResponse.status && !queryResponse.agentRunId && !queryResponse.pagination
       
-      if (isSimpleFormat && queryResponse.type) {
+      if (isSimpleFormat && queryResponse.type && !queryResponse.widgets) {
         // Check if we've already processed this exact response to prevent infinite loops
         const responseKey = JSON.stringify(queryResponse)
         if (lastProcessedSimpleResponseRef.current === responseKey) {
@@ -423,19 +495,24 @@ export const AiChatPlus: FC = () => {
         // Mark this response as processed
         lastProcessedSimpleResponseRef.current = responseKey
         
-        // This is the simple format - use the object directly as content
-        const parsedContent: string | { type: string; [key: string]: unknown } = queryResponse as { type: string; [key: string]: unknown }
+        // Wrap single object in array
+        const widgetArray = [queryResponse as { type: string; source?: string; [key: string]: unknown }]
         
-        const assistantMessage = {
+        // Create message entries for each widget with block tracking
+        const blockId = Date.now() // Unique ID for this response block
+        const assistantMessages = widgetArray.map((widget, index) => ({
           role: 'assistant' as const,
-          content: parsedContent
-        }
+          content: widget,
+          blockId: blockId,
+          blockIndex: index,
+          blockTotal: widgetArray.length
+        }))
 
-        console.log('Simple response format detected, parsedContent:', parsedContent)
+        console.log('Simple object response format detected, widgetArray:', widgetArray, 'assistantMessages:', assistantMessages)
 
         // Use historyRef to get the latest history and avoid stale closure issue
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updatedHistoryWithResponse = [...historyRef.current, assistantMessage]
+        const updatedHistoryWithResponse = [...historyRef.current, ...assistantMessages]
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         _setHistory(updatedHistoryWithResponse as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -573,31 +650,108 @@ export const AiChatPlus: FC = () => {
       stopPolling()
       setError(null) // Clear any errors on successful completion
       
-      // Extract AI response content
+      // First, try to parse resultText/content if they are JSON strings
+      let parsedResponse = queryResponse
       const aiResponse = queryResponse.content || queryResponse.resultText
-      if (aiResponse) {
-        let parsedContent: string | { type: string; [key: string]: unknown }
-        
+      
+      if (aiResponse && typeof aiResponse === 'string') {
         try {
           // Try to parse as JSON first
-          const jsonResponse = JSON.parse(aiResponse as string)
-          parsedContent = jsonResponse
+          const jsonResponse = JSON.parse(aiResponse)
+          // Merge parsed response with existing queryResponse, prioritizing parsed widgets
+          parsedResponse = { ...queryResponse, ...jsonResponse }
+          console.log('Parsed resultText/content as JSON:', jsonResponse)
         } catch {
-          // If not JSON, treat as plain text
-          parsedContent = { type: 'text', source: aiResponse as string }
+          // If not JSON, continue with original queryResponse
+          console.log('resultText/content is not JSON, treating as plain text')
+        }
+      }
+      
+      // Check if widgets property exists (preferred format)
+      if (parsedResponse.widgets && Array.isArray(parsedResponse.widgets)) {
+        const widgetArray = parsedResponse.widgets as Array<{ type: string; source?: string; [key: string]: unknown }>
+        
+        // If empty array, allow it (render nothing)
+        if (widgetArray.length === 0) {
+          console.log('Empty widgets array, skipping message creation')
+          setIsLoading(false)
+          setError(null)
+          return
         }
         
-        const assistantMessage = {
+        // Create message entries for each widget with block tracking
+        const blockId = Date.now() // Unique ID for this response block
+        const assistantMessages = widgetArray.map((widget, index) => ({
           role: 'assistant' as const,
-          content: parsedContent
-        }
+          content: widget,
+          blockId: blockId,
+          blockIndex: index,
+          blockTotal: widgetArray.length
+        }))
 
-        console.log('parsedContent')
-        console.log(parsedContent)
+        console.log('Agent completed with widgets array:', widgetArray)
+        console.log('assistantMessages:', assistantMessages)
 
         // Use historyRef to get the latest history and avoid stale closure issue
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const updatedHistoryWithResponse = [...historyRef.current, assistantMessage]
+        const updatedHistoryWithResponse = [...historyRef.current, ...assistantMessages]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        _setHistory(updatedHistoryWithResponse as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        historyRef.current = updatedHistoryWithResponse as any
+        return
+      }
+      
+      // Fallback: If no widgets property, try to parse content/resultText as array or single object
+      if (aiResponse) {
+        let widgetArray: Array<{ type: string; source?: string; [key: string]: unknown }>
+        
+        try {
+          // Try to parse as JSON first
+          const jsonResponse = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse
+          
+          // Check if it's an object with widgets property
+          if (jsonResponse && typeof jsonResponse === 'object' && jsonResponse.widgets && Array.isArray(jsonResponse.widgets)) {
+            widgetArray = jsonResponse.widgets
+          } else if (Array.isArray(jsonResponse)) {
+            // Direct array format
+            widgetArray = jsonResponse
+          } else if (jsonResponse && typeof jsonResponse === 'object' && jsonResponse.type) {
+            // Wrap single object in array
+            widgetArray = [jsonResponse as { type: string; source?: string; [key: string]: unknown }]
+          } else {
+            // Fallback: wrap as text widget
+            widgetArray = [{ type: 'text', source: String(jsonResponse) }]
+          }
+        } catch {
+          // If not JSON, treat as plain text and wrap as text widget
+          widgetArray = [{ type: 'text', source: String(aiResponse) }]
+        }
+        
+        // If empty array, allow it (render nothing)
+        if (widgetArray.length === 0) {
+          console.log('Empty array response, skipping message creation')
+          setIsLoading(false)
+          setError(null)
+          return
+        }
+        
+        // Create message entries for each widget with block tracking
+        const blockId = Date.now() // Unique ID for this response block
+        const assistantMessages = widgetArray.map((widget, index) => ({
+          role: 'assistant' as const,
+          content: widget,
+          blockId: blockId,
+          blockIndex: index,
+          blockTotal: widgetArray.length
+        }))
+
+        console.log('parsedContent (array):', widgetArray)
+        console.log('assistantMessages:', assistantMessages)
+
+        // Use historyRef to get the latest history and avoid stale closure issue
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updatedHistoryWithResponse = [...historyRef.current, ...assistantMessages]
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         _setHistory(updatedHistoryWithResponse as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -643,7 +797,8 @@ export const AiChatPlus: FC = () => {
 
   // Function to normalize message content for agent input
   // Handles both string content and widget objects
-  const normalizeMessageForAgent = (message: { role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown } }) => {
+  // For messages with blockId, each widget is normalized separately (they're already separate messages)
+  const normalizeMessageForAgent = (message: { role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; blockId?: number; blockIndex?: number; blockTotal?: number }) => {
     if (typeof message.content === 'string') {
       return message
     }
@@ -671,7 +826,7 @@ export const AiChatPlus: FC = () => {
     }
   }
 
-  const onSubmitQueryCallback = (message: string, providedHistory?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>) => {
+  const onSubmitQueryCallback = (message: string, providedHistory?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => {
     // Update the exposed message state with the last user-submitted message
     _setLastMessage(message)
     
@@ -733,7 +888,18 @@ export const AiChatPlus: FC = () => {
 
 ALWAYS RETURN THE RESPONSE AS JSON STRING:
 Return the response as JSON STRING with this mandatory schema: 
-{"type":"<type>", "source":"<answer formatted based on the type rules>"}.
+{"widgets": [{"type":"<type>", "source":"<answer formatted based on the type rules>"}, ...]}
+
+The response MUST be an object with a "widgets" property containing an array.
+The widgets array MUST always contain at least one widget object, even if it's just one widget.
+When multiple widgets make sense (e.g., text explanation + video + text conclusion), 
+return them as separate objects in the widgets array: {"widgets": [{"type":"text", "source":"..."}, {"type":"video", "source":"..."}, {"type":"text", "source":"..."}]}
+
+Example single widget response:
+{"widgets": [{"type":"text", "source":"Hello! How can I help you today?"}]}
+
+Example multiple widgets response:
+{"widgets": [{"type":"text", "source":"Here's an introduction"}, {"type":"video", "source":"https://example.com/video.mp4"}, {"type":"text", "source":"And here's a conclusion"}]}
 
 HOW TO SELECT THE TYPE DIFFERENT BY TEXT:
 If in the user question is present one of the available widget as mentioned TAG, such as @[GoogleMap](google_map), 
@@ -761,7 +927,7 @@ Otherwise, the type should be always "text".
   }
 
   // Special version of onSubmitQueryCallback for use after restore - doesn't add to history
-  const onSubmitQueryCallbackAfterRestore = (message: string, restoredMessages?: Array<{ role: 'user' | 'assistant'; content: string; hidden?: boolean }>) => {
+  const onSubmitQueryCallbackAfterRestore = (message: string, restoredMessages?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => {
     // Update the exposed message state with the last user-submitted message
     _setLastMessage(message)
     
@@ -801,7 +967,18 @@ Otherwise, the type should be always "text".
 
 ALWAYS RETURN THE RESPONSE AS JSON STRING:
 Return the response as JSON STRING with this mandatory schema: 
-{"type":"<type>", "source":"<answer formatted based on the type rules>"}.
+{"widgets": [{"type":"<type>", "source":"<answer formatted based on the type rules>"}, ...]}
+
+The response MUST be an object with a "widgets" property containing an array.
+The widgets array MUST always contain at least one widget object, even if it's just one widget.
+When multiple widgets make sense (e.g., text explanation + video + text conclusion), 
+return them as separate objects in the widgets array: {"widgets": [{"type":"text", "source":"..."}, {"type":"video", "source":"..."}, {"type":"text", "source":"..."}]}
+
+Example single widget response:
+{"widgets": [{"type":"text", "source":"Hello! How can I help you today?"}]}
+
+Example multiple widgets response:
+{"widgets": [{"type":"text", "source":"Here's an introduction"}, {"type":"video", "source":"https://example.com/video.mp4"}, {"type":"text", "source":"And here's a conclusion"}]}
 
 HOW TO SELECT THE TYPE DIFFERENT BY TEXT:
 If in the user question is present one of the available widget as mentioned TAG, such as @[GoogleMap](google_map), 
@@ -855,7 +1032,10 @@ Otherwise, the type should be always "text".
       const currentHistory = historyRef.current as Array<{ 
         role: 'user' | 'assistant'; 
         content: string | { type: string; source?: string; [key: string]: unknown }; 
-        hidden?: boolean 
+        hidden?: boolean;
+        blockId?: number;
+        blockIndex?: number;
+        blockTotal?: number;
       }>
       
       // Validate message index
@@ -889,7 +1069,10 @@ Otherwise, the type should be always "text".
       const currentHistory = historyRef.current as Array<{ 
         role: 'user' | 'assistant'; 
         content: string | { type: string; source?: string; [key: string]: unknown }; 
-        hidden?: boolean 
+        hidden?: boolean;
+        blockId?: number;
+        blockIndex?: number;
+        blockTotal?: number;
       }>
       
       // Validate message index
@@ -940,7 +1123,10 @@ Otherwise, the type should be always "text".
       const currentHistory = historyRef.current as Array<{ 
         role: 'user' | 'assistant'; 
         content: string | { type: string; source?: string; [key: string]: unknown }; 
-        hidden?: boolean 
+        hidden?: boolean;
+        blockId?: number;
+        blockIndex?: number;
+        blockTotal?: number;
       }>
       
       // Validate history index
@@ -1085,7 +1271,7 @@ Otherwise, the type should be always "text".
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
         <ChatContainer
-          messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean }>}
+          messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
           onSubmitQuery={onSubmitQueryCallback}
           isLoading={isLoading}
           onWidgetCallback={onWidgetCallbackHandler}
