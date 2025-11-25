@@ -164,6 +164,17 @@ Widgets need to be enabled in order to be listed in the mention list. Only one w
 
 ---
 
+#### Text
+
+It's the default widget for the chat responses, always present, it cannot be disabled.
+
+It renders text and markdown as well, according to your prompt instructions.
+External URLs open always on new window.
+
+![](docs/widgets/text.png)
+
+---
+
 #### GoogleMap
 
 It renders a full Google Map positioned with a given location.
@@ -267,7 +278,7 @@ This is a powerful way to imperatively control the chat flow of the component at
 
 
 
-Here are the wiring requirements to enable this feature. Use a Retool variable as a bridge and set it as the `submitWithPayload` parameter in the component. Then, set that variable with a payload to feed the component at run-time.
+Just use a Retool variable as a bridge and set it as the `submitWithPayload` parameter in the component. Then, set that variable with a payload to feed the component at run-time.
 
 The variable must follow this schema:
 
