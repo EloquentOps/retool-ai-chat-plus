@@ -1,6 +1,7 @@
 import React from 'react'
 import { type FC } from 'react'
 import ReactMarkdown from 'react-markdown'
+import type { Components } from 'react-markdown'
 
 interface TextWidgetProps {
   source: string
@@ -15,7 +16,22 @@ const processSpecialMentions = (text: string): string => {
   return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '**@$1**')
 }
 
-const TextWidgetComponent: FC<TextWidgetProps> = ({ source, historyIndex }) => {
+// Custom link component that opens links in a new window
+// eslint-disable-next-line react/prop-types
+const LinkComponent: Components['a'] = ({ href, children, ...props }) => {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      {...props}
+    >
+      {children}
+    </a>
+  )
+}
+
+const TextWidgetComponent: FC<TextWidgetProps> = ({ source }) => {
   // Process the source text to handle special mentions
   const processedSource = processSpecialMentions(source)
   
@@ -38,7 +54,13 @@ const TextWidgetComponent: FC<TextWidgetProps> = ({ source, historyIndex }) => {
         `}
       </style>
       <div className="text-widget">
-        <ReactMarkdown>{processedSource}</ReactMarkdown>
+        <ReactMarkdown
+          components={{
+            a: LinkComponent
+          }}
+        >
+          {processedSource}
+        </ReactMarkdown>
       </div>
     </div>
   )
