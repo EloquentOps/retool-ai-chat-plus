@@ -160,7 +160,12 @@ Here the `widgetsOptions` object to enable all the present widgets in the compon
 Widgets need to be enabled in order to be listed in the mention list (just the key present with an empty object is enough). 
 
 Shared properties:
-- injectAlways: boolean, default false // always inject the widget instruction, so explicit user mention is not necessary.
+
+```shell
+chart:{
+  injectAlways: Boolean // default false, if true always inject the widget instruction, so explicit user mention is not necessary.
+}
+```
 
 Only one widget can be mentioned in the question text at a time. That widget will then be rendered. This is an explicit mechanism to avoid polluting the context, making it very difficult for the model to pick up the right widget. 
 

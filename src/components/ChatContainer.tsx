@@ -9,6 +9,9 @@ interface ChatContainerProps {
     role: 'user' | 'assistant'
     content: string | { type: string; source?: string; [key: string]: unknown }
     hidden?: boolean // Optional flag to hide messages from display
+    blockId?: number // ID of the block this message belongs to
+    blockIndex?: number // Index within the block (0-based)
+    blockTotal?: number // Total widgets in the block
   }>
   onSubmitQuery: (message: string) => void
   isLoading: boolean
