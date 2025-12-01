@@ -134,6 +134,7 @@ Available properties are:
 | ---------------- | --------------------------------------------------- |
 | `submitQuery`    | It triggers the LLM query to get the response for the chat |
 | `widgetCallback` | Triggered when a widget interaction occurs          |
+| `firstSubmit`   | Triggered when the first message is submitted       |
 
 
 

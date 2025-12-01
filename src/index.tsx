@@ -119,6 +119,9 @@ export const AiChatPlus: FC = () => {
   
   // Ref to track latest history to avoid stale closure issues
   const historyRef = useRef<Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>>([])
+  
+  // Ref to track if first submit event has been fired
+  const firstSubmitFiredRef = useRef<boolean>(false)
 
   // Ensure internal state variables are always empty objects on mount
   useEffect(() => {
@@ -282,6 +285,12 @@ export const AiChatPlus: FC = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       historyRef.current = restoredMessages as any
       
+      // Reset first submit flag if restored history is empty (no visible messages)
+      const visibleRestoredMessages = restoredMessages.filter(msg => !msg.hidden)
+      if (visibleRestoredMessages.length === 0) {
+        firstSubmitFiredRef.current = false
+      }
+      
       // If autoSubmit is enabled and there are user messages, trigger the last one for processing
       console.log('autoSubmit value in restore action:', autoSubmit, 'type:', typeof autoSubmit)
       if (autoSubmit === true) {
@@ -328,6 +337,7 @@ export const AiChatPlus: FC = () => {
   // events
   const onSubmitQuery = Retool.useEventCallback({ name: "submitQuery" })
   const onWidgetCallback = Retool.useEventCallback({ name: "widgetCallback" })
+  const onFirstSubmit = Retool.useEventCallback({ name: "firstSubmit" })
 
   // Polling function to check query status
   const startPolling = (agentRunId: string, agentId: string) => {
@@ -827,6 +837,11 @@ export const AiChatPlus: FC = () => {
   }
 
   const onSubmitQueryCallback = (message: string, providedHistory?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => {
+    // Check if this is the first submit (history is empty, excluding hidden messages)
+    const currentHistory = providedHistory || historyRef.current
+    const visibleMessages = currentHistory.filter(msg => !msg.hidden)
+    const isFirstSubmit = visibleMessages.length === 0 && !firstSubmitFiredRef.current
+    
     // Update the exposed message state with the last user-submitted message
     _setLastMessage(message)
     
@@ -834,9 +849,6 @@ export const AiChatPlus: FC = () => {
       role: 'user' as const,
       content: message
     }
-    
-    // Use provided history if available (to avoid stale closure), otherwise use current history from ref
-    const currentHistory = providedHistory || historyRef.current
     
     // Only add message to history if it wasn't already added (i.e., if history wasn't provided)
     if (!providedHistory) {
@@ -922,6 +934,15 @@ Otherwise, the type should be always "text".
     }
     
     _setAgentInputs(agentInputsPayload)
+    
+    // Trigger first submit event AFTER setting the payload to ensure it's accessible externally
+    // Use requestAnimationFrame to ensure the state update is flushed before firing the event
+    if (isFirstSubmit) {
+      firstSubmitFiredRef.current = true
+      requestAnimationFrame(() => {
+        onFirstSubmit()
+      })
+    }
     
     onSubmitQuery()
   }
