@@ -56,7 +56,8 @@ export const AiChatPlus: FC = () => {
 
   const [history, _setHistory] = Retool.useStateArray({
     name: 'history',
-    initialValue: []
+    initialValue: [],
+    inspector: 'hidden'
   })
 
   // Add state for last user message submitted
@@ -75,6 +76,13 @@ export const AiChatPlus: FC = () => {
   // Add state for widget payload
   const [_widgetPayload, _setWidgetPayload] = Retool.useStateObject({
     name: 'widgetPayload',
+    initialValue: {},
+    inspector: 'hidden',
+  })
+
+  // Add state for chip payload
+  const [_chipPayload, _setChipPayload] = Retool.useStateObject({
+    name: 'chipPayload',
     initialValue: {},
     inspector: 'hidden',
   })
@@ -128,6 +136,7 @@ export const AiChatPlus: FC = () => {
     // Force reset to empty objects to override any user configuration
     _setAgentInputs({})
     _setWidgetPayload({})
+    _setChipPayload({})
   }, [])
   
   // Keep historyRef in sync with history state
@@ -338,6 +347,7 @@ export const AiChatPlus: FC = () => {
   const onSubmitQuery = Retool.useEventCallback({ name: "submitQuery" })
   const onWidgetCallback = Retool.useEventCallback({ name: "widgetCallback" })
   const onFirstSubmit = Retool.useEventCallback({ name: "firstSubmit" })
+  const onChipCallback = Retool.useEventCallback({ name: "chipCallback" })
 
   // Polling function to check query status
   const startPolling = (agentRunId: string, agentId: string) => {
@@ -1297,7 +1307,12 @@ Otherwise, the type should be always "text".
           isLoading={isLoading}
           onWidgetCallback={onWidgetCallbackHandler}
           onStop={stopPolling}
-          promptChips={promptChips as Array<{ icon: string; label: string; question: string }>}
+          promptChips={promptChips as Array<{ icon: string; label: string; question?: string; payload?: Record<string, unknown> }>}
+          onChipCallback={onChipCallback}
+          onSetChipPayload={(payload: Record<string, unknown>) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            _setChipPayload(payload as any)
+          }}
           widgetsOptions={widgetsOptions as Record<string, unknown>}
           tools={tools as Record<string, { tool: string; description: string }>}
           welcomeMessage={welcomeMessage}

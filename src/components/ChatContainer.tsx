@@ -20,8 +20,11 @@ interface ChatContainerProps {
   promptChips?: Array<{
     icon: string
     label: string
-    question: string
+    question?: string
+    payload?: Record<string, unknown>
   }>
+  onChipCallback?: () => void
+  onSetChipPayload?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
   welcomeMessage?: string
@@ -39,6 +42,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onWidgetCallback,
   onStop,
   promptChips = [],
+  onChipCallback,
+  onSetChipPayload,
   widgetsOptions,
   tools,
   welcomeMessage,
@@ -112,11 +117,27 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               justifyContent: 'center',
               maxWidth: '600px'
             }}>
-              {promptChips.map((chip, index) => (
-                <button
-                  key={index}
-                  onClick={() => onSubmitQuery(chip.question)}
-                  style={{
+              {promptChips.map((chip, index) => {
+                const handleChipClick = () => {
+                  if (chip.payload !== undefined) {
+                    // Chip has payload - set chipPayload and trigger chipCallback
+                    if (onSetChipPayload) {
+                      onSetChipPayload(chip.payload)
+                    }
+                    if (onChipCallback) {
+                      onChipCallback()
+                    }
+                  } else if (chip.question !== undefined) {
+                    // Chip has question - trigger onSubmitQuery
+                    onSubmitQuery(chip.question)
+                  }
+                }
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={handleChipClick}
+                    style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
@@ -139,10 +160,11 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                     e.currentTarget.style.borderColor = '#e5e7eb'
                   }}
                 >
-                  <span>{chip.icon}</span>
-                  <span>{chip.label}</span>
-                </button>
-              ))}
+                    <span>{chip.icon}</span>
+                    <span>{chip.label}</span>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

@@ -97,9 +97,20 @@ The `welcomeMessage` allow to configure the top message:
 
 ![](docs/welcomeMessage.png)
 
-The `promptChips` array allows to add one or more interactive buttons at the bottom to let the user quickly launch pre-configured questions:
+The `promptChips` array allows to add one or more interactive buttons at the bottom. Each chip can be one of two types:
+
+**Type 1: Question Chip** - Submits a pre-configured user question to the chat
+- Schema: `{label: '', icon: '', question: ''}`
+- When clicked, triggers `onSubmitQuery` with the question text
+
+**Type 2: Payload Chip** - Triggers a custom callback with a payload
+- Schema: `{label: '', icon: '', payload: {}}`
+- When clicked, sets the `chipPayload` property and triggers the `chipCallback` query trigger
+- Access the payload in your Retool query via `aiChatPlus1.chipPayload`
 
 ![](docs/promptChips.png)
+
+
 
 
 ### Style Preferences
@@ -114,27 +125,36 @@ Available properties are:
 ```
 
 
-#### Options list
+#### Configurable options
 
-| Property            | Type   | Default | Description                                                  |
-| ------------------- | ------ | ------- | ------------------------------------------------------------ |
-| `welcomeMessage`    | string | ""      | Welcome message displayed when chat is empty. If you leave this empty and you don't set the promptChips, the Welcome view won't be shown. |
-| `widgetsOptions`    | object | {}      | Widget configuration options (keys determine enabled widgets, empty = only text widget) to enable the widgets and providing additional configuration per-widget. |
-| `promptChips`       | array  | []      | Suggested action in Welcome view chips for quick interactions, object schema: {label:'', icon:'', question:''} |
-| `history`           | array  | []      | Chat message history                                         |
-| `queryResponse`     | object | {}      | AI agent response data                                       |
-| `stylePreferences`  | object | {}      | Options for style preferences                                |
-| `agentInputs`       | object | {}      | Read only, required to wire the component with the query     |
-| `widgetPayload`     | object | {}      | Widget payload you can read after `widgetCallback` event     |
-| `submitWithPayload` | object | {}      | Programmatic submit with payload                             |
+| Property            | Type   | Description                                                  |
+| ------------------- | ------ | ------------------------------------------------------------ |
+| `welcomeMessage`    | string | Welcome message displayed when chat is empty. If you leave this empty and you don't set the promptChips, the Welcome view won't be shown. |
+| `widgetsOptions`    | object | Widget configuration options (keys determine enabled widgets, empty = only text widget) to enable the widgets and providing additional configuration per-widget. |
+| `promptChips`       | array  | Suggested action chips in Welcome view. Each chip object can be either: `{label:'', icon:'', question:''}` to submit a pre-configured question, or `{label:'', icon:'', payload:{}}` to trigger `chipCallback` query and access payload via `chipPayload` property |
+| `queryResponse`     | object | AI agent response data, **required**                                       |
+| `stylePreferences`  | object | Options for style preferences                                |
+| `submitWithPayload` | object | Programmatic submit with payload                             |
+
+
+#### Readable properties
+
+| Property            | Type   | Description                                                  |
+| ------------------- | ------ | ------------------------------------------------------------ |
+| `widgetPayload`     | object | Widget payload you can read after `widgetCallback` event     |
+| `chipPayload`       | object | Chip payload you can read after `chipCallback` event         |
+| `history`           | array  | Chat message history                                         |
+| `lastMessage`       | string | Last user message submitted                                  |
+| `agentInputs`       | object | Required to wire the component with the query                |
 
 #### Events
 
 | Event            | Description                                         |
 | ---------------- | --------------------------------------------------- |
 | `submitQuery`    | It triggers the LLM query to get the response for the chat |
+| `firstSubmit`    | Triggered when the first message is submitted       |
 | `widgetCallback` | Triggered when a widget interaction occurs          |
-| `firstSubmit`   | Triggered when the first message is submitted       |
+| `chipCallback`   | Triggered when a chip (with payload) interaction occurs          |
 
 
 
