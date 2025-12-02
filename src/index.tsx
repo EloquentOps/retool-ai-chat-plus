@@ -87,6 +87,13 @@ export const AiChatPlus: FC = () => {
     inspector: 'hidden',
   })
 
+  // Add state for last response payload
+  const [_lastResponse, _setLastResponse] = Retool.useStateObject({
+    name: 'lastResponse',
+    initialValue: {},
+    inspector: 'hidden',
+  })
+
   // Add state for submit with payload
   const [submitWithPayload, _setSubmitWithPayload] = Retool.useStateObject({
     name: 'submitWithPayload',
@@ -130,6 +137,9 @@ export const AiChatPlus: FC = () => {
   
   // Ref to track if first submit event has been fired
   const firstSubmitFiredRef = useRef<boolean>(false)
+  
+  // Ref to track last response that fired the lastResponse event to prevent duplicates
+  const lastResponseFiredRef = useRef<string | null>(null)
 
   // Ensure internal state variables are always empty objects on mount
   useEffect(() => {
@@ -137,6 +147,7 @@ export const AiChatPlus: FC = () => {
     _setAgentInputs({})
     _setWidgetPayload({})
     _setChipPayload({})
+    _setLastResponse({})
   }, [])
   
   // Keep historyRef in sync with history state
@@ -348,6 +359,7 @@ export const AiChatPlus: FC = () => {
   const onWidgetCallback = Retool.useEventCallback({ name: "widgetCallback" })
   const onFirstSubmit = Retool.useEventCallback({ name: "firstSubmit" })
   const onChipCallback = Retool.useEventCallback({ name: "chipCallback" })
+  const onLastResponse = Retool.useEventCallback({ name: "lastResponse" })
 
   // Polling function to check query status
   const startPolling = (agentRunId: string, agentId: string) => {
@@ -439,6 +451,46 @@ export const AiChatPlus: FC = () => {
     console.log('Loading state set to false')
   }
 
+  // Helper function to fire lastResponse event
+  const fireLastResponseEvent = (assistantMessages: Array<{ role: 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; blockId?: number; blockIndex?: number; blockTotal?: number }>) => {
+    // Create a unique key for this response based on the messages
+    const responseKey = JSON.stringify(assistantMessages)
+    
+    // Check if we've already fired the event for this response
+    if (lastResponseFiredRef.current === responseKey) {
+      console.log('lastResponse event already fired for this response, skipping')
+      return
+    }
+    
+    // Mark this response as processed
+    lastResponseFiredRef.current = responseKey
+    
+    // Extract widgets data for the event payload
+    const widgets = assistantMessages.map(msg => {
+      if (typeof msg.content === 'object' && msg.content !== null) {
+        return msg.content
+      }
+      return { type: 'text', source: typeof msg.content === 'string' ? msg.content : String(msg.content) }
+    })
+    
+    // Prepare the payload
+    const payload = {
+      widgets: widgets,
+      blockId: assistantMessages[0]?.blockId,
+      timestamp: Date.now(),
+      messageCount: assistantMessages.length
+    }
+    
+    // Set the state variable with the payload
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _setLastResponse(payload as any)
+    
+    // Fire the event (Retool will read the state variable)
+    requestAnimationFrame(() => {
+      onLastResponse()
+    })
+  }
+
   // Monitor queryResponse for status changes using useEffect to prevent infinite loops
   useEffect(() => {
     console.log('AAA queryResponse changed:', queryResponse)
@@ -495,6 +547,9 @@ export const AiChatPlus: FC = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         historyRef.current = updatedHistoryWithResponse as any
         
+        // Fire lastResponse event
+        fireLastResponseEvent(assistantMessages)
+        
         // Clear loading state and errors
         setIsLoading(false)
         setError(null)
@@ -537,6 +592,9 @@ export const AiChatPlus: FC = () => {
         _setHistory(updatedHistoryWithResponse as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         historyRef.current = updatedHistoryWithResponse as any
+        
+        // Fire lastResponse event
+        fireLastResponseEvent(assistantMessages)
         
         // Clear loading state and errors
         setIsLoading(false)
@@ -719,6 +777,9 @@ export const AiChatPlus: FC = () => {
         _setHistory(updatedHistoryWithResponse as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         historyRef.current = updatedHistoryWithResponse as any
+        
+        // Fire lastResponse event
+        fireLastResponseEvent(assistantMessages)
         return
       }
       
@@ -776,6 +837,9 @@ export const AiChatPlus: FC = () => {
         _setHistory(updatedHistoryWithResponse as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         historyRef.current = updatedHistoryWithResponse as any
+        
+        // Fire lastResponse event
+        fireLastResponseEvent(assistantMessages)
       }
     }
   }, [queryResponse, isLoading]) // Dependencies: only re-run when queryResponse or isLoading changes

@@ -82,6 +82,15 @@ Here's the minimal configuration to make the Chat Plus component work with a Ret
 
 ![retool-agent-query](docs/component-options.png)
 
+**Important Note on Payload Reactivity**: The component only reacts when the `queryResponse` payload changes. If you need to trigger a reaction with the same payload (e.g., to reset the chat with an empty array `[]`), you can add a `timestamp` property to make the payload different:
+
+```js
+{
+  widgets: [],
+  timestamp: Date.now() // Add this to force component reaction
+}
+```
+
 
 
 ### Welcome view
@@ -145,6 +154,7 @@ Available properties are:
 | `chipPayload`       | object | Chip payload you can read after `chipCallback` event         |
 | `history`           | array  | Chat message history                                         |
 | `lastMessage`       | string | Last user message submitted                                  |
+| `lastResponse`      | object | Last chat response received                                  |
 | `agentInputs`       | object | Required to wire the component with the query                |
 
 #### Events
@@ -153,6 +163,7 @@ Available properties are:
 | ---------------- | --------------------------------------------------- |
 | `submitQuery`    | It triggers the LLM query to get the response for the chat |
 | `firstSubmit`    | Triggered when the first message is submitted       |
+| `lastResponse`   | Triggered when the last response is done            |
 | `widgetCallback` | Triggered when a widget interaction occurs          |
 | `chipCallback`   | Triggered when a chip (with payload) interaction occurs          |
 
@@ -324,6 +335,16 @@ The variable must follow this schema:
 }
 ```
 
+**Important Note on Payload Reactivity**: The component only reacts when the `submitWithPayload` object changes. If you need to trigger a reaction with the same payload (e.g., to reset the chat with an empty array), you can add a `timestamp` property to make the payload different:
+
+```js
+{
+  action: 'restore',
+  messages: [],
+  timestamp: Date.now() // Add this to force component reaction
+}
+```
+
 Here are the meanings of the `action` values:
 
 - restore: replace the whole chat feed and history with a custom payload
@@ -344,6 +365,7 @@ Set the variable at run-time:
 After clicking the button, the chat component will contain that context, and the LLM will be affected by it:
 
 ![](docs/payload-3.png)
+
 
 
 ---
