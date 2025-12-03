@@ -82,15 +82,6 @@ Here's the minimal configuration to make the Chat Plus component work with a Ret
 
 ![retool-agent-query](docs/component-options.png)
 
-**Important Note on Payload Reactivity**: The component only reacts when the `queryResponse` payload changes. If you need to trigger a reaction with the same payload (e.g., to reset the chat with an empty array `[]`), you can add a `timestamp` property to make the payload different:
-
-```js
-{
-  action: 'restore',
-  messages: [],
-  timestamp: Date.now() // Add this to force component reaction with same payload
-}
-```
 
 
 
@@ -342,7 +333,7 @@ The variable must follow this schema:
 {
   action: 'restore',
   messages: [],
-  timestamp: Date.now() // Add this to force component reaction
+  timestamp: Date.now() // Add this to force component reaction with same payload
 }
 ```
 
