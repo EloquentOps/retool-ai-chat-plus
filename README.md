@@ -111,10 +111,10 @@ The `promptChips` array allows to add one or more interactive buttons at the bot
 
 **Type 1: Question Chip** - Submits a pre-configured user question to the chat
 - Schema: `{label: '', icon: '', question: ''}`
-- When clicked, triggers `onSubmitQuery` with the question text
+- When clicked, submit the question text
 
 **Type 2: Payload Chip** - Triggers a custom callback with a payload
-- Schema: `{label: '', icon: '', payload: {}}`
+- Schema: `{label: '', icon: '', payload: {a:1, b:2}}`
 - When clicked, sets the `chipPayload` property and triggers the `chipCallback` query trigger
 - Access the payload in your Retool query via `aiChatPlus1.chipPayload`
 
