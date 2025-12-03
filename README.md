@@ -86,8 +86,9 @@ Here's the minimal configuration to make the Chat Plus component work with a Ret
 
 ```js
 {
-  widgets: [],
-  timestamp: Date.now() // Add this to force component reaction
+  action: 'restore',
+  messages: [],
+  timestamp: Date.now() // Add this to force component reaction with same payload
 }
 ```
 
