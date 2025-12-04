@@ -11,6 +11,7 @@ A powerful custom chat component for Retool that provides enhanced AI chat funct
 - [List of built-in widgets (all in beta)](#list-of-built-in-widgets-all-in-beta)
 - [How It Works](#how-it-works)
 - [LLM Model Compatibility](#llm-model-compatibility)
+- [Custom widget list](#custom-widget-list)
 - [License](#license)
 
 ## Features
@@ -405,6 +406,40 @@ After clicking the button, the chat component will contain that context, and the
 We've found a good compromise between reliability and cost with OpenAI o3-mini
 
 
+
+
+## Custom widget list
+
+### Adding or Removing Widgets from the Bundle
+
+To customize which widgets are included in your bundle, you need to manually edit the `WidgetRegistry.tsx` file.
+
+#### Removing a Widget
+
+To remove a widget from the bundle:
+
+1. Open `src/components/widgets/WidgetRegistry.tsx`
+2. Remove or comment out the widget entry from the `WIDGET_REGISTRY` object
+3. Remove or comment the import statement at the top of the file
+
+**Example:** To remove the `video` widget:
+
+```typescript
+// In WidgetRegistry.tsx, remove or comment out:
+// import { VideoWidget, VideoWidgetInstruction } from './VideoWidget'
+
+// And remove from WIDGET_REGISTRY:
+// video: {
+//   component: VideoWidget,
+//   instruction: VideoWidgetInstruction,
+//   enabled: true
+// }
+```
+
+
+#### Important Note on Updates
+
+⚠️ **Manual Merge Required**: When pulling updates from the main repository, you'll need to manually check and merge changes to `WidgetRegistry.tsx`. Not ideal, but the only viable solution so far.
 
 
 
