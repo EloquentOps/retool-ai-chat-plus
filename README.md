@@ -45,6 +45,10 @@ Or here's a quick step-by-step:
 - Finally, run `npm run deploy`
 - Now you can go to your Retool instance, that is ready to include the component
 
+> **⚠️ Important**: If you want to continue to get updates from the main repository into your checkout without breaking links with your used components in apps, you MUST use as library name **Ai Chat Plus** when the CLI asks for library name during the `init` phase.
+
+
+
 
 
 ### Add the Chat component into your Retool app
