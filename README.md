@@ -4,6 +4,15 @@ A powerful custom chat component for Retool that provides enhanced AI chat funct
 
 ![](https://bespoke-bunny-7b87c7.netlify.app/splash.gif)
 
+# Table of content
+
+- [Features](#features)
+- [Getting started](#getting-started)
+- [List of built-in widgets (all in beta)](#list-of-built-in-widgets-all-in-beta)
+- [How It Works](#how-it-works)
+- [LLM Model Compatibility](#llm-model-compatibility)
+- [License](#license)
+
 ## Features
 
 - **Interactive Chat Interface**: Modern chat UI (welcome step, chips) with mentionable interactive custom widgets
@@ -16,8 +25,6 @@ A powerful custom chat component for Retool that provides enhanced AI chat funct
 
 
 ## Getting started
-
-
 
 ### Bring the custom component library to your Retool instance
 
