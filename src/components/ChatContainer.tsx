@@ -3,6 +3,7 @@ import { type FC } from 'react'
 import { MessageList } from './MessageList'
 import { MentionsInputBar } from './MentionsInputBar'
 import { ErrorMessage } from './ErrorMessage'
+import packageJson from '../../package.json'
 
 interface ChatContainerProps {
   messages: Array<{
@@ -79,7 +80,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
           justifyContent: 'center',
           height: '100%',
           padding: '40px 20px',
-          gap: '40px'
+          gap: '40px',
+          position: 'relative'
         }}>
           {/* Welcome message */}
           {welcomeMessage && (
@@ -167,6 +169,22 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               })}
             </div>
           )}
+
+          {/* Version number */}
+          <div style={{
+            position: 'absolute',
+            bottom: '16px',
+            right: '20px',
+            fontSize: '13px',
+            color: '#374151',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            zIndex: 10,
+            pointerEvents: 'none',
+            userSelect: 'none',
+            fontWeight: 400
+          }}>
+            v{packageJson.version}
+          </div>
         </div>
       ) : (
         // Normal chat state

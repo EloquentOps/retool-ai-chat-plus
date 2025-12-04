@@ -56,7 +56,11 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
       const availableWidgetTypes = getAvailableWidgetTypes(widgetsOptions)
       
       const widgetMentions = Object.entries(WIDGET_REGISTRY)
-        .filter(([key, config]) => config.enabled && availableWidgetTypes.includes(key))
+        .filter(([key, config]) => 
+          config.enabled && 
+          availableWidgetTypes.includes(key) &&
+          key !== 'text' // Always exclude text widget from mention list
+        )
         .map(([key, config]) => ({
           id: key,
           display: formatWidgetDisplayName(key),

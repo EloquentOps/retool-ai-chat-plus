@@ -126,6 +126,9 @@ Available properties are:
 ```
 
 
+
+### Options, properties, events
+
 #### Configurable options
 
 | Property            | Type   | Description                                                  |
@@ -183,7 +186,7 @@ Here the `widgetsOptions` object to enable all the present widgets in the compon
 ```
 Widgets need to be enabled in order to be listed in the mention list (just the key present with an empty object is enough). 
 
-Shared properties:
+Shared properties per widget:
 
 ```shell
 chart:{
@@ -191,11 +194,15 @@ chart:{
 }
 ```
 
-Only one widget can be mentioned in the question text at a time. That widget will then be rendered. This is an explicit mechanism to avoid polluting the context, making it very difficult for the model to pick up the right widget. 
+You can mention one or more widgets in the question. A list of widgets will then be rendered. This is an explicit mechanism to avoid polluting the context, making it very difficult for the model to pick up the right widget. 
 
 You can always inject per-widget instructions, but take into account that the more instructions present, the less reliable the LLM is at choosing the right one.
 
 ![mention-widgets](docs/mention-widgets.png)
+
+Here an example of a question that returns a list of 4 widgets in one shot, in this order: chart, text, chart, text.
+
+![multiple](docs/multiple.png)
 
 ---
 
