@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { type FC } from 'react'
 import mermaid from 'mermaid'
 
@@ -9,137 +9,133 @@ interface MermaidWidgetProps {
   historyIndex?: number
 }
 
+// Track if mermaid has been initialized globally
+let mermaidInitialized = false
+
 const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({ 
   source, 
   onWidgetCallback,
   widgetsOptions,
   historyIndex: _historyIndex 
 }) => {
-  const mermaidRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mermaidDivRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [diagramId] = useState(() => `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
 
-  // Default options
-  const defaultOptions = {
-    theme: 'default' as const,
-    startOnLoad: false,
-    securityLevel: 'loose' as const,
-    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  }
+  // Get theme from widget options
+  type MermaidTheme = 'default' | 'base' | 'dark' | 'forest' | 'neutral' | 'null'
+  const themeOption = (widgetsOptions?.mermaid as Record<string, unknown>)?.theme as string || 'default'
+  const validThemes: MermaidTheme[] = ['default', 'base', 'dark', 'forest', 'neutral', 'null']
+  const theme: MermaidTheme = validThemes.includes(themeOption as MermaidTheme) ? themeOption as MermaidTheme : 'default'
 
-  // Merge with widget options
-  const effectiveOptions = React.useMemo(() => ({
-    ...defaultOptions,
-    ...(widgetsOptions?.mermaid as Record<string, unknown> || {})
-  }), [widgetsOptions?.mermaid])
+  // Initialize mermaid once globally
+  const initMermaid = useCallback(() => {
+    if (!mermaidInitialized) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: theme,
+        securityLevel: 'loose',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      })
+      mermaidInitialized = true
+    }
+  }, [theme])
+
+  // Render the diagram using init pattern (like the working script)
+  const renderDiagram = useCallback(async (code: string) => {
+    if (!containerRef.current) return
+
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Initialize mermaid if needed
+      initMermaid()
+
+      // Clear previous content
+      containerRef.current.innerHTML = ''
+
+      // Create a new div for the diagram
+      const newGraphDiv = document.createElement('div')
+      newGraphDiv.setAttribute('id', diagramId)
+      newGraphDiv.classList.add('mermaid')
+      newGraphDiv.innerHTML = code.trim()
+
+      containerRef.current.appendChild(newGraphDiv)
+      mermaidDivRef.current = newGraphDiv
+
+      // Use mermaid.init() or mermaid.run() to render - this is the pattern from the working script
+      // mermaid.init() is for older versions, mermaid.run() is for v10+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mermaidAny = mermaid as any
+      if (typeof mermaidAny.run === 'function') {
+        // v10+ API
+        await mermaidAny.run({ nodes: [newGraphDiv] })
+      } else if (typeof mermaidAny.init === 'function') {
+        // Legacy API
+        await mermaidAny.init(undefined, newGraphDiv)
+      } else {
+        throw new Error('Mermaid render method not available')
+      }
+
+      // After rendering, ensure SVG fills container properly
+      const svgElement = newGraphDiv.querySelector('svg')
+      if (svgElement) {
+        svgElement.style.maxWidth = '100%'
+        svgElement.style.height = 'auto'
+        svgElement.style.display = 'block'
+      }
+
+      setIsLoading(false)
+
+      // Trigger callback on successful render
+      onWidgetCallback?.({
+        type: 'mermaid:rendered',
+        diagramId: diagramId,
+        timestamp: Date.now()
+      })
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(`Failed to render mermaid diagram: ${errorMessage}`)
+      setIsLoading(false)
+      console.error('MermaidWidget rendering error:', err)
+
+      // Trigger callback on error
+      onWidgetCallback?.({
+        type: 'mermaid:error',
+        error: errorMessage,
+        timestamp: Date.now()
+      })
+    }
+  }, [diagramId, initMermaid, onWidgetCallback])
 
   useEffect(() => {
-    if (!mermaidRef.current || !source) {
+    // Validate source
+    if (!source) {
+      setError('No diagram code provided')
       setIsLoading(false)
       return
     }
 
-    // Validate source is a string
     if (typeof source !== 'string' || source.trim().length === 0) {
       setError('Invalid mermaid diagram: source must be a non-empty string')
       setIsLoading(false)
       return
     }
 
-    setIsLoading(true)
-    setError(null)
-
-    // Initialize mermaid if not already initialized
-    const initializeMermaid = async () => {
-      try {
-        // Initialize mermaid with options
-        mermaid.initialize({
-          theme: effectiveOptions.theme,
-          startOnLoad: effectiveOptions.startOnLoad,
-          securityLevel: effectiveOptions.securityLevel,
-          fontFamily: effectiveOptions.fontFamily as string
-        })
-
-        // Generate a unique ID for this diagram
-        const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-        
-        // Clear previous content
-        if (mermaidRef.current) {
-          mermaidRef.current.innerHTML = ''
-        }
-
-        // Render the mermaid diagram
-        const { svg } = await mermaid.render(id, source.trim())
-        
-        if (mermaidRef.current) {
-          mermaidRef.current.innerHTML = svg
-          
-          // Ensure SVG fills container properly
-          const svgElement = mermaidRef.current.querySelector('svg')
-          if (svgElement) {
-            svgElement.style.maxWidth = '100%'
-            svgElement.style.height = 'auto'
-            svgElement.style.display = 'block'
-          }
-        }
-
-        setIsLoading(false)
-
-        // Trigger callback on successful render
-        onWidgetCallback?.({
-          type: 'mermaid:rendered',
-          diagramId: id,
-          timestamp: Date.now()
-        })
-
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        setError(`Failed to render mermaid diagram: ${errorMessage}`)
-        setIsLoading(false)
-        console.error('MermaidWidget rendering error:', err)
-        
-        // Trigger callback on error
-        onWidgetCallback?.({
-          type: 'mermaid:error',
-          error: errorMessage,
-          timestamp: Date.now()
-        })
-      }
-    }
-
-    initializeMermaid()
+    renderDiagram(source)
 
     // Cleanup function
     return () => {
-      // Mermaid doesn't require explicit cleanup, but we can clear the ref
-      if (mermaidRef.current) {
-        mermaidRef.current.innerHTML = ''
+      if (containerRef.current) {
+        containerRef.current.innerHTML = ''
       }
+      mermaidDivRef.current = null
     }
-  }, [source, effectiveOptions, onWidgetCallback])
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div style={{ 
-        padding: '20px', 
-        textAlign: 'center',
-        color: '#666',
-        fontSize: '14px',
-        minHeight: '200px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        backgroundColor: '#f9fafb',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb'
-      }}>
-        <div>⏳</div>
-        <div>Loading diagram...</div>
-      </div>
-    )
-  }
+  }, [source, renderDiagram])
 
   // Error state
   if (error) {
@@ -183,13 +179,29 @@ const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({
       backgroundColor: '#ffffff',
       borderRadius: '8px',
       border: '1px solid #e5e7eb',
-      overflow: 'auto'
+      overflow: 'auto',
+      minHeight: '200px'
     }}>
+      {isLoading && (
+        <div style={{ 
+          padding: '20px', 
+          textAlign: 'center',
+          color: '#666',
+          fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column'
+        }}>
+          <div>⏳</div>
+          <div>Loading diagram...</div>
+        </div>
+      )}
       <div 
-        ref={mermaidRef} 
+        ref={containerRef} 
         style={{ 
           width: '100%',
-          display: 'block'
+          display: isLoading ? 'none' : 'block'
         }}
       />
     </div>
