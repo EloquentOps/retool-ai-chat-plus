@@ -12,12 +12,21 @@ interface MermaidWidgetProps {
 // Track if mermaid has been initialized globally
 let mermaidInitialized = false
 
+// Test sample (working code):
+// flowchart TD;
+//     A[Start] --> B[Step 1];
+
 const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({ 
   source, 
   onWidgetCallback,
   widgetsOptions,
   historyIndex: _historyIndex 
 }) => {
+  // TEST: Override source with test sample
+  const testSource = `flowchart TD;
+    A[Start] --> B[Step 1];`
+  const effectiveSource = testSource // Use testSource for testing, or source for production
+  
   const containerRef = useRef<HTMLDivElement>(null)
   const mermaidDivRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -35,8 +44,8 @@ const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({
     if (!mermaidInitialized) {
       mermaid.initialize({
         startOnLoad: false,
-        theme: theme,
-        securityLevel: 'loose',
+        //theme: theme,
+        //securityLevel: 'loose',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       })
       mermaidInitialized = true
@@ -70,15 +79,7 @@ const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({
       // mermaid.init() is for older versions, mermaid.run() is for v10+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mermaidAny = mermaid as any
-      if (typeof mermaidAny.run === 'function') {
-        // v10+ API
-        await mermaidAny.run({ nodes: [newGraphDiv] })
-      } else if (typeof mermaidAny.init === 'function') {
-        // Legacy API
-        await mermaidAny.init(undefined, newGraphDiv)
-      } else {
-        throw new Error('Mermaid render method not available')
-      }
+      await mermaidAny.init(undefined, newGraphDiv)
 
       // After rendering, ensure SVG fills container properly
       const svgElement = newGraphDiv.querySelector('svg')
@@ -114,19 +115,19 @@ const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({
 
   useEffect(() => {
     // Validate source
-    if (!source) {
+    if (!effectiveSource) {
       setError('No diagram code provided')
       setIsLoading(false)
       return
     }
 
-    if (typeof source !== 'string' || source.trim().length === 0) {
+    if (typeof effectiveSource !== 'string' || effectiveSource.trim().length === 0) {
       setError('Invalid mermaid diagram: source must be a non-empty string')
       setIsLoading(false)
       return
     }
 
-    renderDiagram(source)
+    renderDiagram(effectiveSource)
 
     // Cleanup function
     return () => {
@@ -135,7 +136,7 @@ const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({
       }
       mermaidDivRef.current = null
     }
-  }, [source, renderDiagram])
+  }, [effectiveSource, renderDiagram])
 
   // Error state
   if (error) {
@@ -166,7 +167,7 @@ const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({
           maxWidth: '100%',
           overflow: 'auto'
         }}>
-          {source.substring(0, 200)}{source.length > 200 ? '...' : ''}
+          {effectiveSource.substring(0, 200)}{effectiveSource.length > 200 ? '...' : ''}
         </div>
       </div>
     )
@@ -210,7 +211,7 @@ const MermaidWidgetComponent: FC<MermaidWidgetProps> = ({
 
 // Memoized component to prevent unnecessary re-renders
 export const MermaidWidget = React.memo(MermaidWidgetComponent, (prevProps, nextProps) => {
-  // Compare source data (string)
+  // Compare source data (string) - Note: Currently using test source, so comparison may not work as expected
   if (prevProps.source !== nextProps.source) {
     return false // Source changed, allow re-render
   }
@@ -236,6 +237,6 @@ export const MermaidWidget = React.memo(MermaidWidgetComponent, (prevProps, next
 export const MermaidWidgetInstruction = {
   type: 'mermaid',
   instructions: 'Use this widget when the user requests to visualize diagrams, flowcharts, sequence diagrams, class diagrams, state diagrams, entity relationship diagrams, Gantt charts, pie charts, git graphs, or any other diagram format that can be represented using Mermaid syntax. Perfect for displaying process flows, system architectures, relationships, timelines, and structured visualizations.',
-  sourceDataModel: 'string - A valid Mermaid diagram syntax string. Examples:\n- Flowchart: "graph TD\\n    A[Start] --> B[Process]\\n    B --> C[End]"\n- Sequence diagram: "sequenceDiagram\\n    participant A\\n    participant B\\n    A->>B: Message"\n- Class diagram: "classDiagram\\n    class Animal\\n    class Dog\\n    Animal <|-- Dog"\n- State diagram: "stateDiagram-v2\\n    [*] --> State1\\n    State1 --> State2"\n- Gantt chart: "gantt\\n    title Project Timeline\\n    section Phase1\\n    Task1: 2024-01-01, 30d"\n- Pie chart: "pie title Distribution\\n    "Category1": 30\\n    "Category2": 70"'
+  sourceDataModel: 'string - A valid Mermaid diagram syntax string. Examples:\n- Flowchart: "flowchart TD;\\n    A[Start] --> B[Step 1];"\n- Flowchart (alternative): "graph TD\\n    A[Start] --> B[Process]\\n    B --> C[End]"\n- Sequence diagram: "sequenceDiagram\\n    participant A\\n    participant B\\n    A->>B: Message"\n- Class diagram: "classDiagram\\n    class Animal\\n    class Dog\\n    Animal <|-- Dog"\n- State diagram: "stateDiagram-v2\\n    [*] --> State1\\n    State1 --> State2"\n- Gantt chart: "gantt\\n    title Project Timeline\\n    section Phase1\\n    Task1: 2024-01-01, 30d"\n- Pie chart: "pie title Distribution\\n    "Category1": 30\\n    "Category2": 70"'
 }
 
