@@ -13,6 +13,7 @@ import { ChartWidget, ChartWidgetInstruction } from './ChartWidget'
 import { CheckListWidget, CheckListWidgetInstruction } from './CheckListWidget'
 import { FullCalendarWidget, FullCalendarWidgetInstruction } from './FullCalendarWidget'
 import { VideoWidget, VideoWidgetInstruction } from './VideoWidget'
+import { CanvasWidget, CanvasWidgetInstruction } from './CanvasWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -227,6 +228,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
   video: {
     component: VideoWidget,
     instruction: VideoWidgetInstruction,
+    enabled: true
+  },
+  canvas: {
+    component: CanvasWidget,
+    instruction: CanvasWidgetInstruction,
     enabled: true
   }
 }
