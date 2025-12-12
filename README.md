@@ -306,6 +306,15 @@ It renders an interactive fullcalendar.js component
 ---
 
 
+#### Canvas
+
+It renders an HTML page into an iframe:
+
+![](docs/widgets/canvas.png)
+
+---
+
+
 ### Widget Callback
 
 A widget can implement a callback call with payload.
