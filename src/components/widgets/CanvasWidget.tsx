@@ -131,7 +131,7 @@ const CanvasWidgetComponent: FC<CanvasWidgetProps> = ({
   return (
     <div style={{
       width: '100%',
-      maxWidth: '650px',
+      //maxWidth: '650px',
       position: 'relative',
       border: '1px solid #e5e7eb',
       borderRadius: '8px',
