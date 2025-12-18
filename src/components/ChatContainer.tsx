@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { type FC } from 'react'
 import { MessageList } from './MessageList'
 import { MentionsInputBar } from './MentionsInputBar'
 import { ErrorMessage } from './ErrorMessage'
+import { RightPanel } from './RightPanel'
 import packageJson from '../../package.json'
 
 interface ChatContainerProps {
@@ -57,9 +58,37 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
   const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && hasWelcomeContent
 
+  // State for pinned widget in right panel
+  const [pinnedWidget, setPinnedWidget] = useState<{ type: string; source?: string; [key: string]: unknown } | null>(null)
+  const [pinnedWidgetType, setPinnedWidgetType] = useState<string>('')
+
   // Determine wrapper border visibility based on stylePreferences
   const wrapperBorder = stylePreferences.wrapperBorder
   const isBorderHidden = wrapperBorder === 'hidden'
+
+  // Handler for widget pin/unpin actions
+  const handleWidgetCallback = (payload: Record<string, unknown>) => {
+    // Handle pin action
+    if (payload.type === 'widget:pin') {
+      const widgetContent = payload.widgetContent as { type: string; source?: string; [key: string]: unknown }
+      const widgetType = payload.widgetType as string
+      if (widgetContent && widgetType) {
+        setPinnedWidget(widgetContent)
+        setPinnedWidgetType(widgetType)
+      }
+      // Don't forward pin actions to parent callback
+      return
+    }
+    
+    // Forward all other callbacks to parent
+    onWidgetCallback?.(payload)
+  }
+
+  // Handler for closing right panel
+  const handleCloseRightPanel = () => {
+    setPinnedWidget(null)
+    setPinnedWidgetType('')
+  }
   
   return (
     <div style={{
@@ -196,8 +225,44 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               onDismiss={onDismissError} 
             />
           )}
-          <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={onWidgetCallback} widgetsOptions={widgetsOptions} />
-          <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} />
+          {pinnedWidget ? (
+            // Split layout when widget is pinned
+            <div style={{
+              display: 'flex',
+              flexDirection: 'row',
+              flex: 1,
+              overflow: 'hidden',
+              height: '100%'
+            }}>
+              {/* Left panel - Chat */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                width: '50%',
+                height: '100%',
+                overflow: 'hidden'
+              }}>
+                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} />
+                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} />
+              </div>
+              
+              {/* Right panel - Pinned widget */}
+              <RightPanel
+                pinnedWidget={pinnedWidget}
+                widgetType={pinnedWidgetType}
+                onClose={handleCloseRightPanel}
+                onWidgetCallback={handleWidgetCallback}
+                widgetsOptions={widgetsOptions}
+              />
+            </div>
+          ) : (
+            // Full width layout when no widget is pinned
+            <>
+              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} />
+              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} />
+            </>
+          )}
         </>
       )}
     </div>

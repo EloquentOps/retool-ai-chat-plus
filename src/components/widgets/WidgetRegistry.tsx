@@ -37,13 +37,15 @@ interface WidgetWrapperProps {
   historyIndex?: number
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetType: string
+  widgetContent?: { type: string; source?: string; [key: string]: unknown }
 }
 
 const WidgetWrapper: FC<WidgetWrapperProps> = ({
   children,
   historyIndex,
   onWidgetCallback,
-  widgetType
+  widgetType,
+  widgetContent
 }) => {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -65,6 +67,19 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
       widgetType: widgetType,
       timestamp: Date.now()
     })
+  }
+
+  const handlePin = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (widgetContent) {
+      onWidgetCallback?.({
+        type: 'widget:pin',
+        widgetContent: widgetContent,
+        widgetType: widgetType,
+        messageIndex: historyIndex,
+        timestamp: Date.now()
+      })
+    }
   }
 
   return (
@@ -95,6 +110,35 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
           zIndex: 10
         }}
       >
+        <button
+          onClick={handlePin}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#fff',
+            cursor: 'pointer',
+            padding: '0',
+            width: '20px',
+            height: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '2px',
+            transition: 'background-color 0.15s ease-in-out'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }}
+          title="Pin to right panel"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 17v5" />
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 2 0v3.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 15 15.24V16a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 3 10.76V7a1 1 0 0 1 2 0v3.76z" />
+          </svg>
+        </button>
         <button
           onClick={handleTryAgain}
           style={{
@@ -253,12 +297,19 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
       historyIndex
     })
     
+    // Prepare widget content object for pinning
+    const fallbackWidgetContent: { type: string; source?: string; [key: string]: unknown } = {
+      type: 'text',
+      source: content.source || JSON.stringify(content)
+    }
+    
     // Wrap the fallback widget with the footer wrapper
     return React.createElement(WidgetWrapper, {
       key: `wrapper-${fallbackKey}`,
       historyIndex,
       onWidgetCallback,
-      widgetType: 'text'
+      widgetType: 'text',
+      widgetContent: fallbackWidgetContent
     }, fallbackWidgetElement)
   }
   
@@ -281,6 +332,13 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
   // This ensures React can properly identify and preserve widget instances during re-renders
   const widgetKey = `widget-${historyIndex || 'unknown'}-${type}`
   
+  // Prepare widget content object for pinning (reconstruct the original content structure)
+  const widgetContentForPin: { type: string; source?: string; [key: string]: unknown } = {
+    type: type,
+    ...(source !== undefined ? { source: source } : {}),
+    ...(source === undefined ? otherContent : {})
+  }
+  
   const props = {
     key: widgetKey,
     source: widgetSource,
@@ -296,7 +354,8 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
     key: `wrapper-${widgetKey}`,
     historyIndex,
     onWidgetCallback,
-    widgetType: type
+    widgetType: type,
+    widgetContent: widgetContentForPin
   }, widgetElement)
 }
 
