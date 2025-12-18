@@ -51,6 +51,43 @@ const TextWidgetComponent: FC<TextWidgetProps> = ({ source }) => {
           .text-widget p:last-child {
             margin-bottom: 0;
           }
+          .text-widget pre {
+            background-color: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-size: 13px;
+            line-height: 1.45;
+            font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier', monospace;
+          }
+          .text-widget pre code {
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            font-size: inherit;
+            color: inherit;
+            white-space: pre;
+            word-wrap: normal;
+            display: inline;
+            max-width: auto;
+            overflow: visible;
+          }
+          .text-widget code {
+            background-color: rgba(175, 184, 193, 0.2);
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 85%;
+            font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier', monospace;
+            color: #e83e8c;
+          }
+          .text-widget pre code {
+            background-color: transparent;
+            color: #24292e;
+            padding: 0;
+            border-radius: 0;
+          }
         `}
       </style>
       <div className="text-widget">

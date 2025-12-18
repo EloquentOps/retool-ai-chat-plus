@@ -53,8 +53,7 @@ export const RightPanel: FC<RightPanelProps> = ({
           display: 'flex',
           alignItems: 'center',
           overflowX: 'auto',
-          minHeight: '48px',
-          padding: '0 8px',
+          padding: '0 0px',
           gap: '4px'
         }}>
           {pinnedWidgets.map((pinnedWidget, index) => {
