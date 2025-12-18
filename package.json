@@ -9,6 +9,7 @@
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
     "@googlemaps/js-api-loader": "^1.16.2",
+    "@mdxeditor/editor": "^3.0.0",
     "@tryretool/custom-component-support": "latest",
     "echarts": "^6.0.0",
     "install": "^0.13.0",

@@ -14,6 +14,7 @@ import { CheckListWidget, CheckListWidgetInstruction } from './CheckListWidget'
 import { FullCalendarWidget, FullCalendarWidgetInstruction } from './FullCalendarWidget'
 import { VideoWidget, VideoWidgetInstruction } from './VideoWidget'
 import { CanvasWidget, CanvasWidgetInstruction } from './CanvasWidget'
+import { MDXWidget, MDXWidgetInstruction } from './MDXWidget'
 
 // Widget instruction interface
 interface WidgetInstruction {
@@ -277,6 +278,11 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
   canvas: {
     component: CanvasWidget,
     instruction: CanvasWidgetInstruction,
+    enabled: true
+  },
+  mdx: {
+    component: MDXWidget,
+    instruction: MDXWidgetInstruction,
     enabled: true
   }
 }
