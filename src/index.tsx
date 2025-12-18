@@ -1385,6 +1385,13 @@ Otherwise, the type should be always "text".
           onDismissError={() => setError(null)}
           placeholder={placeholder}
           stylePreferences={stylePreferences as Record<string, unknown>}
+          onHistoryUpdate={(updatedHistory) => {
+            // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            _setHistory(updatedHistory as any)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            historyRef.current = updatedHistory as any
+          }}
         />
         
         {/* Approval Modal */}

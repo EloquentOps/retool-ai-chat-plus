@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { type FC } from 'react'
 import { MessageList } from './MessageList'
 import { MentionsInputBar } from './MentionsInputBar'
@@ -35,6 +35,13 @@ interface ChatContainerProps {
   onDismissError?: () => void
   placeholder?: string
   stylePreferences?: Record<string, unknown>
+  onHistoryUpdate?: (updatedHistory: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => void
+}
+
+interface PinnedWidget {
+  widgetContent: { type: string; source?: string; [key: string]: unknown }
+  widgetType: string
+  historyIndex: number
 }
 
 export const ChatContainer: FC<ChatContainerProps> = ({
@@ -53,18 +60,76 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onRetry,
   onDismissError,
   placeholder,
-  stylePreferences = {}
+  stylePreferences = {},
+  onHistoryUpdate
 }) => {
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
   const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && hasWelcomeContent
 
-  // State for pinned widget in right panel
-  const [pinnedWidget, setPinnedWidget] = useState<{ type: string; source?: string; [key: string]: unknown } | null>(null)
-  const [pinnedWidgetType, setPinnedWidgetType] = useState<string>('')
+  // State for pinned widgets in right panel (array to support multiple)
+  const [pinnedWidgets, setPinnedWidgets] = useState<PinnedWidget[]>([])
+  const [activePinnedTab, setActivePinnedTab] = useState<number>(0)
 
   // Determine wrapper border visibility based on stylePreferences
   const wrapperBorder = stylePreferences.wrapperBorder
   const isBorderHidden = wrapperBorder === 'hidden'
+
+  // Function to update history with pinned state changes
+  const updateHistoryWithPinnedState = (historyIndex: number, pinned: boolean) => {
+    if (historyIndex < 0 || historyIndex >= messages.length) {
+      return
+    }
+
+    const message = messages[historyIndex]
+    if (message.role !== 'assistant' || typeof message.content === 'string') {
+      return
+    }
+
+    const widgetContent = message.content as { type: string; source?: string; pinned?: boolean; [key: string]: unknown }
+    const updatedContent = pinned
+      ? { ...widgetContent, pinned: true }
+      : (() => {
+          const { pinned: _, ...rest } = widgetContent
+          return rest
+        })()
+
+    const updatedMessages = [...messages]
+    updatedMessages[historyIndex] = {
+      ...message,
+      content: updatedContent
+    }
+
+    // Notify parent to update history
+    onHistoryUpdate?.(updatedMessages)
+  }
+
+  // Function to restore pinned widgets from history
+  const restorePinnedWidgets = (historyMessages: typeof messages) => {
+    const pinned: PinnedWidget[] = []
+    
+    historyMessages.forEach((message, index) => {
+      if (message.role === 'assistant' && typeof message.content === 'object' && message.content !== null) {
+        const widgetContent = message.content as { type: string; source?: string; pinned?: boolean; [key: string]: unknown }
+        if (widgetContent.pinned === true && widgetContent.type) {
+          pinned.push({
+            widgetContent: widgetContent,
+            widgetType: widgetContent.type,
+            historyIndex: index
+          })
+        }
+      }
+    })
+
+    setPinnedWidgets(pinned)
+    if (pinned.length > 0) {
+      setActivePinnedTab(0)
+    }
+  }
+
+  // Restore pinned widgets when messages change (e.g., on history restore)
+  useEffect(() => {
+    restorePinnedWidgets(messages)
+  }, [messages])
 
   // Handler for widget pin/unpin actions
   const handleWidgetCallback = (payload: Record<string, unknown>) => {
@@ -72,11 +137,49 @@ export const ChatContainer: FC<ChatContainerProps> = ({
     if (payload.type === 'widget:pin') {
       const widgetContent = payload.widgetContent as { type: string; source?: string; [key: string]: unknown }
       const widgetType = payload.widgetType as string
-      if (widgetContent && widgetType) {
-        setPinnedWidget(widgetContent)
-        setPinnedWidgetType(widgetType)
+      const historyIndex = payload.messageIndex as number | undefined
+
+      if (widgetContent && widgetType && typeof historyIndex === 'number') {
+        // Check if widget is already pinned
+        const isAlreadyPinned = pinnedWidgets.some(pw => pw.historyIndex === historyIndex)
+        
+        if (!isAlreadyPinned) {
+          // Add pinned:true to widget content in history
+          updateHistoryWithPinnedState(historyIndex, true)
+          
+          // Add to pinned widgets array
+          const newPinnedWidget: PinnedWidget = {
+            widgetContent: { ...widgetContent, pinned: true },
+            widgetType: widgetType,
+            historyIndex: historyIndex
+          }
+          setPinnedWidgets(prev => [...prev, newPinnedWidget])
+          setActivePinnedTab(pinnedWidgets.length) // Switch to new tab
+        }
       }
       // Don't forward pin actions to parent callback
+      return
+    }
+
+    // Handle unpin action
+    if (payload.type === 'widget:unpin') {
+      const historyIndex = payload.historyIndex as number | undefined
+      
+      if (typeof historyIndex === 'number') {
+        // Remove pinned:true from widget content in history
+        updateHistoryWithPinnedState(historyIndex, false)
+        
+        // Remove from pinned widgets array
+        const updatedPinned = pinnedWidgets.filter(pw => pw.historyIndex !== historyIndex)
+        setPinnedWidgets(updatedPinned)
+        
+        // Adjust active tab if needed
+        if (updatedPinned.length === 0) {
+          setActivePinnedTab(0)
+        } else if (activePinnedTab >= updatedPinned.length) {
+          setActivePinnedTab(updatedPinned.length - 1)
+        }
+      }
       return
     }
     
@@ -84,10 +187,17 @@ export const ChatContainer: FC<ChatContainerProps> = ({
     onWidgetCallback?.(payload)
   }
 
-  // Handler for closing right panel
-  const handleCloseRightPanel = () => {
-    setPinnedWidget(null)
-    setPinnedWidgetType('')
+  // Handler for tab change
+  const handleTabChange = (tabIndex: number) => {
+    setActivePinnedTab(tabIndex)
+  }
+
+  // Handler for tab close
+  const handleTabClose = (historyIndex: number) => {
+    handleWidgetCallback({
+      type: 'widget:unpin',
+      historyIndex: historyIndex
+    })
   }
   
   return (
@@ -225,8 +335,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               onDismiss={onDismissError} 
             />
           )}
-          {pinnedWidget ? (
-            // Split layout when widget is pinned
+          {pinnedWidgets.length > 0 ? (
+            // Split layout when widgets are pinned
             <div style={{
               display: 'flex',
               flexDirection: 'row',
@@ -247,11 +357,12 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} />
               </div>
               
-              {/* Right panel - Pinned widget */}
+              {/* Right panel - Pinned widgets with tabs */}
               <RightPanel
-                pinnedWidget={pinnedWidget}
-                widgetType={pinnedWidgetType}
-                onClose={handleCloseRightPanel}
+                pinnedWidgets={pinnedWidgets}
+                activeTab={activePinnedTab}
+                onTabChange={handleTabChange}
+                onTabClose={handleTabClose}
                 onWidgetCallback={handleWidgetCallback}
                 widgetsOptions={widgetsOptions}
               />
