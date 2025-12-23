@@ -1,0 +1,33 @@
+{
+  "name": "@retool-ai-chat-plus/widget-example",
+  "version": "1.0.0",
+  "description": "Example widget plugin for Retool AI Chat Plus",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "widget.manifest.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.55",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "retool",
+    "ai-chat-plus",
+    "widget",
+    "plugin"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

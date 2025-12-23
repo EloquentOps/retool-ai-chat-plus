@@ -8,7 +8,7 @@ A powerful custom chat component for Retool that provides enhanced AI chat funct
 
 - [Features](#features)
 - [Getting started](#getting-started)
-- [List of built-in widgets (all in beta)](#list-of-built-in-widgets-all-in-beta)
+- [Built-in Widgets](WIDGETS.md)
 - [How It Works](#how-it-works)
 - [LLM Model Compatibility](#llm-model-compatibility)
 - [Custom widget list](#custom-widget-list)
@@ -18,6 +18,7 @@ A powerful custom chat component for Retool that provides enhanced AI chat funct
 
 - **Interactive Chat Interface**: Modern chat UI (welcome step, chips) with mentionable interactive custom widgets
 - **Widget System**: Extensible widget framework for rich content display
+- **Pinned Panel**: Pin widgets in the right panel (eject from the chat flow)
 - **Advanced flow controls:** reset, restore, inject, auto submit
 - **Dual Query Support**: Compatible with both **Retool AI Query** (simple LLM calls) and **Retool Agent Query** (full agent workflows with polling, tool approvals, and status management)
 - **Error Handling (Beta)**: error handling with retry capabilities
@@ -125,6 +126,16 @@ The `promptChips` array allows to add one or more interactive buttons at the bot
 
 
 
+### Pinned Panel
+
+Every rendered widget can be pinned on a side panel. It's a way to detach it them from the chat flow for comparison purposes.
+
+There's a plan to allow the chat submit to interact with the visible pinned widget.
+
+
+
+
+
 
 ### Style Preferences
 
@@ -176,7 +187,7 @@ Available properties are:
 
 
 
-## List of built-in widgets (all in beta)
+## Widgets
 
 Here the `widgetsOptions` object to enable all the present widgets in the component:
 
@@ -216,122 +227,21 @@ Here an example of a question that returns a list of 4 widgets in one shot, in t
 
 ![multiple](docs/multiple.png)
 
----
+## Custom widget list
 
-#### Text
+### Plugin Configuration
 
-It's the default widget for the chat responses, always present, it cannot be disabled.
+Widgets are managed via `retool-widget-plugins.json`:
 
-It renders text and markdown as well, according to your prompt instructions.
-External URLs open always on new window.
+- **`external`**: Widgets in development (from `src/components/widgets/external/`)
+- **`plugins`**: Published npm widget packages
+- **`globalAssets`**: CSS and font URLs loaded globally
 
-![](docs/widgets/text.png)
-
----
-
-#### GoogleMap
-
-It renders a full Google Map positioned with a given location.
-
-It requires a valid API Key from Google.
-
-![](docs/widgets/google_map.jpg)
-
----
-
-#### Chart
-
-It renders an EChart component. The chart type is defined by the LLM, according to the user hints and the type of data is needs to show.
-
-![](docs/widgets/chart-1.png)
-
-![](docs/widgets/chart-2.png)
-
----
-
-#### Image
-
-It renders an image, that can be zoomed in and out.
-
-![](docs/widgets/image.jpg)
-
----
-
-#### Select
-
-It renders a select component 
-
-![](docs/widgets/select.png)
-
----
-
-#### Tabulator
-
-It renders a table using Tabulator library.
-
-![](docs/widgets/tabulator.png)
-
----
-
-#### ImageGrid
-
-It renders a list of images in a grid layout.
-
-![](docs/widgets/image_grid.jpg)
-
----
-
-#### Input
-
-It renders an input field with validation reg-ex and message
-
-![](docs/widgets/input.png)
-
----
-
-#### CheckList
-
-It renders an interactive checklist with checkbox
-
-![](docs/widgets/checklist.png)
-
----
-
-#### Fullcalendar
-
-It renders an interactive fullcalendar.js component
-
-![](docs/widgets/fullcalendar.png)
-
----
+Edit the config file and run `npm run build:plugins` to regenerate the widget registry.
 
 
-#### Canvas
 
-It renders an HTML page into an iframe:
-
-![](docs/widgets/canvas.png)
-
----
-
-
-### Widget Callback
-
-A widget can implement a callback call with payload.
-When implemented, the component user can exploit the `widgetCallback` event wired with a JS Query such as:
-
-```js
-const payload = aiChatPlus1.widgetPayload
-
-if(payload.type === 'google_map'){
-  utils.confetti()
-}
-```
-
-You can use both the event trigger and the payload from `widgetPayload` property.
-You can then inspect the object and decide what to do with it.
-
-
+See [WIDGETS.md](WIDGETS.md) for detailed documentation on all available widgets.
 
 ---
 
@@ -388,6 +298,24 @@ After clicking the button, the chat component will contain that context, and the
 
 
 
+## Widget Callback
+
+A widget can implement a callback call with payload.
+When implemented, the component user can exploit the `widgetCallback` event wired with a JS Query such as:
+
+```js
+const payload = aiChatPlus1.widgetPayload
+
+if(payload.type === 'google_map'){
+  utils.confetti()
+}
+```
+
+You can use both the event trigger and the payload from `widgetPayload` property.
+You can then inspect the object and decide what to do with it.
+
+
+
 ---
 
 ## How It Works
@@ -415,40 +343,6 @@ After clicking the button, the chat component will contain that context, and the
 We've found a good compromise between reliability and cost with OpenAI o3-mini
 
 
-
-
-## Custom widget list
-
-### Adding or Removing Widgets from the Bundle
-
-To customize which widgets are included in your bundle, you need to manually edit the `WidgetRegistry.tsx` file.
-
-#### Removing a Widget
-
-To remove a widget from the bundle:
-
-1. Open `src/components/widgets/WidgetRegistry.tsx`
-2. Remove or comment out the widget entry from the `WIDGET_REGISTRY` object
-3. Remove or comment the import statement at the top of the file
-
-**Example:** To remove the `video` widget:
-
-```typescript
-// In WidgetRegistry.tsx, remove or comment out:
-// import { VideoWidget, VideoWidgetInstruction } from './VideoWidget'
-
-// And remove from WIDGET_REGISTRY:
-// video: {
-//   component: VideoWidget,
-//   instruction: VideoWidgetInstruction,
-//   enabled: true
-// }
-```
-
-
-#### Important Note on Updates
-
-⚠️ **Manual Merge Required**: When pulling updates from the main repository, you'll need to manually check and merge changes to `WidgetRegistry.tsx`. Not ideal, but the only viable solution so far.
 
 
 

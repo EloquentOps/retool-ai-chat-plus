@@ -1,0 +1,30 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "displayName": "Example Widget",
+  "component": "./src/ExampleWidget.tsx",
+  "instruction": {
+    "type": "example",
+    "instructions": "Use this widget when the user asks for an example or demonstration. This widget displays a simple example with customizable content.",
+    "sourceDataModel": {
+      "title": "string - The title to display",
+      "content": "string - The main content text",
+      "variant": "string (optional) - Style variant: 'default' | 'primary' | 'success' | 'warning'"
+    }
+  },
+  "dependencies": {
+    "runtime": [],
+    "peer": ["react"]
+  },
+  "assets": {
+    "css": [],
+    "fonts": []
+  },
+  "enabledByDefault": true,
+  "category": "custom",
+  "meta": {
+    "author": "Your Name",
+    "repository": "https://github.com/your-org/your-widget"
+  }
+}
+

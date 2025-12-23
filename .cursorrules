@@ -5,20 +5,37 @@ This is a Retool Custom Component Library for an AI Chat component with extensib
 
 ## Project Structure
 - `src/components/` - Main React components (ChatContainer, MessageList, InputBar, etc.)
-- `src/components/widgets/` - Widget components and registry
-- `src/utils/` - Utility functions
-- `src/types/` - TypeScript type definitions
+- `src/components/widgets/` - Core widgets (TextWidget only) and registry
+- `src/components/widgets/external/` - External widgets (for testing, can be extracted to npm)
+- `src/plugin-loader/` - Plugin system types and utilities
+- `scripts/` - Build scripts including plugin builder
+- `templates/widget-package/` - Template for creating npm widget packages
+- `retool-widget-plugins.json` - Plugin configuration file
 - `dist/` - Built output for Retool
 
 ## Widget Development Guidelines
 
 ### Widget Architecture
-- All widgets must be registered in `WidgetRegistry.tsx`
-- Do NOT export new individual widgets for direct use in `src/components/widgets/index.ts`
-- Each widget needs:
-  1. Component implementation (React.FC)
-  2. Instruction object (WidgetInstruction) with type, instructions, and sourceDataModel
-  3. Export both component and instruction
+The widget system has three tiers:
+1. **Core widgets** (`src/components/widgets/`) - Essential widgets like TextWidget
+2. **External widgets** (`src/components/widgets/external/`) - Widgets in development or ready for extraction
+3. **NPM plugins** (`node_modules/`) - Published widget packages
+
+Widgets are auto-discovered by the build script. Configuration is in `retool-widget-plugins.json`.
+
+### Creating a New Widget
+1. Create widget file in `src/components/widgets/external/YourWidget.tsx`
+2. Export both component and instruction from the file
+3. Add widget name to `retool-widget-plugins.json` in the `external` array
+4. Run `npm run build:plugins` to regenerate the registry
+
+Example `retool-widget-plugins.json`:
+```json
+{
+  "external": ["chart", "tabulator", "your_widget"],
+  "plugins": []
+}
+```
 
 ### Widget Interface
 ```typescript
@@ -36,15 +53,35 @@ interface WidgetInstruction {
 }
 ```
 
-### Widget Registration Pattern
+### Widget File Structure
 ```typescript
-// In WidgetRegistry.tsx
-export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
-  widget_name: {
-    component: WidgetComponent,
-    instruction: WidgetInstruction,
-    enabled: true
-  }
+// src/components/widgets/external/YourWidget.tsx
+import React from 'react'
+import type { FC } from 'react'
+
+interface YourWidgetProps {
+  source: string | YourDataType
+  onWidgetCallback?: (payload: Record<string, unknown>) => void
+  widgetsOptions?: Record<string, unknown>
+  historyIndex?: number
+}
+
+const YourWidgetComponent: FC<YourWidgetProps> = ({ source, onWidgetCallback, historyIndex }) => {
+  // Implementation
+  return <div>...</div>
+}
+
+// REQUIRED: Memoize to prevent re-renders during polling
+export const YourWidget = React.memo(YourWidgetComponent, (prev, next) => {
+  return JSON.stringify(prev.source) === JSON.stringify(next.source) &&
+         prev.historyIndex === next.historyIndex
+})
+
+// REQUIRED: Export instruction for AI
+export const YourWidgetInstruction = {
+  type: 'your_widget',  // Must match the name in retool-widget-plugins.json
+  instructions: 'When to use this widget...',
+  sourceDataModel: { field: 'description' }
 }
 ```
 
@@ -60,12 +97,17 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
 - Use functional components with hooks
 - Use `React.FC` type for component props
 - Prefer named exports over default exports
-- Use React.memo for performance optimization when needed
+- Use React.memo for ALL widgets (required for polling performance)
 
 ### File Naming
 - Components: PascalCase (e.g., `ChatContainer.tsx`)
+- Widgets: PascalCase with Widget suffix (e.g., `ChartWidget.tsx`)
 - Utilities: camelCase (e.g., `widgetUtils.ts`)
-- Types: camelCase with `.d.ts` extension if needed
+
+### Widget Naming Convention
+- File: `PascalCaseWidget.tsx` (e.g., `GoogleMapWidget.tsx`)
+- Registry key: `snake_case` (e.g., `google_map`)
+- Use the mapping in build script for special cases
 
 ## Key Dependencies
 - React 18.2.0
@@ -76,11 +118,10 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
 - tabulator-tables for tables
 - @googlemaps/js-api-loader for maps
 
-## Retool Integration
-- Component entry point: `src/index.tsx`
-- Output path: `dist/`
-- Component name: `AiChatPlus`
-- Use Retool's custom component support utilities
+## Build Commands
+- `npm run build:plugins` - Regenerate widget registry from config
+- `npm run dev` - Start development server (auto-runs build:plugins)
+- `npm run deploy` - Deploy to Retool (auto-runs build:plugins)
 
 ## Widget System Details
 - Widgets are mentioned in chat input using `@widget_name` syntax
@@ -89,20 +130,13 @@ export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
 - Widget callbacks communicate user interactions back to chat system
 - Widget options can override instructions and sourceDataModel per widget type
 
-## Common Patterns
-
-### Creating a New Widget
-1. Create widget component file in `src/components/widgets/`
-2. Define WidgetInstruction object
-3. Export both component and instruction
-4. Register in `WidgetRegistry.tsx`
-5. Add to `src/components/widgets/index.ts` exports
-
 ### Widget Callback Pattern
 ```typescript
 onWidgetCallback?.({
   type: 'interaction_type',
+  widgetType: 'your_widget',
   data: interactionData,
+  historyIndex,
   timestamp: Date.now()
 })
 ```
@@ -112,14 +146,20 @@ onWidgetCallback?.({
 - Always validate source data before rendering
 - Provide fallback UI for error states
 - Test with both AI Query and Agent Query formats
+- Use `retool-widget-plugins.json` to test with subset of widgets
 
 ## Performance
-- Use React.memo for expensive widget components
-- Avoid unnecessary re-renders
-- Clean up resources in useEffect cleanup functions for complex widgets
+- Use React.memo for ALL widget components (required!)
+- Implement custom comparison function for complex data
+- Avoid unnecessary re-renders during polling
+- Clean up resources in useEffect cleanup functions
 
-## Documentation
-- Document widget instructions clearly for AI agents
-- Include examples in sourceDataModel descriptions
-- Update README.md when adding new widgets
+## Extracting Widget to NPM Package
+When ready to publish a widget as a separate package:
+1. Copy `templates/widget-package/` to a new repo
+2. Move widget code from `external/` to the new package
+3. Update `widget.manifest.json` with widget details
+4. Publish to npm
+5. Add package name to `plugins` array in config
+6. Remove from `external` array
 

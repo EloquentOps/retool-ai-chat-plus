@@ -1,23 +1,17 @@
 import React, { useState } from 'react'
 import { type FC } from 'react'
+
+// ============================================================================
+// Core Widget Imports (only essential widgets that must always be available)
+// ============================================================================
 import { TextWidget, TextWidgetInstruction } from './TextWidget'
-import { SampleWidget, SampleWidgetInstruction } from './SampleWidget'
-import { ImageWidget, ImageWidgetInstruction } from './ImageWidget'
-import { GoogleMapWidget, GoogleMapWidgetInstruction } from './GoogleMapWidget'
-import { ConfirmWidget, ConfirmWidgetInstruction } from './ConfirmWidget'
-import { SelectWidget, SelectWidgetInstruction } from './SelectWidget'
-import { ImageGridWidget, ImageGridWidgetInstruction } from './ImageGridWidget'
-import { TabulatorWidget, TabulatorWidgetInstruction } from './TabulatorWidget'
-import { InputWidget, InputWidgetInstruction } from './InputWidget'
-import { ChartWidget, ChartWidgetInstruction } from './ChartWidget'
-import { CheckListWidget, CheckListWidgetInstruction } from './CheckListWidget'
-import { FullCalendarWidget, FullCalendarWidgetInstruction } from './FullCalendarWidget'
-import { VideoWidget, VideoWidgetInstruction } from './VideoWidget'
-import { CanvasWidget, CanvasWidgetInstruction } from './CanvasWidget'
-import { MDXWidget, MDXWidgetInstruction } from './MDXWidget'
+
+// ============================================================================
+// Types
+// ============================================================================
 
 // Widget instruction interface
-interface WidgetInstruction {
+export interface WidgetInstruction {
   type: string
   instructions: string
   sourceDataModel: string | object
@@ -25,14 +19,24 @@ interface WidgetInstruction {
 }
 
 // Widget configuration interface
-interface WidgetConfig {
+export interface WidgetConfig {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   component: FC<any>
   instruction: WidgetInstruction
   enabled: boolean
+  /** Source of the widget: 'core' for built-in, 'external' for internal but extractable, 'plugin' for npm packages */
+  source?: 'core' | 'external' | 'plugin'
+  /** Package name for plugin widgets */
+  packageName?: string
 }
 
-// Widget wrapper component with hover footer and remove button
+// Widget registry type
+export type WidgetRegistryType = Record<string, WidgetConfig>
+
+// ============================================================================
+// Widget Wrapper Component
+// ============================================================================
+
 interface WidgetWrapperProps {
   children?: React.ReactElement
   historyIndex?: number
@@ -229,87 +233,160 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
   )
 }
 
-// Widget registry map
-export const WIDGET_REGISTRY: Record<string, WidgetConfig> = {
+// ============================================================================
+// Core Widget Registry (minimal - only essential widgets)
+// ============================================================================
+
+/**
+ * Core widgets that are always bundled and cannot be removed.
+ * These are essential for the chat system to function.
+ */
+const CORE_WIDGET_REGISTRY: WidgetRegistryType = {
   text: {
     component: TextWidget,
     instruction: TextWidgetInstruction,
-    enabled: true
-  },
-  sample: {
-    component: SampleWidget,
-    instruction: SampleWidgetInstruction,
-    enabled: true
-  },
-  image: {
-    component: ImageWidget,
-    instruction: ImageWidgetInstruction,
-    enabled: true
-  },
-  google_map: {
-    component: GoogleMapWidget,
-    instruction: GoogleMapWidgetInstruction,
-    enabled: true
-  },
-  confirm: {
-    component: ConfirmWidget,
-    instruction: ConfirmWidgetInstruction,
-    enabled: true
-  },
-  select: {
-    component: SelectWidget,
-    instruction: SelectWidgetInstruction,
-    enabled: true
-  },
-  image_grid: {
-    component: ImageGridWidget,
-    instruction: ImageGridWidgetInstruction,
-    enabled: true
-  },
-  tabulator: {
-    component: TabulatorWidget,
-    instruction: TabulatorWidgetInstruction,
-    enabled: true
-  },
-  input: {
-    component: InputWidget,
-    instruction: InputWidgetInstruction,
-    enabled: true
-  },
-  chart: {
-    component: ChartWidget,
-    instruction: ChartWidgetInstruction,
-    enabled: true
-  },
-  checklist: {
-    component: CheckListWidget,
-    instruction: CheckListWidgetInstruction,
-    enabled: true
-  },
-  fullcalendar: {
-    component: FullCalendarWidget,
-    instruction: FullCalendarWidgetInstruction,
-    enabled: true
-  },
-  video: {
-    component: VideoWidget,
-    instruction: VideoWidgetInstruction,
-    enabled: true
-  },
-  canvas: {
-    component: CanvasWidget,
-    instruction: CanvasWidgetInstruction,
-    enabled: true
-  },
-  mdx: {
-    component: MDXWidget,
-    instruction: MDXWidgetInstruction,
-    enabled: true
+    enabled: true,
+    source: 'core'
   }
 }
 
-// Generalized widget renderer function
-export const renderWidget = (content: { type: string; source?: string; [key: string]: unknown }, onWidgetCallback?: (payload: Record<string, unknown>) => void, widgetsOptions?: Record<string, unknown>, historyIndex?: number) => {
+// ============================================================================
+// External & Plugin Integration
+// ============================================================================
+
+/**
+ * Registry for external widgets (from ./external/) and npm plugins.
+ * These are loaded from the generated file at runtime.
+ */
+const GENERATED_REGISTRY: WidgetRegistryType = (() => {
+  const registry: WidgetRegistryType = {}
+  try {
+    // This file is generated by build-plugins.ts
+    // It includes both external widgets (./external/) and npm plugins
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const generated = require('./WidgetRegistry.generated')
+    if (generated.GENERATED_WIDGET_REGISTRY) {
+      // Add all generated widgets except those already in core
+      Object.entries(generated.GENERATED_WIDGET_REGISTRY).forEach(([key, value]) => {
+        if (!CORE_WIDGET_REGISTRY[key]) {
+          registry[key] = value as WidgetConfig
+        }
+      })
+      console.log('WidgetRegistry: Loaded', Object.keys(registry).length, 'external/plugin widgets')
+    }
+  } catch {
+    // No generated registry yet - this is fine during initial setup
+    console.debug('WidgetRegistry: No generated plugin registry found (run npm run build:plugins)')
+  }
+  return registry
+})()
+
+// ============================================================================
+// Merged Widget Registry (exported)
+// ============================================================================
+
+/**
+ * Combined widget registry containing core, external, and plugin widgets.
+ * Priority: Core > Generated (external + plugins)
+ */
+export const WIDGET_REGISTRY: WidgetRegistryType = {
+  ...GENERATED_REGISTRY,  // External and plugins (lower priority)
+  ...CORE_WIDGET_REGISTRY // Core widgets override everything
+}
+
+// ============================================================================
+// Plugin Registration API
+// ============================================================================
+
+/**
+ * Register a new widget at runtime.
+ * Useful for dynamically adding widgets without rebuilding.
+ * 
+ * @param widgetType - Unique identifier for the widget
+ * @param config - Widget configuration
+ * @returns boolean - Whether registration was successful
+ */
+export const registerWidget = (
+  widgetType: string,
+  config: WidgetConfig
+): boolean => {
+  if (WIDGET_REGISTRY[widgetType]) {
+    console.warn(`WidgetRegistry: Widget '${widgetType}' already exists, skipping registration`)
+    return false
+  }
+  
+  WIDGET_REGISTRY[widgetType] = {
+    ...config,
+    source: config.source || 'plugin'
+  }
+  
+  console.log(`WidgetRegistry: Registered widget '${widgetType}'`)
+  return true
+}
+
+/**
+ * Unregister a widget.
+ * Note: Core widgets cannot be unregistered.
+ * 
+ * @param widgetType - Widget identifier to remove
+ * @returns boolean - Whether unregistration was successful
+ */
+export const unregisterWidget = (widgetType: string): boolean => {
+  const config = WIDGET_REGISTRY[widgetType]
+  
+  if (!config) {
+    console.warn(`WidgetRegistry: Widget '${widgetType}' not found`)
+    return false
+  }
+  
+  if (config.source === 'core') {
+    console.warn(`WidgetRegistry: Cannot unregister core widget '${widgetType}'`)
+    return false
+  }
+  
+  delete WIDGET_REGISTRY[widgetType]
+  console.log(`WidgetRegistry: Unregistered widget '${widgetType}'`)
+  return true
+}
+
+/**
+ * Get registry metadata for debugging/inspection
+ */
+export const getRegistryMetadata = () => {
+  const core = Object.entries(WIDGET_REGISTRY)
+    .filter(([, config]) => config.source === 'core')
+    .map(([key]) => key)
+  
+  const external = Object.entries(WIDGET_REGISTRY)
+    .filter(([, config]) => config.source === 'external')
+    .map(([key]) => key)
+  
+  const plugins = Object.entries(WIDGET_REGISTRY)
+    .filter(([, config]) => config.source === 'plugin')
+    .map(([key, config]) => ({ type: key, package: config.packageName }))
+  
+  return {
+    totalWidgets: Object.keys(WIDGET_REGISTRY).length,
+    coreWidgets: core,
+    externalWidgets: external,
+    pluginWidgets: plugins
+  }
+}
+
+// ============================================================================
+// Widget Renderer
+// ============================================================================
+
+/**
+ * Generalized widget renderer function.
+ * Renders the appropriate widget component based on content type.
+ */
+export const renderWidget = (
+  content: { type: string; source?: string; [key: string]: unknown },
+  onWidgetCallback?: (payload: Record<string, unknown>) => void,
+  widgetsOptions?: Record<string, unknown>,
+  historyIndex?: number
+) => {
   const widgetConfig = WIDGET_REGISTRY[content.type]
   
   if (!widgetConfig || !widgetConfig.enabled) {
@@ -388,6 +465,10 @@ export const renderWidget = (content: { type: string; source?: string; [key: str
   }, widgetElement)
 }
 
+// ============================================================================
+// Instruction Helpers
+// ============================================================================
+
 // Helper function to get widget types that should always be injected
 const getAlwaysInjectedWidgetTypes = (widgetsOptions?: Record<string, unknown>): string[] => {
   const alwaysInjected: string[] = ['text'] // text widget is always included by default
@@ -451,7 +532,6 @@ export const getWidgetInstructionsForTypes = (
 const mergeWidgetInstruction = (baseInstruction: WidgetInstruction, widgetsOptions?: Record<string, unknown>): WidgetInstruction => {
   
   if (!widgetsOptions) {
-    console.log('Debug mergeWidgetInstruction: no widgetsOptions, returning base')
     return baseInstruction
   }
 
@@ -459,10 +539,7 @@ const mergeWidgetInstruction = (baseInstruction: WidgetInstruction, widgetsOptio
   const widgetType = baseInstruction.type
   const widgetOptions = widgetsOptions[widgetType] as Record<string, unknown> | undefined
 
-  console.log('Debug mergeWidgetInstruction: widgetOptions for', widgetType, '=', widgetOptions)
-
   if (!widgetOptions) {
-    console.log('Debug mergeWidgetInstruction: no widgetOptions for', widgetType, ', returning base')
     return baseInstruction
   }
 
@@ -471,23 +548,19 @@ const mergeWidgetInstruction = (baseInstruction: WidgetInstruction, widgetsOptio
 
   // Override instructions if provided in widgetsOptions
   if (widgetOptions.instructions && typeof widgetOptions.instructions === 'string') {
-    console.log('Debug mergeWidgetInstruction: overriding instructions for', widgetType, 'with:', widgetOptions.instructions)
     mergedInstruction.instructions = widgetOptions.instructions
   }
   
   // Append additional instructions if provided in widgetsOptions
   if (widgetOptions.addInstruction && typeof widgetOptions.addInstruction === 'string') {
-    console.log('Debug mergeWidgetInstruction: appending instructions for', widgetType, 'with:', widgetOptions.addInstruction)
     mergedInstruction.instructions = mergedInstruction.instructions + '\n' + widgetOptions.addInstruction
   }
 
   // Override sourceDataModel if provided in widgetsOptions
   if (widgetOptions.sourceDataModel !== undefined && widgetOptions.sourceDataModel !== null) {
-    console.log('Debug mergeWidgetInstruction: overriding sourceDataModel for', widgetType, 'with:', widgetOptions.sourceDataModel)
     mergedInstruction.sourceDataModel = widgetOptions.sourceDataModel as string | object
   }
 
-  console.log('Debug mergeWidgetInstruction: final merged instruction for', widgetType, '=', mergedInstruction)
   return mergedInstruction
 }
 
@@ -501,6 +574,10 @@ const formatInstructionAsString = (instruction: WidgetInstruction): string => {
 Why use this format type: ${instruction.instructions}
 Source data type and model: ${sourceDataModelStr}`
 }
+
+// ============================================================================
+// Widget State Management
+// ============================================================================
 
 // Helper function to enable/disable widgets
 export const setWidgetEnabled = (widgetType: string, enabled: boolean) => {
@@ -541,17 +618,4 @@ export const cleanupWidgetResources = (widgetType: string, _widgetInstance?: unk
   // This function can be extended to handle specific cleanup for different widget types
   // For now, it's a placeholder for future widget-specific cleanup logic
   console.log(`WidgetRegistry: Cleanup requested for widget type: ${widgetType}`)
-  
-  // Example: If we had a global cleanup mechanism, we could implement it here
-  // switch (widgetType) {
-  //   case 'google_map':
-  //     // Cleanup Google Maps resources
-  //     break
-  //   case 'tabulator':
-  //     // Cleanup Tabulator resources
-  //     break
-  //   default:
-  //     // No specific cleanup needed
-  //     break
-  // }
 }
