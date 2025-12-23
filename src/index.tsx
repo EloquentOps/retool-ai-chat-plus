@@ -4,7 +4,7 @@ import { type FC } from 'react'
 import { Retool } from '@tryretool/custom-component-support'
 import { ChatContainer } from './components'
 import { ApprovalModal } from './components/ApprovalModal'
-import { getWidgetInstructionsForTypes, WIDGET_REGISTRY } from './components/widgets'
+import { getWidgetInstructionsForTypes, WIDGET_REGISTRY, GlobalAssets } from './components/widgets'
 
 export const AiChatPlus: FC = () => {
   // Add state for welcome message
@@ -1347,18 +1347,8 @@ Otherwise, the type should be always "text".
 
   return (
     <>
-      {/* Google Fonts - Inter */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      
-      {/* Tabulator CSS */}
-      <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css" />
-      
-      {/* FullCalendar CSS */}
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/main.min.css" />
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/main.min.css" />
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/main.min.css" />
+      {/* Global CSS and Font Assets - managed by plugin system */}
+      <GlobalAssets />
       
       <div style={{ 
         height: '100%', 

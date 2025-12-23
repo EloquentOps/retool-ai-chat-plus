@@ -1,0 +1,34 @@
+{
+  "$schema": "./schemas/plugin-config.schema.json",
+  
+  "external": [
+    "canvas",
+    "chart",
+    "checklist",
+    "confirm",
+    "fullcalendar",
+    "google_map",
+    "image_grid",
+    "image",
+    "input",
+    "mdx",
+    "select",
+    "slider",
+    "tabulator",
+    "video"
+  ],
+  
+  "plugins": [],
+  
+  "globalAssets": {
+    "css": [
+      "https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator.min.css",
+      "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/main.min.css",
+      "https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.19/main.min.css",
+      "https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.19/main.min.css"
+    ],
+    "fonts": [
+      "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    ]
+  }
+}

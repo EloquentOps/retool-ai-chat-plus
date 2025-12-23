@@ -9,5 +9,16 @@ export {
   getWidgetInstructionsForTypes,
   setWidgetEnabled,
   getEnabledWidgetTypes,
-  getStructuredWidgetInstructions
+  getStructuredWidgetInstructions,
+  // Plugin system exports
+  registerWidget,
+  unregisterWidget,
+  getRegistryMetadata
 } from './WidgetRegistry'
+
+// Export types
+export type { WidgetInstruction, WidgetConfig, WidgetRegistryType } from './WidgetRegistry'
+
+// Export GlobalAssets for CSS/font injection
+export { GlobalAssets, CORE_ASSETS, getMergedAssets } from './GlobalAssets'
+export type { AssetConfig, GlobalAssetsProps } from './GlobalAssets'

@@ -26,7 +26,10 @@
     "login": "npx retool-ccl login",
     "dev": "npx retool-ccl dev",
     "init": "npx retool-ccl init",
-    "deploy": "npx retool-ccl deploy"
+    "deploy": "npx retool-ccl deploy",
+    "build:plugins": "npx ts-node scripts/build-plugins.ts",
+    "predeploy": "npm run build:plugins",
+    "predev": "npm run build:plugins"
   },
   "browserslist": {
     "production": [
@@ -42,6 +45,7 @@
   },
   "devDependencies": {
     "@types/google.maps": "^3.58.1",
+    "@types/node": "^20.11.0",
     "@types/react": "^18.2.55",
     "@types/tabulator-tables": "^6.2.11",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
@@ -49,12 +53,14 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
     "postcss-modules": "^6.0.0",
-    "prettier": "^3.0.3"
+    "prettier": "^3.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
   },
   "retoolCustomComponentLibraryConfig": {
     "name": "AiChatPlus",
     "label": "Ai Chat Plus",
-    "description": "Ai Chat Plus",
+    "description": "Ai Chat Plus with extensible widget plugin system",
     "entryPoint": "src/index.tsx",
     "outputPath": "dist"
   }
