@@ -5,6 +5,7 @@ import { Retool } from '@tryretool/custom-component-support'
 import { ChatContainer } from './components'
 import { ApprovalModal } from './components/ApprovalModal'
 import { getWidgetInstructionsForTypes, WIDGET_REGISTRY, GlobalAssets } from './components/widgets'
+import { preprocessCanvasWidgetHtml } from './utils/widgetUtils'
 
 export const AiChatPlus: FC = () => {
   // Add state for welcome message
@@ -734,8 +735,10 @@ export const AiChatPlus: FC = () => {
       
       if (aiResponse && typeof aiResponse === 'string') {
         try {
+          // Pre-process to encode HTML in canvas widget sources before JSON parsing
+          const preprocessedResponse = preprocessCanvasWidgetHtml(aiResponse)
           // Try to parse as JSON first
-          const jsonResponse = JSON.parse(aiResponse)
+          const jsonResponse = JSON.parse(preprocessedResponse)
           // Merge parsed response with existing queryResponse, prioritizing parsed widgets
           parsedResponse = { ...queryResponse, ...jsonResponse }
           console.log('Parsed resultText/content as JSON:', jsonResponse)
@@ -788,8 +791,14 @@ export const AiChatPlus: FC = () => {
         let widgetArray: Array<{ type: string; source?: string; [key: string]: unknown }>
         
         try {
+          // Pre-process to encode HTML in canvas widget sources before JSON parsing
+          const preprocessedResponse = typeof aiResponse === 'string' 
+            ? preprocessCanvasWidgetHtml(aiResponse) 
+            : aiResponse
           // Try to parse as JSON first
-          const jsonResponse = typeof aiResponse === 'string' ? JSON.parse(aiResponse) : aiResponse
+          const jsonResponse = typeof preprocessedResponse === 'string' 
+            ? JSON.parse(preprocessedResponse) 
+            : preprocessedResponse
           
           // Check if it's an object with widgets property
           if (jsonResponse && typeof jsonResponse === 'object' && jsonResponse.widgets && Array.isArray(jsonResponse.widgets)) {

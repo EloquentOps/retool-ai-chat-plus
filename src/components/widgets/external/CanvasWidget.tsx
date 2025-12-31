@@ -8,11 +8,47 @@ interface CanvasWidgetProps {
   historyIndex?: number
 }
 
+/**
+ * Checks if a string is likely base64-encoded
+ * @param str - String to check
+ * @returns True if string appears to be base64-encoded
+ */
+function isBase64(str: string): boolean {
+  // Base64 strings are alphanumeric + / + = and typically don't contain HTML tags
+  // Check for base64 pattern and absence of HTML tags
+  const base64Pattern = /^[A-Za-z0-9+/=\s]+$/
+  return base64Pattern.test(str) && !str.includes('<') && !str.includes('>')
+}
+
+/**
+ * Safely decodes a base64 string to HTML
+ * @param base64Str - Base64-encoded string
+ * @returns Decoded HTML string, or original string if decoding fails
+ */
+function decodeBase64Html(base64Str: string): string {
+  try {
+    // Remove whitespace
+    const cleanBase64 = base64Str.trim().replace(/\s/g, '')
+    // Decode base64
+    const decoded = decodeURIComponent(escape(atob(cleanBase64)))
+    // Check if decoded result looks like HTML
+    if (/<[^>]+>/.test(decoded)) {
+      return decoded
+    }
+    // Doesn't look like HTML, return original
+    return base64Str
+  } catch (error) {
+    // Decoding failed, return original string
+    console.warn('Failed to decode base64 HTML:', error)
+    return base64Str
+  }
+}
+
 const CanvasWidgetComponent: FC<CanvasWidgetProps> = ({
   source,
   onWidgetCallback,
   widgetsOptions,
-  historyIndex
+  historyIndex: _historyIndex
 }) => {
   const [htmlContent, setHtmlContent] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
@@ -32,15 +68,11 @@ const CanvasWidgetComponent: FC<CanvasWidgetProps> = ({
       }
 
       let html = ''
-      let height = widgetsOptions?.canvas?.height || '400px'
-      let width = widgetsOptions?.canvas?.width || '100%'
 
       if (typeof source === 'string') {
         html = source
       } else if (typeof source === 'object' && source !== null) {
         html = (source as { html?: string }).html || ''
-        height = (source as { height?: string }).height || height
-        width = (source as { width?: string }).width || width
       }
 
       if (!html || html.trim() === '') {
@@ -49,7 +81,18 @@ const CanvasWidgetComponent: FC<CanvasWidgetProps> = ({
         return
       }
 
-      setHtmlContent(html)
+      // Check if HTML is base64-encoded and decode if necessary
+      let decodedHtml = html
+      if (isBase64(html)) {
+        decodedHtml = decodeBase64Html(html)
+        // If decoding didn't produce HTML (failed or wasn't actually base64), use original
+        if (decodedHtml === html && !/<[^>]+>/.test(html)) {
+          // Original wasn't HTML, might be plain text - use as is
+          decodedHtml = html
+        }
+      }
+
+      setHtmlContent(decodedHtml)
       setIsLoading(false)
     } catch (err) {
       setError(`Failed to process HTML content: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -81,8 +124,9 @@ const CanvasWidgetComponent: FC<CanvasWidgetProps> = ({
 
   // Extract dimensions from widgetsOptions or source
   const getDimensions = () => {
-    const defaultHeight = widgetsOptions?.canvas?.height || '400px'
-    const defaultWidth = widgetsOptions?.canvas?.width || '100%'
+    const canvasOptions = widgetsOptions?.canvas as { height?: string; width?: string } | undefined
+    const defaultHeight = canvasOptions?.height || '400px'
+    const defaultWidth = canvasOptions?.width || '100%'
 
     if (typeof source === 'object' && source !== null) {
       return {
