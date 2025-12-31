@@ -10,9 +10,7 @@ export const formatWidgetDisplayName = (key: string): string => {
  * Pre-processes AI response string to encode HTML content in canvas widget sources to base64.
  * This prevents JSON parsing failures from special characters in HTML.
  * 
- * Strategy: Find canvas widget entries and encode HTML content in their source fields.
- * Uses a two-pass approach: first try to parse as JSON and process, if that fails,
- * use regex to find and encode HTML content.
+ * Always encodes HTML content in canvas widget sources to base64, regardless of current encoding state.
  * 
  * @param responseString - The raw AI response string that may contain JSON with canvas widget HTML
  * @returns The response string with HTML content in canvas widget sources encoded to base64
@@ -33,39 +31,25 @@ export function preprocessCanvasWidgetHtml(responseString: string): string {
           
           // Check if this is a canvas widget
           if (objRecord.type === 'canvas') {
-            // This is a canvas widget, check the source
+            // This is a canvas widget, always encode the source HTML to base64
             if (objRecord.source) {
               if (typeof objRecord.source === 'string') {
-                // Direct string source with HTML
-                if (/<[^>]+>/.test(objRecord.source)) {
-                  // Check if already base64
-                  if (!objRecord.source.match(/^[A-Za-z0-9+/=]+$/) || objRecord.source.includes('<')) {
-                    try {
-                      result.source = btoa(unescape(encodeURIComponent(objRecord.source)))
-                    } catch {
-                      result.source = objRecord.source
-                    }
-                  } else {
-                    result.source = objRecord.source
-                  }
-                } else {
+                // Direct string source - always encode to base64
+                try {
+                  result.source = btoa(unescape(encodeURIComponent(objRecord.source)))
+                } catch {
                   result.source = objRecord.source
                 }
               } else if (typeof objRecord.source === 'object' && objRecord.source !== null) {
                 // Object format: {html: "..."}
                 const sourceObj = objRecord.source as { html?: string; [key: string]: unknown }
-                if (sourceObj.html && typeof sourceObj.html === 'string' && /<[^>]+>/.test(sourceObj.html)) {
-                  // Check if already base64
-                  if (!sourceObj.html.match(/^[A-Za-z0-9+/=]+$/) || sourceObj.html.includes('<')) {
-                    try {
-                      result.source = {
-                        ...sourceObj,
-                        html: btoa(unescape(encodeURIComponent(sourceObj.html)))
-                      }
-                    } catch {
-                      result.source = objRecord.source
+                if (sourceObj.html && typeof sourceObj.html === 'string') {
+                  try {
+                    result.source = {
+                      ...sourceObj,
+                      html: btoa(unescape(encodeURIComponent(sourceObj.html)))
                     }
-                  } else {
+                  } catch {
                     result.source = objRecord.source
                   }
                 } else {
@@ -111,44 +95,38 @@ export function preprocessCanvasWidgetHtml(responseString: string): string {
     while ((match = canvasPattern.exec(responseString)) !== null) {
       const widgetContent = match[0]
       
-      // Look for source field with HTML content
-      const sourceStringMatch = widgetContent.match(/"source"\s*:\s*"([^"]*(?:<[^>]+>[^"]*)+[^"]*)"/i)
+      // Look for source field with any content (always encode to base64)
+      const sourceStringMatch = widgetContent.match(/"source"\s*:\s*"([^"]*)"/i)
       if (sourceStringMatch) {
-        const htmlContent = sourceStringMatch[1]
-        if (htmlContent && /<[^>]+>/.test(htmlContent)) {
-          // Check if already base64
-          if (!htmlContent.match(/^[A-Za-z0-9+/=]+$/) || htmlContent.includes('<')) {
-            try {
-              const base64Html = btoa(unescape(encodeURIComponent(htmlContent)))
-              const replacement = widgetContent.replace(
-                /"source"\s*:\s*"[^"]*"/i,
-                `"source":"${base64Html}"`
-              )
-              processedString = processedString.replace(widgetContent, replacement)
-            } catch {
-              // Encoding failed, skip this one
-            }
+        const sourceContent = sourceStringMatch[1]
+        if (sourceContent) {
+          try {
+            const base64Html = btoa(unescape(encodeURIComponent(sourceContent)))
+            const replacement = widgetContent.replace(
+              /"source"\s*:\s*"[^"]*"/i,
+              `"source":"${base64Html}"`
+            )
+            processedString = processedString.replace(widgetContent, replacement)
+          } catch {
+            // Encoding failed, skip this one
           }
         }
       }
       
       // Also check for object format: "source":{"html":"<html>"}
-      const sourceObjectMatch = widgetContent.match(/"source"\s*:\s*\{[^}]*"html"\s*:\s*"([^"]*(?:<[^>]+>[^"]*)+[^"]*)"/i)
+      const sourceObjectMatch = widgetContent.match(/"source"\s*:\s*\{[^}]*"html"\s*:\s*"([^"]*)"/i)
       if (sourceObjectMatch) {
         const htmlContent = sourceObjectMatch[1]
-        if (htmlContent && /<[^>]+>/.test(htmlContent)) {
-          // Check if already base64
-          if (!htmlContent.match(/^[A-Za-z0-9+/=]+$/) || htmlContent.includes('<')) {
-            try {
-              const base64Html = btoa(unescape(encodeURIComponent(htmlContent)))
-              const replacement = widgetContent.replace(
-                /"html"\s*:\s*"[^"]*"/i,
-                `"html":"${base64Html}"`
-              )
-              processedString = processedString.replace(widgetContent, replacement)
-            } catch {
-              // Encoding failed, skip this one
-            }
+        if (htmlContent) {
+          try {
+            const base64Html = btoa(unescape(encodeURIComponent(htmlContent)))
+            const replacement = widgetContent.replace(
+              /"html"\s*:\s*"[^"]*"/i,
+              `"html":"${base64Html}"`
+            )
+            processedString = processedString.replace(widgetContent, replacement)
+          } catch {
+            // Encoding failed, skip this one
           }
         }
       }
