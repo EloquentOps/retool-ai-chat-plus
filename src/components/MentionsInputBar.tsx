@@ -12,6 +12,7 @@ interface MentionsInputBarProps {
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
   placeholder?: string
+  lockUI?: boolean
 }
 
 interface WidgetData {
@@ -29,7 +30,8 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
   isCentered = false,
   widgetsOptions,
   tools,
-  placeholder = "Type your message... (use @ to insert widgets)"
+  placeholder = "Type your message... (use @ to insert widgets)",
+  lockUI = false
 }) => {
   const [inputValue, setInputValue] = useState('')
 
@@ -87,8 +89,8 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submitted, isLoading:', isLoading)
-    if (inputValue.trim() && !isLoading) {
+    console.log('Form submitted, isLoading:', isLoading, 'lockUI:', lockUI)
+    if (inputValue.trim() && !isLoading && !lockUI) {
       console.log('Submitting query:', inputValue.trim())
       onSubmitQuery(inputValue.trim())
       setInputValue('')
@@ -138,7 +140,7 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
       }}>
         {/* Mentions Input */}
         {/* overflow: hidden */}
-        <div style={{ flex: 1, position: 'relative'}}>
+        <div style={{ flex: 1, position: 'relative', opacity: lockUI ? 0.6 : 1, pointerEvents: lockUI ? 'none' : 'auto' }}>
             <MentionsInput
               value={inputValue}
               onChange={handleChange}
@@ -146,6 +148,7 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
               placeholder={placeholder}
               singleLine={true}
               forceSuggestionsAboveCursor={!isCentered}
+              disabled={lockUI}
             style={{
               control: {
                 backgroundColor: '#ffffff',
@@ -270,23 +273,24 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
         <button
           type={isLoading ? 'button' : 'submit'}
           onClick={isLoading ? handleStop : undefined}
-          disabled={!isLoading && !inputValue.trim()}
+          disabled={lockUI || (!isLoading && !inputValue.trim())}
           style={{
             padding: '12px',
-            backgroundColor: isLoading ? '#dc3545' : (inputValue.trim() && !isLoading) ? '#3170F9' : '#ccc',
+            backgroundColor: lockUI ? '#ccc' : (isLoading ? '#dc3545' : (inputValue.trim() && !isLoading) ? '#3170F9' : '#ccc'),
             color: '#ffffff',
             border: 'none',
             borderRadius: '24px',
             fontSize: '14px',
             fontWeight: '500',
-            cursor: isLoading || (inputValue.trim() && !isLoading) ? 'pointer' : 'not-allowed',
+            cursor: lockUI ? 'not-allowed' : (isLoading || (inputValue.trim() && !isLoading) ? 'pointer' : 'not-allowed'),
             transition: 'background-color 0.2s',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             minWidth: '48px',
-            height: '48px'
+            height: '48px',
+            opacity: lockUI ? 0.6 : 1
           }}
         >
           {isLoading ? (

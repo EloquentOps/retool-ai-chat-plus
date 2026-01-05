@@ -15,6 +15,7 @@ interface RightPanelProps {
   onTabClose: (historyIndex: number) => void
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  lockUI?: boolean
 }
 
 export const RightPanel: FC<RightPanelProps> = ({
@@ -23,7 +24,8 @@ export const RightPanel: FC<RightPanelProps> = ({
   onTabChange,
   onTabClose,
   onWidgetCallback,
-  widgetsOptions
+  widgetsOptions,
+  lockUI = false
 }) => {
   if (pinnedWidgets.length === 0) {
     return null
@@ -95,13 +97,16 @@ export const RightPanel: FC<RightPanelProps> = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onTabClose(pinnedWidget.historyIndex)
+                    if (!lockUI) {
+                      onTabClose(pinnedWidget.historyIndex)
+                    }
                   }}
+                  disabled={lockUI}
                   style={{
                     background: 'transparent',
                     border: 'none',
                     color: isActive ? '#007bff' : '#9ca3af',
-                    cursor: 'pointer',
+                    cursor: lockUI ? 'not-allowed' : 'pointer',
                     padding: '2px',
                     borderRadius: '2px',
                     display: 'flex',
@@ -110,17 +115,22 @@ export const RightPanel: FC<RightPanelProps> = ({
                     width: '16px',
                     height: '16px',
                     transition: 'all 0.15s ease-in-out',
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    opacity: lockUI ? 0.5 : 1
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = isActive ? '#e0f2fe' : '#e5e7eb'
-                    e.currentTarget.style.color = '#dc2626'
+                    if (!lockUI) {
+                      e.currentTarget.style.backgroundColor = isActive ? '#e0f2fe' : '#e5e7eb'
+                      e.currentTarget.style.color = '#dc2626'
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                    e.currentTarget.style.color = isActive ? '#007bff' : '#9ca3af'
+                    if (!lockUI) {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                      e.currentTarget.style.color = isActive ? '#007bff' : '#9ca3af'
+                    }
                   }}
-                  title="Close tab"
+                  title={lockUI ? "Locked" : "Close tab"}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -141,7 +151,7 @@ export const RightPanel: FC<RightPanelProps> = ({
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, -1)}
+        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, -1, lockUI)}
       </div>
     </div>
   )

@@ -34,7 +34,7 @@ interface ChatContainerProps {
   onRetry?: () => void
   onDismissError?: () => void
   placeholder?: string
-  stylePreferences?: Record<string, unknown>
+  componentPreferences?: Record<string, unknown>
   onHistoryUpdate?: (updatedHistory: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => void
 }
 
@@ -60,7 +60,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onRetry,
   onDismissError,
   placeholder,
-  stylePreferences = {},
+  componentPreferences = {},
   onHistoryUpdate
 }) => {
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
@@ -70,9 +70,10 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   const [pinnedWidgets, setPinnedWidgets] = useState<PinnedWidget[]>([])
   const [activePinnedTab, setActivePinnedTab] = useState<number>(0)
 
-  // Determine wrapper border visibility based on stylePreferences
-  const wrapperBorder = stylePreferences.wrapperBorder
+  // Extract preferences from componentPreferences
+  const wrapperBorder = componentPreferences.wrapperBorder
   const isBorderHidden = wrapperBorder === 'hidden'
+  const lockUI = componentPreferences.lockUI === true // Default to false if not set
 
   // Function to update history with pinned state changes
   const updateHistoryWithPinnedState = (historyIndex: number, pinned: boolean) => {
@@ -246,6 +247,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               widgetsOptions={widgetsOptions}
               tools={tools}
               placeholder={placeholder}
+              lockUI={lockUI}
             />
           </div>
 
@@ -260,6 +262,9 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             }}>
               {promptChips.map((chip, index) => {
                 const handleChipClick = () => {
+                  if (lockUI) {
+                    return // Don't execute if UI is locked
+                  }
                   if (chip.payload !== undefined) {
                     // Chip has payload - set chipPayload and trigger chipCallback
                     if (onSetChipPayload) {
@@ -278,6 +283,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                   <button
                     key={index}
                     onClick={handleChipClick}
+                    disabled={lockUI}
                     style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -288,17 +294,22 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                     borderRadius: '24px',
                     fontSize: '14px',
                     color: '#374151',
-                    cursor: 'pointer',
+                    cursor: lockUI ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
-                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    opacity: lockUI ? 0.6 : 1
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f9fafb'
-                    e.currentTarget.style.borderColor = '#d1d5db'
+                    if (!lockUI) {
+                      e.currentTarget.style.backgroundColor = '#f9fafb'
+                      e.currentTarget.style.borderColor = '#d1d5db'
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#ffffff'
-                    e.currentTarget.style.borderColor = '#e5e7eb'
+                    if (!lockUI) {
+                      e.currentTarget.style.backgroundColor = '#ffffff'
+                      e.currentTarget.style.borderColor = '#e5e7eb'
+                    }
                   }}
                 >
                     <span>{chip.icon}</span>
@@ -353,8 +364,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 height: '100%',
                 overflow: 'hidden'
               }}>
-                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} />
-                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} />
+                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} />
+                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
               </div>
               
               {/* Right panel - Pinned widgets with tabs */}
@@ -365,13 +376,14 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 onTabClose={handleTabClose}
                 onWidgetCallback={handleWidgetCallback}
                 widgetsOptions={widgetsOptions}
+                lockUI={lockUI}
               />
             </div>
           ) : (
             // Full width layout when no widget is pinned
             <>
-              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} />
-              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} />
+              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} />
+              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
             </>
           )}
         </>

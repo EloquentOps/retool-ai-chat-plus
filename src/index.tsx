@@ -47,9 +47,9 @@ export const AiChatPlus: FC = () => {
     initialValue: 'Type your message... (use @ to insert widgets)'
   })
 
-  // Add state for style preferences
-  const [stylePreferences, _setStylePreferences] = Retool.useStateObject({
-    name: 'stylePreferences',
+  // Add state for component preferences (stylistic and behavioral)
+  const [componentPreferences, _setComponentPreferences] = Retool.useStateObject({
+    name: 'componentPreferences',
     initialValue: {}
   })
 
@@ -1383,7 +1383,7 @@ Otherwise, the type should be always "text".
           onRetry={retryPolling}
           onDismissError={() => setError(null)}
           placeholder={placeholder}
-          stylePreferences={stylePreferences as Record<string, unknown>}
+          componentPreferences={componentPreferences as Record<string, unknown>}
           onHistoryUpdate={(updatedHistory) => {
             // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

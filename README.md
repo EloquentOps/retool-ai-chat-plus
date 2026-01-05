@@ -137,16 +137,40 @@ There's a plan to allow the chat submit to interact with the visible pinned widg
 
 
 
-### Style Preferences
+### Component Preferences
 
-The `stylePreferences` object is to customize the style and look&feel of the component.
-Available properties are:
+The `componentPreferences` object allows you to customize both stylistic and behavioral aspects of the component.
 
-```
+#### Available Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `wrapperBorder` | string | `"visible"` | Controls the visibility of the component's wrapper border. Set to `"hidden"` to hide the border completely. |
+| `lockUI` | boolean | `false` | When set to `true`, disables all user interaction controls in the component. This includes: the submit bar (input field and send button), widget footer buttons (remove, pin, try again), pinned widget close buttons, and prompt chips. Useful for read-only modes or when you want to prevent user interactions programmatically. |
+
+#### Example Usage
+
+```javascript
+// Hide the border
 {
-  "wrapperBorder": "visible" // default, you can set "hidden" to hide the border
+  "wrapperBorder": "hidden"
+}
+
+// Lock the UI to prevent all interactions
+{
+  "lockUI": true
+}
+
+// Combine multiple preferences
+{
+  "wrapperBorder": "hidden",
+  "lockUI": true
 }
 ```
+
+#### Behavioral Notes
+
+- **`lockUI`**: When enabled, the component enters a read-only state. Users cannot submit messages, interact with widgets, or close pinned widgets. Visual indicators (reduced opacity, disabled cursor) are shown to indicate the locked state. This is useful for scenarios where you want to display chat history without allowing modifications, or when you need to temporarily disable interactions during certain application states.
 
 
 
@@ -160,7 +184,7 @@ Available properties are:
 | `widgetsOptions`    | object | Widget configuration options (keys determine enabled widgets, empty = only text widget) to enable the widgets and providing additional configuration per-widget. |
 | `promptChips`       | array  | Suggested action chips in Welcome view. Each chip object can be either: `{label:'', icon:'', question:''}` to submit a pre-configured question, or `{label:'', icon:'', payload:{}}` to trigger `chipCallback` query and access payload via `chipPayload` property |
 | `queryResponse`     | object | AI agent response data, **required**                                       |
-| `stylePreferences`  | object | Options for style preferences                                |
+| `componentPreferences`  | object | Options for component preferences (stylistic and behavioral). See Component Preferences section for details. |
 | `submitWithPayload` | object | Programmatic submit with payload                             |
 
 

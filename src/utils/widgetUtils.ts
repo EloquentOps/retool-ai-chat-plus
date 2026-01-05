@@ -37,7 +37,8 @@ export function preprocessCanvasWidgetHtml(responseString: string): string {
                 // Direct string source - always encode to base64
                 try {
                   result.source = btoa(unescape(encodeURIComponent(objRecord.source)))
-                } catch {
+                } catch (error) {
+                  console.warn('Failed to encode canvas widget source to base64:', error)
                   result.source = objRecord.source
                 }
               } else if (typeof objRecord.source === 'object' && objRecord.source !== null) {
@@ -49,7 +50,8 @@ export function preprocessCanvasWidgetHtml(responseString: string): string {
                       ...sourceObj,
                       html: btoa(unescape(encodeURIComponent(sourceObj.html)))
                     }
-                  } catch {
+                  } catch (error) {
+                    console.warn('Failed to encode canvas widget html to base64:', error)
                     result.source = objRecord.source
                   }
                 } else {
@@ -78,58 +80,125 @@ export function preprocessCanvasWidgetHtml(responseString: string): string {
       
       const processed = encodeCanvasHtml(parsed)
       return JSON.stringify(processed)
-    } catch {
+    } catch (parseError) {
       // If JSON parsing fails, fall back to regex-based approach
       // This handles malformed JSON that we're trying to fix
+      console.warn('JSON parsing failed, using regex fallback:', parseError)
     }
     
     // Fallback: Use regex to find and encode HTML in canvas widget sources
-    // This is less reliable but handles cases where JSON is malformed
+    // This handles cases where JSON is malformed and can't be parsed
+    // Note: This is a fallback - ideally JSON parsing should succeed
     let processedString = responseString
     
-    // Find "type":"canvas" entries and encode their source HTML
-    // Pattern: "type":"canvas"... "source":"<html>"
-    const canvasPattern = /"type"\s*:\s*"canvas"([\s\S]*?)(?="type"|"widgets"|$)/gi
+    // Find canvas widgets and their source fields
+    // Look for "type":"canvas" followed by "source":"..." 
+    // We need to match the entire source value including escaped quotes
+    const canvasWidgetWithSource = /"type"\s*:\s*"canvas"[\s\S]*?"source"\s*:\s*"((?:[^"\\]|\\.)*)"/gi
     
+    const replacements: Array<{ start: number; end: number; replacement: string }> = []
     let match
-    while ((match = canvasPattern.exec(responseString)) !== null) {
-      const widgetContent = match[0]
+    
+    canvasWidgetWithSource.lastIndex = 0
+    
+    while ((match = canvasWidgetWithSource.exec(responseString)) !== null) {
+      const fullMatch = match[0]
+      const sourceValue = match[1] // The content inside the quotes (with escaped sequences)
+      const matchStart = match.index
+      const matchEnd = matchStart + fullMatch.length
       
-      // Look for source field with any content (always encode to base64)
-      const sourceStringMatch = widgetContent.match(/"source"\s*:\s*"([^"]*)"/i)
-      if (sourceStringMatch) {
-        const sourceContent = sourceStringMatch[1]
-        if (sourceContent) {
-          try {
-            const base64Html = btoa(unescape(encodeURIComponent(sourceContent)))
-            const replacement = widgetContent.replace(
-              /"source"\s*:\s*"[^"]*"/i,
-              `"source":"${base64Html}"`
-            )
-            processedString = processedString.replace(widgetContent, replacement)
-          } catch {
-            // Encoding failed, skip this one
-          }
+      if (sourceValue) {
+        try {
+          // Unescape JSON string (convert \" to ", \\ to \, \n to newline, etc.)
+          const unescapedContent = sourceValue.replace(/\\(.)/g, (_, char) => {
+            switch (char) {
+              case 'n': return '\n'
+              case 'r': return '\r'
+              case 't': return '\t'
+              case '\\': return '\\'
+              case '"': return '"'
+              case '/': return '/'
+              case 'b': return '\b'
+              case 'f': return '\f'
+              case 'u': return '' // Handle \uXXXX later if needed
+              default: return char
+            }
+          })
+          
+          // Encode to base64
+          const base64Html = btoa(unescape(encodeURIComponent(unescapedContent)))
+          
+          // Create replacement: replace the source value with base64
+          const beforeSource = fullMatch.substring(0, fullMatch.indexOf('"source"') + '"source":'.length)
+          const afterSource = fullMatch.substring(fullMatch.lastIndexOf('"'))
+          const replacement = `${beforeSource}"${base64Html}"${afterSource}`
+          
+          replacements.push({
+            start: matchStart,
+            end: matchEnd,
+            replacement: replacement
+          })
+        } catch (error) {
+          // Encoding failed, skip this one
+          console.warn('Failed to encode canvas widget source in regex fallback:', error)
         }
       }
+    }
+    
+    // Also handle object format: "source":{"html":"..."}
+    const canvasWidgetWithHtml = /"type"\s*:\s*"canvas"[\s\S]*?"source"\s*:\s*\{[^}]*"html"\s*:\s*"((?:[^"\\]|\\.)*)"/gi
+    
+    canvasWidgetWithHtml.lastIndex = 0
+    
+    while ((match = canvasWidgetWithHtml.exec(responseString)) !== null) {
+      const fullMatch = match[0]
+      const htmlValue = match[1]
+      const matchStart = match.index
+      const matchEnd = matchStart + fullMatch.length
       
-      // Also check for object format: "source":{"html":"<html>"}
-      const sourceObjectMatch = widgetContent.match(/"source"\s*:\s*\{[^}]*"html"\s*:\s*"([^"]*)"/i)
-      if (sourceObjectMatch) {
-        const htmlContent = sourceObjectMatch[1]
-        if (htmlContent) {
-          try {
-            const base64Html = btoa(unescape(encodeURIComponent(htmlContent)))
-            const replacement = widgetContent.replace(
-              /"html"\s*:\s*"[^"]*"/i,
-              `"html":"${base64Html}"`
-            )
-            processedString = processedString.replace(widgetContent, replacement)
-          } catch {
-            // Encoding failed, skip this one
+      if (htmlValue) {
+        try {
+          // Unescape JSON string
+          const unescapedContent = htmlValue.replace(/\\(.)/g, (_, char) => {
+            switch (char) {
+              case 'n': return '\n'
+              case 'r': return '\r'
+              case 't': return '\t'
+              case '\\': return '\\'
+              case '"': return '"'
+              case '/': return '/'
+              case 'b': return '\b'
+              case 'f': return '\f'
+              default: return char
+            }
+          })
+          
+          // Encode to base64
+          const base64Html = btoa(unescape(encodeURIComponent(unescapedContent)))
+          
+          // Find the "html" field and replace its value
+          const htmlFieldMatch = fullMatch.match(/"html"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+          if (htmlFieldMatch) {
+            const beforeHtml = fullMatch.substring(0, htmlFieldMatch.index!)
+            const afterHtml = fullMatch.substring(htmlFieldMatch.index! + htmlFieldMatch[0].length)
+            const replacement = `${beforeHtml}"html":"${base64Html}"${afterHtml}`
+            
+            replacements.push({
+              start: matchStart,
+              end: matchEnd,
+              replacement: replacement
+            })
           }
+        } catch (error) {
+          console.warn('Failed to encode canvas widget html in regex fallback:', error)
         }
       }
+    }
+    
+    // Apply replacements in reverse order to preserve indices
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const { start, end, replacement } = replacements[i]
+      processedString = processedString.substring(0, start) + replacement + processedString.substring(end)
     }
     
     return processedString

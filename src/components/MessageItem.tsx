@@ -23,13 +23,15 @@ interface MessageItemProps {
   messageIndex: number
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
+  lockUI?: boolean
 }
 
 export const MessageItem: FC<MessageItemProps> = ({
   message,
   messageIndex,
   onWidgetCallback,
-  widgetsOptions
+  widgetsOptions,
+  lockUI = false
 }) => {
   const isUser = message.role === 'user'
 
@@ -63,7 +65,7 @@ export const MessageItem: FC<MessageItemProps> = ({
       ) : (
         typeof message.content === 'string' 
           ? <TextWidget source={message.content} />
-          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, messageIndex)
+          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, messageIndex, lockUI)
       )}
     </div>
   )

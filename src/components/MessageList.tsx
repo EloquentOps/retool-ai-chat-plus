@@ -16,13 +16,15 @@ interface MessageListProps {
   isLoading: boolean
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, any>
+  lockUI?: boolean
 }
 
 export const MessageList: FC<MessageListProps> = ({
   messages,
   isLoading,
   onWidgetCallback,
-  widgetsOptions
+  widgetsOptions,
+  lockUI = false
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -117,6 +119,7 @@ export const MessageList: FC<MessageListProps> = ({
                         messageIndex={originalIndex}
                         onWidgetCallback={onWidgetCallback}
                         widgetsOptions={widgetsOptions}
+                        lockUI={lockUI}
                       />
                     )
                   })}
@@ -133,6 +136,7 @@ export const MessageList: FC<MessageListProps> = ({
                   messageIndex={originalIndex}
                   onWidgetCallback={onWidgetCallback}
                   widgetsOptions={widgetsOptions}
+                  lockUI={lockUI}
                 />
               )
             }
