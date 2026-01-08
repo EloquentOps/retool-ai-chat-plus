@@ -74,6 +74,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   const wrapperBorder = componentPreferences.wrapperBorder
   const isBorderHidden = wrapperBorder === 'hidden'
   const lockUI = componentPreferences.lockUI === true // Default to false if not set
+  const hideWidgetFooter = componentPreferences.hideWidgetFooter === true // Default to false if not set
 
   // Function to update history with pinned state changes
   const updateHistoryWithPinnedState = (historyIndex: number, pinned: boolean) => {
@@ -364,7 +365,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 height: '100%',
                 overflow: 'hidden'
               }}>
-                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} />
+                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
                 <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
               </div>
               
@@ -377,12 +378,13 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 onWidgetCallback={handleWidgetCallback}
                 widgetsOptions={widgetsOptions}
                 lockUI={lockUI}
+                hideWidgetFooter={hideWidgetFooter}
               />
             </div>
           ) : (
             // Full width layout when no widget is pinned
             <>
-              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} />
+              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
               <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
             </>
           )}

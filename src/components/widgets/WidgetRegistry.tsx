@@ -44,6 +44,7 @@ interface WidgetWrapperProps {
   widgetType: string
   widgetContent?: { type: string; source?: string; [key: string]: unknown }
   lockUI?: boolean
+  hideWidgetFooter?: boolean
 }
 
 const WidgetWrapper: FC<WidgetWrapperProps> = ({
@@ -52,7 +53,8 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
   onWidgetCallback,
   widgetType,
   widgetContent,
-  lockUI = false
+  lockUI = false,
+  hideWidgetFooter = false
 }) => {
   const [isHovered, setIsHovered] = useState(false)
 
@@ -111,7 +113,7 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       {children || null}
-      {!lockUI && (
+      {!lockUI && !hideWidgetFooter && (
         <div
           style={{
             position: 'absolute',
@@ -408,7 +410,8 @@ export const renderWidget = (
   onWidgetCallback?: (payload: Record<string, unknown>) => void,
   widgetsOptions?: Record<string, unknown>,
   historyIndex?: number,
-  lockUI?: boolean
+  lockUI?: boolean,
+  hideWidgetFooter?: boolean
 ) => {
   const widgetConfig = WIDGET_REGISTRY[content.type]
   
@@ -438,7 +441,8 @@ export const renderWidget = (
       onWidgetCallback,
       widgetType: 'text',
       widgetContent: fallbackWidgetContent,
-      lockUI: lockUI
+      lockUI: lockUI,
+      hideWidgetFooter: hideWidgetFooter
     }, fallbackWidgetElement)
   }
   
@@ -486,7 +490,8 @@ export const renderWidget = (
     onWidgetCallback,
     widgetType: type,
     widgetContent: widgetContentForPin,
-    lockUI: lockUI
+    lockUI: lockUI,
+    hideWidgetFooter: hideWidgetFooter
   }, widgetElement)
 }
 

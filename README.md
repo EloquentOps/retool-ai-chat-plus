@@ -147,6 +147,7 @@ The `componentPreferences` object allows you to customize both stylistic and beh
 |----------|------|---------|-------------|
 | `wrapperBorder` | string | `"visible"` | Controls the visibility of the component's wrapper border. Set to `"hidden"` to hide the border completely. |
 | `lockUI` | boolean | `false` | When set to `true`, disables all user interaction controls in the component. This includes: the submit bar (input field and send button), widget footer buttons (remove, pin, try again), pinned widget close buttons, and prompt chips. Useful for read-only modes or when you want to prevent user interactions programmatically. |
+| `hideWidgetFooter` | boolean | `false` | When set to `true`, hides the widget footer (containing pin, try again, and delete buttons) for all widgets. This option works independently of `lockUI` - you can hide the footer even when the UI is not locked. |
 
 #### Example Usage
 
@@ -161,16 +162,12 @@ The `componentPreferences` object allows you to customize both stylistic and beh
   "lockUI": true
 }
 
-// Combine multiple preferences
+// Hide widget footer
 {
-  "wrapperBorder": "hidden",
-  "lockUI": true
+  "hideWidgetFooter": true
 }
+
 ```
-
-#### Behavioral Notes
-
-- **`lockUI`**: When enabled, the component enters a read-only state. Users cannot submit messages, interact with widgets, or close pinned widgets. Visual indicators (reduced opacity, disabled cursor) are shown to indicate the locked state. This is useful for scenarios where you want to display chat history without allowing modifications, or when you need to temporarily disable interactions during certain application states.
 
 
 

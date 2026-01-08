@@ -17,6 +17,7 @@ interface MessageListProps {
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, any>
   lockUI?: boolean
+  hideWidgetFooter?: boolean
 }
 
 export const MessageList: FC<MessageListProps> = ({
@@ -24,7 +25,8 @@ export const MessageList: FC<MessageListProps> = ({
   isLoading,
   onWidgetCallback,
   widgetsOptions,
-  lockUI = false
+  lockUI = false,
+  hideWidgetFooter = false
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -120,6 +122,7 @@ export const MessageList: FC<MessageListProps> = ({
                         onWidgetCallback={onWidgetCallback}
                         widgetsOptions={widgetsOptions}
                         lockUI={lockUI}
+                        hideWidgetFooter={hideWidgetFooter}
                       />
                     )
                   })}
@@ -137,6 +140,7 @@ export const MessageList: FC<MessageListProps> = ({
                   onWidgetCallback={onWidgetCallback}
                   widgetsOptions={widgetsOptions}
                   lockUI={lockUI}
+                  hideWidgetFooter={hideWidgetFooter}
                 />
               )
             }

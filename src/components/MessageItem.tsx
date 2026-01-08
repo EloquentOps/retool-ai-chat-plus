@@ -24,6 +24,7 @@ interface MessageItemProps {
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   lockUI?: boolean
+  hideWidgetFooter?: boolean
 }
 
 export const MessageItem: FC<MessageItemProps> = ({
@@ -31,7 +32,8 @@ export const MessageItem: FC<MessageItemProps> = ({
   messageIndex,
   onWidgetCallback,
   widgetsOptions,
-  lockUI = false
+  lockUI = false,
+  hideWidgetFooter = false
 }) => {
   const isUser = message.role === 'user'
 
@@ -65,7 +67,7 @@ export const MessageItem: FC<MessageItemProps> = ({
       ) : (
         typeof message.content === 'string' 
           ? <TextWidget source={message.content} />
-          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, messageIndex, lockUI)
+          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, messageIndex, lockUI, hideWidgetFooter)
       )}
     </div>
   )

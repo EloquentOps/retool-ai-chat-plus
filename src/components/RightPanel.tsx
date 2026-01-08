@@ -16,6 +16,7 @@ interface RightPanelProps {
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   lockUI?: boolean
+  hideWidgetFooter?: boolean
 }
 
 export const RightPanel: FC<RightPanelProps> = ({
@@ -25,7 +26,8 @@ export const RightPanel: FC<RightPanelProps> = ({
   onTabClose,
   onWidgetCallback,
   widgetsOptions,
-  lockUI = false
+  lockUI = false,
+  hideWidgetFooter = false
 }) => {
   if (pinnedWidgets.length === 0) {
     return null
@@ -151,7 +153,7 @@ export const RightPanel: FC<RightPanelProps> = ({
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, -1, lockUI)}
+        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, -1, lockUI, hideWidgetFooter)}
       </div>
     </div>
   )
