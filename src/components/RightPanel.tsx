@@ -27,7 +27,7 @@ export const RightPanel: FC<RightPanelProps> = ({
   onWidgetCallback,
   widgetsOptions,
   lockUI = false,
-  hideWidgetFooter = false
+  hideWidgetFooter: _hideWidgetFooter = false
 }) => {
   if (pinnedWidgets.length === 0) {
     return null
@@ -153,7 +153,7 @@ export const RightPanel: FC<RightPanelProps> = ({
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, -1, lockUI, hideWidgetFooter)}
+        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, -1, lockUI, true)}
       </div>
     </div>
   )
