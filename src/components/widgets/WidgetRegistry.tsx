@@ -412,7 +412,7 @@ export const renderWidget = (
   historyIndex?: number,
   lockUI?: boolean,
   hideWidgetFooter?: boolean
-) => {
+, promotedWidgets?: Record<string, unknown>) => {
   const widgetConfig = WIDGET_REGISTRY[content.type]
   
   if (!widgetConfig || !widgetConfig.enabled) {
@@ -424,7 +424,8 @@ export const renderWidget = (
       source: content.source || JSON.stringify(content),
       onWidgetCallback,
       widgetsOptions,
-      historyIndex
+      historyIndex,
+      promotedWidgets
     })
     
     // Prepare widget content object for pinning (preserving pinned property)
@@ -478,7 +479,8 @@ export const renderWidget = (
     source: widgetSource,
     onWidgetCallback,
     widgetsOptions,
-    historyIndex
+    historyIndex,
+    promotedWidgets
   }
   
   const widgetElement = React.createElement(widgetConfig.component, props)

@@ -58,8 +58,7 @@ export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading, onStop, 
         gap: '8px'
       }}>
         {/* Main input */}
-        <input
-          type="text"
+        <textarea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
@@ -68,12 +67,21 @@ export const InputBar: FC<InputBarProps> = ({ onSubmitQuery, isLoading, onStop, 
             flex: 1,
             padding: '12px 16px',
             border: '1px solid #ddd',
-            borderRadius: '24px',
+            borderRadius: '16px',
             fontSize: '14px',
             outline: 'none',
             backgroundColor: '#ffffff',
-            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            resize: 'none',
+            minHeight: '36px',
+            maxHeight: '180px',
+            overflowY: 'auto',
+            lineHeight: '1.5',
+            overflowWrap: 'break-word',
+            wordBreak: 'break-word'
           }}
+          wrap="soft"
+          rows={1}
         />
 
         {/* Send button */}

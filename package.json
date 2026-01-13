@@ -58,9 +58,9 @@
     "typescript": "^5.3.3"
   },
   "retoolCustomComponentLibraryConfig": {
-    "name": "AiChatPlus",
-    "label": "Ai Chat Plus",
-    "description": "Ai Chat Plus with extensible widget plugin system",
+    "name": "AiChat",
+    "label": "Ai Chat",
+    "description": "AI chat 2",
     "entryPoint": "src/index.tsx",
     "outputPath": "dist"
   }

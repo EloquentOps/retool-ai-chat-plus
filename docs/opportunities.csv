@@ -1,0 +1,51 @@
+id,account_id,name,amount,stage,probability,close_date,created_at,last_contact_date,owner_email,variant_id
+01f907c2-a5c4-445f-aef2-72b487264acf,d0c6a125-8632-419a-88a5-d9b4f163cc0e,Initrode Q3 Expansion,46000,Proposal,68,,2025-10-29 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+02622e05-5394-4d38-92ac-6511e993f34a,f76ce8ea-a658-467b-938b-ec4023756740,Veidt Enterprises Q3 Expansion,35000,Negotiation,52,,2025-12-02 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+1271e617-b60c-490b-82d2-892eef9f9f18,b4a6f7e1-5f5f-436b-bc5b-d2048e11836a,Michael Scott Paper Global License,70000,Proposal,61,,2025-10-29 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+17ca8d6b-63d5-469d-a2b1-cc0787cd181f,f6fc406b-6075-47b0-a75a-5c87d51a7afa,Roxxon Pilot Project,64000,Negotiation,55,,2025-12-06 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,5
+2d882451-bf4c-43f5-865a-b6a1c4bbc3b7,391303f8-e2ab-46c5-b6c3-e90d0e449a64,Rekall Global License,57000,Negotiation,54,,2025-12-18 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+2efd2a84-b62e-4c3e-b01a-527d8f5c9dd7,460ec93c-3eca-4ae9-9317-d5450bec38c1,Recall Q3 Expansion,37000,Negotiation,64,,2025-11-28 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+2ffb0bae-c815-4d9f-a590-1cdc8a71328b,c4c38eb8-e3b9-433c-b3ba-7d49b5e399cc,Yoyodyne Pilot Project,18000,Closed Won,86,,2025-12-12 06:15:36.332303,2025-12-22 06:52:38.247374,rep@company.com,3
+324e1776-5543-4d7c-b803-18beb7e50b00,b5763d1b-7435-4351-add2-645528186406,Pied Piper Security Audit,80000,Proposal,12,,2025-11-12 06:15:36.332303,2025-12-22 06:52:38.247374,rep@company.com,1
+3862ae92-ad21-4017-95e0-f244414caa10,9af701a8-4292-4e28-bf5e-69f01bb2dfd0,Wernham Hogg Cloud Migration,85000,Negotiation,31,,2025-12-15 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,5
+3b092d7a-f137-46b7-99e0-0664b23c7ff4,eb36e3e9-c642-43b2-9b96-ac918260a43a,InGen Global License,90000,Closed Won,36,,2025-12-15 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,2
+3e588435-2baf-41b6-9455-239dd9f827e7,7cbcad38-4d0c-48a3-ae3d-066a09041796,Wayne Ent Pilot Project,50000,Negotiation,21,,2025-11-06 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,5
+416cf2ed-6d30-4e77-b3d8-7b4bc02a72f8,89b59c16-4d7c-4b81-8697-60ea1ca9639d,CyberDyne Global License,83000,Negotiation,37,,2025-11-13 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+4732b4a8-d5c9-47c6-b8b6-2a0d76e4cf7b,f2f54aa0-a8e0-45cd-a1ef-84b5d0d83670,IronForge Mfg Cloud Migration,88000,Negotiation,65,,2025-10-19 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+4926b680-bd9f-4ce1-ac95-a1be4899aeb2,8a2e6ced-3822-4b95-ba69-66b6562d1a89,Massive Dynamic Cloud Migration,49000,Negotiation,75,,2025-09-25 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+4a86db30-79d8-41aa-b83e-7bb470f46dc0,ad104387-76b2-4e59-94f7-231992b1b0e7,Strickland Propane Q3 Expansion,35000,Negotiation,15,,2025-11-25 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+50c35714-e520-4b28-ace0-2ca0ff52cfe0,b5a6126b-acff-4500-a8ef-34316f34aac7,Gekko & Co Pilot Project,39000,Negotiation,40,,2025-11-02 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+544d2074-c3ba-4c3f-bf14-e6ffb56b5249,220e896c-2744-43fa-972f-ed3042767fb3,Prince Family Paper Pilot Project,29000,Negotiation,2,,2025-12-10 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+576d518f-5803-4d35-a2d8-be0fe14920af,6ae85467-6a6b-4ddd-a0ab-44240ef41ba9,Slurm McKenzie Cloud Migration,26000,Discovery,72,,2025-10-28 06:15:36.332303,2025-12-21 06:52:38.247374,rep@company.com,3
+57f15f95-6d70-4881-bcf9-f4ab3fd41726,0097cb1c-a7ab-4e66-b1c9-39c1bd94895e,Soylent Corp Pilot Project,51000,Closed Won,31,,2025-10-12 06:15:36.332303,2025-12-22 06:52:38.247374,rep@company.com,3
+71a7c53f-e8ff-4846-ae56-4843fe159146,0357d08d-2a6e-4bba-8a7b-08a0eb11a136,Planet Express Security Audit,33000,Negotiation,1,,2025-10-13 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,5
+729043b1-7da9-498a-9251-932e369bbd73,d923df3e-b8ec-4d5f-be1a-e93c30d92c03,Virtucon Global License,78000,Negotiation,51,,2025-10-15 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,5
+72936e3b-5442-411d-975b-91da3355bed0,e8920df5-a89f-4bc0-a05b-fd8f23021f82,Penetrode Global License,19000,Closed Won,70,,2025-09-29 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+72f39e76-7fee-4738-9990-5dc469436b28,579d9862-b5ca-4725-8627-73992aec2351,Delos Inc Q3 Expansion,81000,Negotiation,76,,2025-12-17 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+764dac92-befc-462a-b12c-b03deb30b122,200b2839-8d0c-4776-8757-a9748e65fc6b,Buy n Large Security Audit,45000,Negotiation,12,,2025-11-09 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+78f4a8c9-2e22-4557-a901-f541fb0824fe,4dfcec8d-d9ec-4b21-b842-164d60513c72,Oscorp Security Audit,77000,Negotiation,97,,2025-11-20 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,5
+7aad1c9c-2702-4866-b5a6-2d6ee7ab9f8b,201f31bc-4b26-4aac-8915-a5be0e52ab3d,Acme Corp Security Audit,53000,Negotiation,71,,2025-09-28 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+7ad02d34-2389-4ef5-920e-192fe56dd6da,9c00514f-b772-4123-bfdb-8f3ffde456f2,Stark Industries Q3 Expansion,50000,Negotiation,76,,2025-11-25 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+7bff2372-0556-48ae-851f-9c8ec923580f,860a73e1-6252-4598-a4be-ef299e6f4850,Vandelay Industries Q3 Expansion,64000,Negotiation,45,,2025-10-27 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+882b0537-54ac-45aa-80ab-df66ad2da8d8,323030ea-1cbb-470b-9119-b96a529892bf,GreenLeaf Bio Pilot Project,57000,Negotiation,64,,2025-10-04 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+8b9bb443-7f8e-4f89-8b0c-0116d1cfc863,bdcf4ee4-fc18-42bb-8c34-2bf5490ab4ec,Starlight Logistics Cloud Migration,61000,Closed Won,41,,2025-11-30 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+9c3b7d4b-8a19-4481-a3fc-6a5dd814dfb7,92352b86-e4de-4bb2-ab37-55c2d3af1820,Aperture Science Global License,99000,Negotiation,10,,2025-11-01 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+ae23d4c0-c55a-4b77-8b96-45582e58d352,94397aeb-683a-453a-a4af-ff1fb468ad7f,Dharma Initiative Q3 Expansion,50000,Closed Won,63,,2025-09-25 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+af59040e-c398-4c14-823a-ffe8d141a991,dc85bd93-2011-451f-b483-c75651381e55,Dunder Mifflin Pilot Project,59000,Discovery,69,,2025-11-09 06:15:36.332303,2025-12-08 06:52:38.247374,rep@company.com,2
+b17909e4-1d00-405b-92bf-90976f8fc71b,34cabe3f-3c0b-4cf6-b032-cfb39edf7a34,Oceanic Airlines Global License,74000,Proposal,32,,2025-10-07 06:15:36.332303,2025-12-22 06:52:38.247374,rep@company.com,1
+b700d4ef-1c72-4ac8-8e53-d8a382cfc66a,968e4980-631a-4c91-a7f7-a2eb42dc6e63,Tyrell Corp Pilot Project,95000,Negotiation,66,,2025-11-03 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,5
+c17b148f-a05c-4524-a68c-347dee48efe7,5522ac7e-4fd8-493c-9726-280afd121f14,Kruger Industrial Security Audit,13000,Negotiation,29,,2025-12-01 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+d3044742-6584-4b16-864e-b64dd9e3bfe2,fce16d21-ad9d-41ae-9cae-b21add3f55c0,TechNova Security Audit,50000,Proposal,4,,2025-12-13 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+d51b1c6b-b76b-4c07-8bb2-082d4cc3f799,eafd3f4d-1ce4-4f95-b319-b61de69d9152,Globex Pilot Project,11000,Negotiation,2,,2025-11-19 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+da37df75-3b80-45c7-94fc-e22e043cd184,a8454e78-8c70-476d-bf22-253eacb5fa49,Quantum Systems Security Audit,59000,Closed Won,88,,2025-12-14 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,2
+dd0cd28d-18b2-49bd-9bd6-7d82c02a1d56,44a11165-6a72-45b1-a47a-262f32cca3e8,Sabre Q3 Expansion,86000,Closed Won,99,,2025-09-29 06:15:36.332303,2025-12-22 06:52:38.247374,rep@company.com,3
+e0daa28a-7e5e-4992-bee3-e351c039e79a,4eae10c1-c01b-4682-be51-8f3d00f21eda,Prestige Worldwide Global License,23000,Negotiation,60,,2025-11-16 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+e344c0cb-1e70-4a8b-9c52-0eb0d24021ab,fc8f6731-810e-4ad7-8cd2-77501caea4f8,Black Mesa Security Audit,43000,Negotiation,40,,2025-12-10 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+e69b0ad0-dbdf-498d-a764-07c3ce57722d,06404949-79cb-450d-97dc-cf977c79bbbf,Hooli Cloud Migration,45000,Negotiation,55,,2025-09-29 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+e9402fa8-d151-4dae-8a67-b5947a2cbf3d,af111945-58b7-43d9-a699-851395709f0e,MomCorp Security Audit,70000,Negotiation,25,,2025-11-23 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,1
+eafa23de-a457-4dd4-9ed8-b51c685d2ccd,0bb80fd4-6abb-46c3-9e93-fb9d25e940dc,BlueSky Capital Q3 Expansion,97000,Closed Lost,79,,2025-10-01 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,3
+ebcf5e20-7160-4170-81a1-3a7e0ebc84dc,987e38bc-73d3-4820-9ae7-390d2589551f,Umbrella Corp Security Audit,22000,Negotiation,58,,2025-10-02 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,2
+f690f017-ef36-4823-b473-8db36748f4b7,919d9931-37a7-4439-a438-ab21f919ce45,Duke & Duke Pilot Project,45000,Negotiation,18,,2025-10-29 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,2
+f71c6295-647c-4c56-b181-87d177d4ce6b,8ea41739-f76d-422a-9779-229522141e4f,Nakatomi Trading Cloud Migration,97000,Negotiation,7,,2025-10-20 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+f952159c-c53c-49bc-a1f9-c2377dc45d09,acea6cc1-7492-4e13-9c90-4bbc0b7ea89c,Entertainment 720 Global License,39000,Negotiation,55,,2025-12-07 06:15:36.332303,2025-12-23 06:52:38.247374,rep@company.com,4
+fc7a17c9-b359-44dc-a33a-b6ec1ffcf908,e50e0d65-b929-48be-b92f-7970a9efbb13,LexCorp Pilot Project,71000,Discovery,74,,2025-12-22 06:15:36.332303,2025-12-21 06:52:38.247374,rep@company.com,3

@@ -1,0 +1,51 @@
+id,name,industry,website,annual_revenue
+0097cb1c-a7ab-4e66-b1c9-39c1bd94895e,Soylent Corp,Food,soylent.com,45000000
+0357d08d-2a6e-4bba-8a7b-08a0eb11a136,Planet Express,Transportation,planetexpress.com,200000
+06404949-79cb-450d-97dc-cf977c79bbbf,Hooli,Software,hooli.xyz,10000000
+0bb80fd4-6abb-46c3-9e93-fb9d25e940dc,BlueSky Capital,Finance,bluesky.org,50000000
+200b2839-8d0c-4776-8757-a9748e65fc6b,Buy n Large,Retail,buynlarge.com,1000000000
+201f31bc-4b26-4aac-8915-a5be0e52ab3d,Acme Corp,Retail,acme.com,1000000
+220e896c-2744-43fa-972f-ed3042767fb3,Prince Family Paper,Retail,princepaper.com,200000
+323030ea-1cbb-470b-9119-b96a529892bf,GreenLeaf Bio,Biotech,greenleaf.com,12000000
+34cabe3f-3c0b-4cf6-b032-cfb39edf7a34,Oceanic Airlines,Transportation,oceanic.com,5000000
+391303f8-e2ab-46c5-b6c3-e90d0e449a64,Rekall,Entertainment,rekall.com,2000000
+44a11165-6a72-45b1-a47a-262f32cca3e8,Sabre,Retail,sabre.com,15000000
+460ec93c-3eca-4ae9-9317-d5450bec38c1,Recall,Entertainment,recall.com,2000000
+4dfcec8d-d9ec-4b21-b842-164d60513c72,Oscorp,Biotech,oscorp.com,25000000
+4eae10c1-c01b-4682-be51-8f3d00f21eda,Prestige Worldwide,Entertainment,prestigeww.com,100000
+5522ac7e-4fd8-493c-9726-280afd121f14,Kruger Industrial,Manufacturing,kruger.com,2000000
+579d9862-b5ca-4725-8627-73992aec2351,Delos Inc,Entertainment,delos.com,500000000
+6ae85467-6a6b-4ddd-a0ab-44240ef41ba9,Slurm McKenzie,Food,slurm.com,10000000
+7cbcad38-4d0c-48a3-ae3d-066a09041796,Wayne Ent,Conglomerate,wayne.com,400000000
+860a73e1-6252-4598-a4be-ef299e6f4850,Vandelay Industries,Import/Export,vandelay.com,500000
+89b59c16-4d7c-4b81-8697-60ea1ca9639d,CyberDyne,Defense,cyberdyne.net,90000000
+8a2e6ced-3822-4b95-ba69-66b6562d1a89,Massive Dynamic,Conglomerate,massivedynamic.com,100000000
+8ea41739-f76d-422a-9779-229522141e4f,Nakatomi Trading,Finance,nakatomi.com,30000000
+919d9931-37a7-4439-a438-ab21f919ce45,Duke & Duke,Finance,dukeduke.com,20000000
+92352b86-e4de-4bb2-ab37-55c2d3af1820,Aperture Science,Research,aperture.sci,0
+94397aeb-683a-453a-a4af-ff1fb468ad7f,Dharma Initiative,Research,dharma.org,500000
+968e4980-631a-4c91-a7f7-a2eb42dc6e63,Tyrell Corp,Biotech,tyrell.com,80000000
+987e38bc-73d3-4820-9ae7-390d2589551f,Umbrella Corp,Biotech,umbrella.com,60000000
+9af701a8-4292-4e28-bf5e-69f01bb2dfd0,Wernham Hogg,Retail,wernhamhogg.co.uk,4000000
+9c00514f-b772-4123-bfdb-8f3ffde456f2,Stark Industries,Defense,stark.com,500000000
+a8454e78-8c70-476d-bf22-253eacb5fa49,Quantum Systems,Hardware,quantum.sys,8500000
+acea6cc1-7492-4e13-9c90-4bbc0b7ea89c,Entertainment 720,Entertainment,e720.com,0
+ad104387-76b2-4e59-94f7-231992b1b0e7,Strickland Propane,Energy,strickland.com,3000000
+af111945-58b7-43d9-a699-851395709f0e,MomCorp,Manufacturing,momcorp.com,900000000
+b4a6f7e1-5f5f-436b-bc5b-d2048e11836a,Michael Scott Paper,Retail,mscottpaper.com,50000
+b5763d1b-7435-4351-add2-645528186406,Pied Piper,Software,piedpiper.com,200000
+b5a6126b-acff-4500-a8ef-34316f34aac7,Gekko & Co,Finance,gekko.com,100000000
+bdcf4ee4-fc18-42bb-8c34-2bf5490ab4ec,Starlight Logistics,Transportation,starlight.net,2000000
+c4c38eb8-e3b9-433c-b3ba-7d49b5e399cc,Yoyodyne,Defense,yoyodyne.com,12000000
+d0c6a125-8632-419a-88a5-d9b4f163cc0e,Initrode,Software,initrode.com,1000000
+d923df3e-b8ec-4d5f-be1a-e93c30d92c03,Virtucon,Defense,virtucon.com,10000000
+dc85bd93-2011-451f-b483-c75651381e55,Dunder Mifflin,Retail,dundermifflin.com,5000000
+e50e0d65-b929-48be-b92f-7970a9efbb13,LexCorp,Conglomerate,lexcorp.com,60000000
+e8920df5-a89f-4bc0-a05b-fd8f23021f82,Penetrode,Software,penetrode.com,2000000
+eafd3f4d-1ce4-4f95-b319-b61de69d9152,Globex,Software,globex.com,1500000
+eb36e3e9-c642-43b2-9b96-ac918260a43a,InGen,Biotech,ingen.com,30000000
+f2f54aa0-a8e0-45cd-a1ef-84b5d0d83670,IronForge Mfg,Manufacturing,ironforge.com,7000000
+f6fc406b-6075-47b0-a75a-5c87d51a7afa,Roxxon,Energy,roxxon.com,55000000
+f76ce8ea-a658-467b-938b-ec4023756740,Veidt Enterprises,Conglomerate,veidt.com,75000000
+fc8f6731-810e-4ad7-8cd2-77501caea4f8,Black Mesa,Research,blackmesa.org,10000000
+fce16d21-ad9d-41ae-9cae-b21add3f55c0,TechNova,Software,technova.io,5000000

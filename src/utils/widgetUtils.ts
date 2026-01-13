@@ -208,3 +208,21 @@ export function preprocessCanvasWidgetHtml(responseString: string): string {
     return responseString
   }
 }
+
+// Check whether an item with `id` is present in promotedWidgets for given widgetType
+export const isPromoted = (promotedWidgets?: Record<string, unknown>, widgetType?: string, id?: string | number): boolean => {
+  if (!promotedWidgets || !widgetType || id === undefined || id === null) return false
+  const list = promotedWidgets[widgetType] as unknown
+  if (!list || !Array.isArray(list)) return false
+  try {
+    return (list as Array<any>).some((item) => {
+      if (!item) return false
+      if (item.id !== undefined && item.id === id) return true
+      // Fallback: match by competitorName for battlecard items
+      if (item.competitorName !== undefined && item.competitorName === id) return true
+      return false
+    })
+  } catch (e) {
+    return false
+  }
+}
