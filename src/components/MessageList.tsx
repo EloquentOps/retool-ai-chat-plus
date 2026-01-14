@@ -66,14 +66,21 @@ export const MessageList: FC<MessageListProps> = ({
   }
 
   // Scroll to bottom when messages change or loading state changes
+  // Only auto-scroll when the number of visible messages or the
+  // last visible message content actually changes (or loading state).
+  // This avoids scrolling on unrelated re-renders (e.g., widget callbacks)
+  const lastVisibleMessageContent = visibleMessages.length > 0
+    ? JSON.stringify(visibleMessages[visibleMessages.length - 1].content)
+    : null
+
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
+      messagesEndRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'end'
       })
     }
-  }, [visibleMessages, isLoading])
+  }, [visibleMessages.length, lastVisibleMessageContent, isLoading])
 
   return (
     <div style={{
@@ -114,7 +121,7 @@ export const MessageList: FC<MessageListProps> = ({
                 >
                   {group.messages.map((message, msgIndex) => {
                     const originalIndex = visibleMessages.indexOf(message)
-                    return (
+                      return (
                       <MessageItem
                         key={`block-${group.messages[0]?.blockId || groupIndex}-${msgIndex}`}
                         message={message}

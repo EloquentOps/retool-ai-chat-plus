@@ -106,7 +106,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   }
 
   // Function to restore pinned widgets from history
-  const restorePinnedWidgets = (historyMessages: typeof messages) => {
+  const restorePinnedWidgets = (historyMessages: typeof messages, preserveActiveTab: boolean = false) => {
     const pinned: PinnedWidget[] = []
     
     historyMessages.forEach((message, index) => {
@@ -123,14 +123,31 @@ export const ChatContainer: FC<ChatContainerProps> = ({
     })
 
     setPinnedWidgets(pinned)
+    
+    // Only update active tab if needed
     if (pinned.length > 0) {
+      if (preserveActiveTab) {
+        // Preserve the current active tab if it still exists, otherwise adjust
+        setActivePinnedTab(prev => {
+          if (prev < pinned.length) {
+            return prev // Keep current selection if still valid
+          } else {
+            return pinned.length - 1 // Adjust if out of bounds
+          }
+        })
+      } else {
+        // Only reset to 0 when not preserving (e.g., initial load)
+        setActivePinnedTab(0)
+      }
+    } else {
       setActivePinnedTab(0)
     }
   }
 
   // Restore pinned widgets when messages change (e.g., on history restore)
+  // Preserve active tab selection when messages update during chat interactions
   useEffect(() => {
-    restorePinnedWidgets(messages)
+    restorePinnedWidgets(messages, true)
   }, [messages])
 
   // Handler for widget pin/unpin actions
