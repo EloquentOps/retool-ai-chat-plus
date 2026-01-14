@@ -36,6 +36,7 @@ interface ChatContainerProps {
   placeholder?: string
   componentPreferences?: Record<string, unknown>
   onHistoryUpdate?: (updatedHistory: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => void
+  promotedWidgets?: Record<string, unknown>
 }
 
 interface PinnedWidget {
@@ -62,6 +63,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   placeholder,
   componentPreferences = {},
   onHistoryUpdate
+  ,
+  promotedWidgets
 }) => {
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
   const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && hasWelcomeContent
@@ -382,7 +385,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 height: '100%',
                 overflow: 'hidden'
               }}>
-                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
+                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} promotedWidgets={promotedWidgets} />
                 <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
               </div>
               
@@ -396,12 +399,13 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 widgetsOptions={widgetsOptions}
                 lockUI={lockUI}
                 hideWidgetFooter={hideWidgetFooter}
+                promotedWidgets={promotedWidgets}
               />
             </div>
           ) : (
             // Full width layout when no widget is pinned
             <>
-              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
+              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} promotedWidgets={promotedWidgets} />
               <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
             </>
           )}

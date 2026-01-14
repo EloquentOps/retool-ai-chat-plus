@@ -6,6 +6,7 @@ import { ChatContainer } from './components'
 import { ApprovalModal } from './components/ApprovalModal'
 import { getWidgetInstructionsForTypes, WIDGET_REGISTRY, GlobalAssets } from './components/widgets'
 import { preprocessCanvasWidgetHtml } from './utils/widgetUtils'
+import { SearchBar } from './components/SearchBar'
 
 export const AiChatPlus: FC = () => {
   // Add state for welcome message
@@ -31,6 +32,12 @@ export const AiChatPlus: FC = () => {
   // Add state for widget options
   const [widgetsOptions, _setWidgetsOptions] = Retool.useStateObject({
     name: 'widgetsOptions',
+    initialValue: {}
+  })
+
+  // Add state for promoted widgets (external control via Retool)
+  const [promotedWidgets, _setPromotedWidgets] = Retool.useStateObject({
+    name: 'promoted_widgets',
     initialValue: {}
   })
 
@@ -100,6 +107,35 @@ export const AiChatPlus: FC = () => {
     name: 'submitWithPayload',
     initialValue: {}
   })
+
+  
+  // Dynamic search data from Retool state (category-agnostic)
+  const [searchData, _setSearchData] = Retool.useStateObject({
+    name: 'searchData',
+    initialValue: {}
+  })
+
+  // Add state for selected search result stored in Retool state
+  const [selectedItem, _setSelectedItem] = Retool.useStateObject({
+    name: 'selectedItem',
+    initialValue: {},
+    inspector: 'hidden'
+  })
+
+  // Add state for search bar visibility (checkbox inspector)
+  const [showSearchBar, _setShowSearchBar] = Retool.useStateBoolean({
+    name: 'showSearchBar',
+    initialValue: true,
+    label: 'Show Search Bar',
+    description: 'Toggle to show or hide the search bar',
+    inspector: 'checkbox'
+  })
+
+  // Monitor selectedItem changes to debug state updates
+  useEffect(() => {
+    console.log('=== selectedItem changed in parent ===', selectedItem, 'keys:', Object.keys(selectedItem || {}).length)
+  }, [selectedItem])
+
 
   // Ref to track polling interval
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -305,6 +341,7 @@ export const AiChatPlus: FC = () => {
       // Update historyRef to keep it in sync
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       historyRef.current = restoredMessages as any
+      console.log('historyRef after restore:', historyRef.current)
       
       // Reset first submit flag if restored history is empty (no visible messages)
       const visibleRestoredMessages = restoredMessages.filter(msg => !msg.hidden)
@@ -965,6 +1002,17 @@ export const AiChatPlus: FC = () => {
       ...(isMessageAlreadyInHistory ? [] : [newMessage]),
     ]
 
+    // If there's a selected item, inject it as a hidden assistant message so the agent receives structured context
+    if (selectedItem && Object.keys(selectedItem).length > 0 && !(selectedItem as any)._cleared) {
+      // stringify selectedItem and inject as a plain string (remove object/type wrapper)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages.push({
+        role: 'assistant' as const,
+        content: JSON.stringify(selectedItem),
+        hidden: true
+      } as any)
+    }
+
     // Always add instruction message - with mentioned widgets if any, otherwise just text widget
     const widgetInstructions = getWidgetInstructionsForTypes(mentionedWidgets, widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
@@ -1053,6 +1101,17 @@ Otherwise, the type should be always "text".
       // Don't add the new message since it's already in the restored history
     ]
 
+    // Inject selected item as hidden assistant message for restored submits as well
+    if (selectedItem && Object.keys(selectedItem).length > 0 && !(selectedItem as any)._cleared) {
+      // stringify selectedItem and inject as a plain string (remove object/type wrapper)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages.push({
+        role: 'assistant' as const,
+        content: JSON.stringify(selectedItem),
+        hidden: true
+      } as any)
+    }
+
     // Always add instruction message - with mentioned widgets if any, otherwise just text widget
     const widgetInstructions = getWidgetInstructionsForTypes(mentionedWidgets, widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
@@ -1094,9 +1153,6 @@ Otherwise, the type should be always "text".
     
     messages.push(instructionMessage)
 
-    console.log('messages (after restore)')
-    console.log(messages)
-    
     // Ensure agentInputs is always an object before setting properties
     const agentInputsPayload = {
       action: 'invoke',
@@ -1245,7 +1301,7 @@ Otherwise, the type should be always "text".
             'source' in targetMessage.content) {
           
           // Create updated message with merged source
-          const widgetContent = targetMessage.content as { type: string; source?: string | Record<string, unknown>; [key: string]: unknown }
+          const widgetContent = targetMessage.content as { type: string; source: string | Record<string, unknown>; [key: string]: unknown }
           const updatedMessage = {
             ...targetMessage,
             content: {
@@ -1254,7 +1310,7 @@ Otherwise, the type should be always "text".
                 ...(widgetContent.source as Record<string, unknown>),
                 ...updatedSource
               }
-            } as unknown as { type: string; source?: string; [key: string]: unknown }
+            } as unknown as { type: string; source: string; [key: string]: unknown }
           }
           
           // Update history with the modified message
@@ -1353,45 +1409,99 @@ Otherwise, the type should be always "text".
     setToolInfo(null)
   }
 
+  // Dynamic search across all categories in searchData (fuzzy by name)
+  const searchDataFn = (query: string) => {
+    const q = (query || '').toLowerCase().trim();
+    if (!q) return [];
+    if (!searchData) return [];
+    let results: any[] = [];
+    Object.entries(searchData).forEach(([key, arr]) => {
+      if (Array.isArray(arr)) {
+        const matches = arr
+          .filter(
+            (item): item is { name: string } =>
+              !!item &&
+              typeof item === 'object' &&
+              'name' in item &&
+              typeof (item as any).name === 'string' &&
+              ((item as any).name || '').toLowerCase().includes(q)
+          )
+          .slice(0, 10)
+          .map(item => ({ ...item, _type: key }));
+        results = results.concat(matches);
+      }
+    });
+    return results.slice(0, 10);
+  }
 
   return (
     <>
       {/* Global CSS and Font Assets - managed by plugin system */}
       <GlobalAssets />
       
-      <div style={{ 
-        height: '100%', 
+      <div style={{
+        height: '100%',
         width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        <ChatContainer
-          messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
-          onSubmitQuery={onSubmitQueryCallback}
-          isLoading={isLoading}
-          onWidgetCallback={onWidgetCallbackHandler}
-          onStop={stopPolling}
-          promptChips={promptChips as Array<{ icon: string; label: string; question?: string; payload?: Record<string, unknown> }>}
-          onChipCallback={onChipCallback}
-          onSetChipPayload={(payload: Record<string, unknown>) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            _setChipPayload(payload as any)
-          }}
-          widgetsOptions={widgetsOptions as Record<string, unknown>}
-          tools={tools as Record<string, { tool: string; description: string }>}
-          welcomeMessage={welcomeMessage}
-          error={error}
-          onRetry={retryPolling}
-          onDismissError={() => setError(null)}
-          placeholder={placeholder}
-          componentPreferences={componentPreferences as Record<string, unknown>}
-          onHistoryUpdate={(updatedHistory) => {
-            // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            _setHistory(updatedHistory as any)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            historyRef.current = updatedHistory as any
-          }}
-        />
+        {/* Conditionally render SearchBar based on showSearchBar state */}
+        {showSearchBar && (
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid #eee', flex: '0 0 auto' }}>
+            <SearchBar
+              onSearchQuery={searchDataFn}
+              onSelectSearchResult={(item) => {
+                console.log('SearchBar onSelectSearchResult called with:', item)
+                if (item === null) {
+                  console.log('Clear signal received, resetting selectedItem')
+                  _setSelectedItem({ _cleared: true, timestamp: Date.now() } as any)
+                  return
+                }
+                if (typeof item === 'object' && item !== null) {
+                  console.log('Selection made:', item)
+                  _setSelectedItem({ ...item, _cleared: false } as any)
+                } else {
+                  _setSelectedItem({ _cleared: false } as any)
+                }
+              }}
+              selectedItem={selectedItem as Record<string, unknown>}
+            />
+          </div>
+        )}
+
+        {/* Chat area - take remaining space and scroll if needed */}
+        <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
+          <ChatContainer
+            messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
+            onSubmitQuery={onSubmitQueryCallback}
+            isLoading={isLoading}
+            onWidgetCallback={onWidgetCallbackHandler}
+            onStop={stopPolling}
+            promptChips={promptChips as Array<{ icon: string; label: string; question?: string; payload?: Record<string, unknown> }>}
+            onChipCallback={onChipCallback}
+            onSetChipPayload={(payload: Record<string, unknown>) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              _setChipPayload(payload as any)
+            }}
+            widgetsOptions={widgetsOptions as Record<string, unknown>}
+            tools={tools as Record<string, { tool: string; description: string }>}
+            welcomeMessage={welcomeMessage}
+            error={error}
+            onRetry={retryPolling}
+            onDismissError={() => setError(null)}
+            placeholder={placeholder}
+            componentPreferences={componentPreferences as Record<string, unknown>}
+            promotedWidgets={promotedWidgets as Record<string, unknown>}
+            onHistoryUpdate={(updatedHistory) => {
+              // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              _setHistory(updatedHistory as any)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              historyRef.current = updatedHistory as any
+            }}
+          />
+        </div>
         
         {/* Approval Modal */}
         <ApprovalModal

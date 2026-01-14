@@ -1,5 +1,8 @@
 // Export individual widgets for direct use if needed
 export { TextWidget, TextWidgetInstruction } from './TextWidget'
+export { RiskCardsWidget, RiskCardsWidgetInstruction } from './RiskCardsWidget'
+export { BattlecardWidget, BattlecardWidgetInstruction } from './BattlecardWidget'
+export { DiscoveryQuestionsWidget, DiscoveryQuestionsWidgetInstruction } from './DiscoveryQuestionsWidget'
 
 // Export the centralized registry system
 export { 

@@ -18,6 +18,7 @@ interface MessageListProps {
   widgetsOptions?: Record<string, any>
   lockUI?: boolean
   hideWidgetFooter?: boolean
+  promotedWidgets?: Record<string, unknown>
 }
 
 export const MessageList: FC<MessageListProps> = ({
@@ -26,7 +27,8 @@ export const MessageList: FC<MessageListProps> = ({
   onWidgetCallback,
   widgetsOptions,
   lockUI = false,
-  hideWidgetFooter = false
+  hideWidgetFooter = false,
+  promotedWidgets
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -130,6 +132,7 @@ export const MessageList: FC<MessageListProps> = ({
                         widgetsOptions={widgetsOptions}
                         lockUI={lockUI}
                         hideWidgetFooter={hideWidgetFooter}
+                        promotedWidgets={promotedWidgets}
                       />
                     )
                   })}
@@ -148,6 +151,7 @@ export const MessageList: FC<MessageListProps> = ({
                   widgetsOptions={widgetsOptions}
                   lockUI={lockUI}
                   hideWidgetFooter={hideWidgetFooter}
+                  promotedWidgets={promotedWidgets}
                 />
               )
             }

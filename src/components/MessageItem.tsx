@@ -25,6 +25,7 @@ interface MessageItemProps {
   widgetsOptions?: Record<string, unknown>
   lockUI?: boolean
   hideWidgetFooter?: boolean
+  promotedWidgets?: Record<string, unknown>
 }
 
 export const MessageItem: FC<MessageItemProps> = ({
@@ -33,7 +34,8 @@ export const MessageItem: FC<MessageItemProps> = ({
   onWidgetCallback,
   widgetsOptions,
   lockUI = false,
-  hideWidgetFooter = false
+  hideWidgetFooter = false, 
+  promotedWidgets
 }) => {
   const isUser = message.role === 'user'
 
@@ -108,7 +110,7 @@ export const MessageItem: FC<MessageItemProps> = ({
       ) : (
         typeof message.content === 'string' 
           ? <TextWidget source={message.content} />
-          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, messageIndex, lockUI, hideWidgetFooter)
+              : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, messageIndex, lockUI, hideWidgetFooter, promotedWidgets)
       )}
     </div>
   )
