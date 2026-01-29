@@ -6,7 +6,10 @@ import { TextWidget, renderWidget } from './widgets'
 // Function to process special mention patterns like @[Image](image) to @Image in bold
 const processSpecialMentions = (text: string): string => {
   // Match patterns like @[WidgetName](widget_type) and replace with **@WidgetName**
-  return text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '**@$1**')
+  let processed = text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '**@$1**')
+  // Match patterns like #[Label](id) and replace with **#Label**
+  processed = processed.replace(/#\[([^\]]+)\]\([^)]+\)/g, '**#$1**')
+  return processed
 }
 
 interface Message {

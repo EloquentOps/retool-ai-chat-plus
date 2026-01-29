@@ -104,7 +104,8 @@ const WIDGET_NAME_OVERRIDES: Record<string, string> = {
   'FullCalendar': 'fullcalendar',
   'MDX': 'mdx',
   'GoogleMap': 'google_map',
-  'ImageGrid': 'image_grid'
+  'ImageGrid': 'image_grid',
+  'TwoWays': 'two_ways'
 }
 
 // ============================================================================

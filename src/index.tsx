@@ -41,10 +41,16 @@ export const AiChatPlus: FC = () => {
     inspector: 'hidden',
   })
 
+  // Add state for sources options
+  const [sourcesOptions, _setSourcesOptions] = Retool.useStateArray({
+    name: 'sourcesOptions',
+    initialValue: []
+  })
+
   // Add state for input placeholder
   const [placeholder, _setPlaceholder] = Retool.useStateString({
     name: 'placeholder',
-    initialValue: 'Type your message... (use @ to insert widgets)'
+    initialValue: 'Type your message... (use @ for widgets, # for sources)'
   })
 
   // Add state for component preferences (stylistic and behavioral)
@@ -887,6 +893,31 @@ export const AiChatPlus: FC = () => {
     return widgetTypes
   }
 
+  // Function to extract source mentions from a message
+  const extractSourceMentions = (message: string): Array<{ id: string; label: string; content?: string }> => {
+    const sourceRegex = /#\[([^\]]+)\]\(([^)]+)\)/g
+    const sources: Array<{ id: string; label: string; content?: string }> = []
+    let match
+    
+    while ((match = sourceRegex.exec(message)) !== null) {
+      const label = match[1]
+      const id = match[2]
+      
+      // Look up the source in sourcesOptions to get the full content
+      const sourceOption = (sourcesOptions as Array<{ id: string; label: string; content: string }>)?.find(
+        source => source.id === id
+      )
+      
+      sources.push({
+        id,
+        label,
+        content: sourceOption?.content
+      })
+    }
+    
+    return sources
+  }
+
 
   // Function to normalize message content for agent input
   // Handles both string content and widget objects
@@ -969,6 +1000,14 @@ export const AiChatPlus: FC = () => {
     const widgetInstructions = getWidgetInstructionsForTypes(mentionedWidgets, widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
     
+    // Extract source mentions and build data sources tag if any
+    const mentionedSources = extractSourceMentions(message)
+    const dataSourcesTag = mentionedSources.length > 0
+      ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>\n${mentionedSources.map(source => 
+          `- id: ${source.id}, label: ${source.label}${source.content ? `, content: ${source.content}` : ''}`
+        ).join('\n')}\n</EXPLICT_DATA_SOURCES_INCLUDED>`
+      : ''
+    
     const instructionMessage = {
       role: 'assistant' as const,
       content: `<TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>
@@ -1001,7 +1040,7 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>` + dataSourcesTag
     }
     
     messages.push(instructionMessage)
@@ -1057,6 +1096,14 @@ Otherwise, the type should be always "text".
     const widgetInstructions = getWidgetInstructionsForTypes(mentionedWidgets, widgetsOptions)
     const concatenatedInstructions = widgetInstructions.map(instruction => `\n\n${instruction}\n\n`).join('\n\n')
     
+    // Extract source mentions and build data sources tag if any
+    const mentionedSources = extractSourceMentions(message)
+    const dataSourcesTag = mentionedSources.length > 0
+      ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>\n${mentionedSources.map(source => 
+          `- id: ${source.id}, label: ${source.label}${source.content ? `, content: ${source.content}` : ''}`
+        ).join('\n')}\n</EXPLICT_DATA_SOURCES_INCLUDED>`
+      : ''
+    
     const instructionMessage = {
       role: 'assistant' as const,
       content: `<TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>
@@ -1089,7 +1136,7 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>`
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>` + dataSourcesTag
     }
     
     messages.push(instructionMessage)
@@ -1378,6 +1425,7 @@ Otherwise, the type should be always "text".
           }}
           widgetsOptions={widgetsOptions as Record<string, unknown>}
           tools={tools as Record<string, { tool: string; description: string }>}
+          sourcesOptions={sourcesOptions as Array<{ id: string; label: string; content: string }>}
           welcomeMessage={welcomeMessage}
           error={error}
           onRetry={retryPolling}

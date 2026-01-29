@@ -29,6 +29,7 @@ interface ChatContainerProps {
   onSetChipPayload?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
+  sourcesOptions?: Array<{ id: string; label: string; content: string }>
   welcomeMessage?: string
   error?: string | null
   onRetry?: () => void
@@ -55,6 +56,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onSetChipPayload,
   widgetsOptions,
   tools,
+  sourcesOptions,
   welcomeMessage,
   error,
   onRetry,
@@ -264,6 +266,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               isCentered={true}
               widgetsOptions={widgetsOptions}
               tools={tools}
+              sourcesOptions={sourcesOptions}
               placeholder={placeholder}
               lockUI={lockUI}
             />
@@ -383,7 +386,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 overflow: 'hidden'
               }}>
                 <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
-                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
+                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} placeholder={placeholder} lockUI={lockUI} />
               </div>
               
               {/* Right panel - Pinned widgets with tabs */}

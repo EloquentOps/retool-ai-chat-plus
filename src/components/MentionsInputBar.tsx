@@ -11,6 +11,7 @@ interface MentionsInputBarProps {
   isCentered?: boolean
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
+  sourcesOptions?: Array<{ id: string; label: string; content: string }>
   placeholder?: string
   lockUI?: boolean
 }
@@ -22,6 +23,12 @@ interface WidgetData {
   description?: string
 }
 
+interface SourceData {
+  id: string
+  display: string
+  content?: string
+}
+
 
 export const MentionsInputBar: FC<MentionsInputBarProps> = ({ 
   onSubmitQuery, 
@@ -30,7 +37,8 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
   isCentered = false,
   widgetsOptions,
   tools,
-  placeholder = "Type your message... (use @ to insert widgets)",
+  sourcesOptions,
+  placeholder = "Type your message... (use @ for widgets, # for sources)",
   lockUI = false
 }) => {
   const [inputValue, setInputValue] = useState('')
@@ -87,6 +95,19 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
     return mentionData
   }, [widgetsOptions, tools])
 
+  // Convert sourcesOptions to react-mentions format with useMemo
+  const sourceData: SourceData[] = useMemo(() => {
+    if (!sourcesOptions || sourcesOptions.length === 0) {
+      return []
+    }
+    
+    return sourcesOptions.map(source => ({
+      id: source.id,
+      display: source.label,
+      content: source.content
+    }))
+  }, [sourcesOptions])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     console.log('Form submitted, isLoading:', isLoading, 'lockUI:', lockUI)
@@ -133,6 +154,18 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
       ...containerStyle,
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
+      <style>
+        {`
+          /* Style for hash-triggered mentions */
+          .public-DraftEditor-content span[data-offset-key] span[style*="#"] {
+            background-color: rgba(139, 92, 246, 0.1) !important;
+            color: #8B5CF6 !important;
+            font-weight: 600 !important;
+            padding: 1px 2px !important;
+            border-radius: 3px !important;
+          }
+        `}
+      </style>
       <form onSubmit={handleSubmit} style={{
         display: 'flex',
         gap: '8px',
@@ -218,6 +251,13 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
                 fontWeight: '600',
                 padding: '1px 2px',
                 borderRadius: '3px'
+              },
+              'mention--hash': {
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                color: '#8B5CF6',
+                fontWeight: '600',
+                padding: '1px 2px',
+                borderRadius: '3px'
               }
             }}
           >
@@ -266,6 +306,59 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
                 </div>
               )}
             />
+            {sourceData.length > 0 && (
+              <Mention
+                trigger="#"
+                data={sourceData}
+                displayTransform={(id: string, display: string) => `#${display}`}
+                markup="#[__display__](__id__)"
+                appendSpaceOnAdd={true}
+                renderSuggestion={(entry: SourceData, _search: string, _highlightedDisplay: string, _index: number, _focused: boolean) => (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    padding: '8px 0'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <span style={{
+                        fontWeight: '600',
+                        color: '#8B5CF6',
+                        fontSize: '14px'
+                      }}>
+                        #{entry.display}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#666',
+                        backgroundColor: '#f5f5f5',
+                        padding: '2px 6px',
+                        borderRadius: '4px'
+                      }}>
+                        {entry.id}
+                      </span>
+                    </div>
+                    {entry.content && (
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#888',
+                        lineHeight: '1.4',
+                        maxWidth: '300px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {entry.content}
+                      </div>
+                    )}
+                  </div>
+                )}
+              />
+            )}
           </MentionsInput>
         </div>
 
