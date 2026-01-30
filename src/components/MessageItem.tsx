@@ -3,13 +3,70 @@ import { type FC } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { TextWidget, renderWidget } from './widgets'
 
-// Function to process special mention patterns like @[Image](image) to @Image in bold
-const processSpecialMentions = (text: string): string => {
-  // Match patterns like @[WidgetName](widget_type) and replace with **@WidgetName**
-  let processed = text.replace(/@\[([^\]]+)\]\([^)]+\)/g, '**@$1**')
-  // Match patterns like #[Label](id) and replace with **#Label**
-  processed = processed.replace(/#\[([^\]]+)\]\([^)]+\)/g, '**#$1**')
-  return processed
+// Regex to match @[display](id) and #[display](id) for splitting
+const MENTION_SPLIT_REGEX = /(@\[[^\]]+\]\([^)]+\)|#\[[^\]]+\]\([^)]+\))/g
+const AT_MENTION_REGEX = /^@\[([^\]]+)\]\([^)]+\)$/
+const HASH_MENTION_REGEX = /^#\[([^\]]+)\]\([^)]+\)$/
+
+const PILL_AT_STYLE: React.CSSProperties = {
+  backgroundColor: 'rgba(49, 112, 249, 0.14)',
+  color: '#2563eb',
+  fontWeight: 600,
+  padding: '2px 8px',
+  marginLeft: '4px',
+  marginRight: '4px',
+  borderRadius: '9999px',
+  border: '1px solid rgba(37, 99, 235, 0.4)',
+  display: 'inline'
+}
+
+const PILL_HASH_STYLE: React.CSSProperties = {
+  backgroundColor: 'rgba(139, 92, 246, 0.14)',
+  color: '#6d28d9',
+  fontWeight: 600,
+  padding: '2px 8px',
+  marginLeft: '4px',
+  marginRight: '4px',
+  borderRadius: '9999px',
+  border: '1px solid rgba(109, 40, 217, 0.4)',
+  display: 'inline'
+}
+
+// Inline markdown so segments flow with pill tags (no block <p>)
+const INLINE_MARKDOWN_COMPONENTS = {
+  p: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>
+}
+
+/** Renders user message content with @ and # mentions as coloured pill tags */
+function renderUserMessageContent(content: string): React.ReactNode {
+  const segments = content.split(MENTION_SPLIT_REGEX)
+  return (
+    <span style={{ display: 'inline' }}>
+      {segments.map((segment, i) => {
+        const atMatch = segment.match(AT_MENTION_REGEX)
+        if (atMatch) {
+          return (
+            <span key={i} style={PILL_AT_STYLE}>
+              @{atMatch[1]}
+            </span>
+          )
+        }
+        const hashMatch = segment.match(HASH_MENTION_REGEX)
+        if (hashMatch) {
+          return (
+            <span key={i} style={PILL_HASH_STYLE}>
+              #{hashMatch[1]}
+            </span>
+          )
+        }
+        return (
+          <ReactMarkdown key={i} components={INLINE_MARKDOWN_COMPONENTS}>
+            {segment}
+          </ReactMarkdown>
+        )
+      })}
+    </span>
+  )
 }
 
 interface Message {
@@ -69,8 +126,8 @@ export const MessageItem: FC<MessageItemProps> = ({
           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
           fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}>
-          {typeof message.content === 'string' 
-            ? <ReactMarkdown>{processSpecialMentions(message.content)}</ReactMarkdown>
+          {typeof message.content === 'string'
+            ? renderUserMessageContent(message.content)
             : JSON.stringify(message.content)
           }
         </div>
