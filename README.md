@@ -182,7 +182,7 @@ The `componentPreferences` object allows you to customize both stylistic and beh
 | `promptChips`       | array  | Suggested action chips in Welcome view. Each chip object can be either: `{label:'', icon:'', question:''}` to submit a pre-configured question, or `{label:'', icon:'', payload:{}}` to trigger `chipCallback` query and access payload via `chipPayload` property |
 | `queryResponse`     | object | AI agent response data, **required**                                       |
 | `componentPreferences`  | object | Options for component preferences (stylistic and behavioral). See Component Preferences section for details. |
-| `submitWithPayload` | object | Programmatic submit with payload                             |
+| `submitWithPayload` | object | Programmatic control: `restore` \| `inject` \| `submit` \| `stop` \| `fill` (see Submit With Payload). |
 
 
 #### Readable properties
@@ -278,11 +278,12 @@ The variable must follow this schema:
 
 ```js
 {
-  action: 'restore|inject',
-  messages: [
+  action: 'restore|inject|submit|stop|fill',
+  messages: [ /* required for restore, inject, submit */
     {role: 'user|assistant', content: 'your content 1', hidden: true},
     {role: 'user|assistant', content: 'your content 2', autoSubmit:true}
-  ]
+  ],
+  text: '...'  /* required for fill: pre-fill the input bar without submitting */
 }
 ```
 
@@ -298,10 +299,22 @@ The variable must follow this schema:
 
 Here are the meanings of the `action` values:
 
-- restore: replace the whole chat feed and history with a custom payload
-- inject: add a payload to the current chat feed and history
+- **restore**: replace the whole chat feed and history with a custom payload
+- **inject**: add a payload to the current chat feed and history
+- **submit**: append messages to history and immediately submit the last user message
+- **stop**: stop the current submit/polling
+- **fill**: pre-fill the input bar with the value of `text` **without submitting**. The user can review and edit the text before sending.
 
-The message object can contain the optional `autoSubmit` property to trigger an internal submit of the chat component.
+Example — pre-fill the input bar without submitting (user can edit and submit manually):
+
+```js
+{
+  action: 'fill',
+  text: 'Summarize the last 5 emails'
+}
+```
+
+The message object can contain the optional `autoSubmit` property to trigger an internal submit of the chat component (for **restore**).
 
 It can also have the optional `hidden` property to hide that content from the chat interface, while still keeping it present in the history and context.
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { type FC } from 'react'
 import { MentionsInput, Mention } from 'react-mentions'
 import { WIDGET_REGISTRY } from './widgets/WidgetRegistry'
@@ -14,6 +14,8 @@ interface MentionsInputBarProps {
   sourcesOptions?: Array<{ id?: string; label: string; content?: string }>
   placeholder?: string
   lockUI?: boolean
+  fillInput?: string
+  onFillApplied?: () => void
 }
 
 interface WidgetData {
@@ -39,9 +41,28 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
   tools,
   sourcesOptions,
   placeholder = "Type your message... (use @ for widgets, # for sources)",
-  lockUI = false
+  lockUI = false,
+  fillInput,
+  onFillApplied
 }) => {
   const [inputValue, setInputValue] = useState('')
+  const inputRef = useRef<HTMLElement | null>(null)
+
+  // Apply external fill (e.g. from submitWithPayload action 'fill') without submitting
+  useEffect(() => {
+    if (fillInput != null && fillInput !== '') {
+      setInputValue(fillInput)
+      onFillApplied?.()
+      // Focus the input after fill so the user can edit immediately (after React commits the update)
+      const timeoutId = setTimeout(() => {
+        const el = inputRef.current
+        if (el && typeof el.focus === 'function') {
+          el.focus()
+        }
+      }, 0)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [fillInput, onFillApplied])
 
   // Convert widget registry and tools to react-mentions format with useMemo
   const widgetData: WidgetData[] = useMemo(() => {
@@ -224,6 +245,7 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
               singleLine={false}
               forceSuggestionsAboveCursor={!isCentered}
               disabled={lockUI}
+              inputRef={inputRef}
             style={{
               control: {
                 backgroundColor: '#ffffff',

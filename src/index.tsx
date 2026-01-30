@@ -116,6 +116,9 @@ export const AiChatPlus: FC = () => {
   // Ref to track if auto-submit is currently in progress to prevent duplicate triggers
   const autoSubmitInProgressRef = useRef<boolean>(false)
   
+  // Local state for fill-input (pre-fill input bar without submitting)
+  const [fillInput, setFillInput] = useState('')
+
   // Local state for loading, error, and current agentRunId
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -187,10 +190,11 @@ export const AiChatPlus: FC = () => {
       return
     }
 
-    const { action, messages, autoSubmit } = currentValue as { 
+    const { action, messages, autoSubmit, text } = currentValue as { 
       action?: string; 
       messages?: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>; 
       autoSubmit?: boolean;
+      text?: string;
     }
 
     console.log('submitWithPayload action detected:', action, 'messages:', messages)
@@ -350,6 +354,20 @@ export const AiChatPlus: FC = () => {
         autoSubmitInProgressRef.current = false
       }
       
+      // Reset the submitWithPayload to prevent repeated triggers
+      setTimeout(() => {
+        _setSubmitWithPayload({})
+      }, 0)
+    } else if (action === 'fill') {
+      // Update the ref BEFORE processing to prevent re-triggers
+      previousSubmitWithPayloadRef.current = { ...currentValue }
+
+      const fillText = typeof text === 'string' && text.trim() !== '' ? text : null
+      if (fillText !== null) {
+        console.log('Filling input bar with text (no submit)')
+        setFillInput(fillText)
+      }
+
       // Reset the submitWithPayload to prevent repeated triggers
       setTimeout(() => {
         _setSubmitWithPayload({})
@@ -1509,6 +1527,8 @@ Otherwise, the type should be always "text".
           onDismissError={() => setError(null)}
           placeholder={placeholder}
           componentPreferences={componentPreferences as Record<string, unknown>}
+          fillInput={fillInput}
+          onFillApplied={() => setFillInput('')}
           onHistoryUpdate={(updatedHistory) => {
             // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

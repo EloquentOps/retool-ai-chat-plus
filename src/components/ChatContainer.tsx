@@ -36,6 +36,8 @@ interface ChatContainerProps {
   onDismissError?: () => void
   placeholder?: string
   componentPreferences?: Record<string, unknown>
+  fillInput?: string
+  onFillApplied?: () => void
   onHistoryUpdate?: (updatedHistory: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => void
 }
 
@@ -63,6 +65,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onDismissError,
   placeholder,
   componentPreferences = {},
+  fillInput,
+  onFillApplied,
   onHistoryUpdate
 }) => {
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
@@ -269,6 +273,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               sourcesOptions={sourcesOptions}
               placeholder={placeholder}
               lockUI={lockUI}
+              fillInput={fillInput}
+              onFillApplied={onFillApplied}
             />
           </div>
 
@@ -386,7 +392,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 overflow: 'hidden'
               }}>
                 <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
-                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} placeholder={placeholder} lockUI={lockUI} />
+                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
               </div>
               
               {/* Right panel - Pinned widgets with tabs */}
@@ -405,7 +411,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             // Full width layout when no widget is pinned
             <>
               <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
-              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} />
+              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
             </>
           )}
         </>

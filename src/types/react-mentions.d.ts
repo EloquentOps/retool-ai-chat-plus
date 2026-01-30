@@ -10,6 +10,7 @@ declare module 'react-mentions' {
     style?: Record<string, any>
     children: ReactNode
     forceSuggestionsAboveCursor?: boolean
+    inputRef?: React.RefObject<HTMLElement | null> | ((el: HTMLElement | null) => void)
   }
 
   export interface MentionProps {
