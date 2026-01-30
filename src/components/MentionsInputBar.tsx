@@ -11,7 +11,7 @@ interface MentionsInputBarProps {
   isCentered?: boolean
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
-  sourcesOptions?: Array<{ id: string; label: string; content: string }>
+  sourcesOptions?: Array<{ id?: string; label: string; content?: string }>
   placeholder?: string
   lockUI?: boolean
 }
@@ -95,17 +95,59 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
     return mentionData
   }, [widgetsOptions, tools])
 
+  // Utility function to generate slugified IDs from labels
+  const generateSlugId = (label: string, existingIds: Set<string> = new Set()): string => {
+    // Convert to lowercase and replace spaces/special chars with underscores
+    let slug = label
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/[\s_-]+/g, '_') // Replace spaces, hyphens, underscores with single underscore
+      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+    
+    // Ensure uniqueness
+    let finalSlug = slug
+    let counter = 1
+    while (existingIds.has(finalSlug)) {
+      finalSlug = `${slug}_${counter}`
+      counter++
+    }
+    
+    return finalSlug || 'source' // Fallback if label is empty
+  }
+
   // Convert sourcesOptions to react-mentions format with useMemo
   const sourceData: SourceData[] = useMemo(() => {
     if (!sourcesOptions || sourcesOptions.length === 0) {
       return []
     }
     
-    return sourcesOptions.map(source => ({
-      id: source.id,
-      display: source.label,
-      content: source.content
-    }))
+    const existingIds = new Set<string>()
+    
+    return sourcesOptions
+      .filter(source => {
+        // Filter out invalid sources (must have either id or content)
+        return source.id || source.content
+      })
+      .map(source => {
+        let id: string
+        
+        if (source.id) {
+          // Use provided id
+          id = source.id
+        } else {
+          // Generate slugified ID from label for context-only sources
+          id = generateSlugId(source.label, existingIds)
+        }
+        
+        existingIds.add(id)
+        
+        return {
+          id,
+          display: source.label,
+          content: source.content
+        }
+      })
   }, [sourcesOptions])
 
   const handleSubmit = (e: React.FormEvent) => {

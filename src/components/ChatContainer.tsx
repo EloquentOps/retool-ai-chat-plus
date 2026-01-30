@@ -29,7 +29,7 @@ interface ChatContainerProps {
   onSetChipPayload?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
-  sourcesOptions?: Array<{ id: string; label: string; content: string }>
+  sourcesOptions?: Array<{ id?: string; label: string; content?: string }>
   welcomeMessage?: string
   error?: string | null
   onRetry?: () => void

@@ -893,26 +893,85 @@ export const AiChatPlus: FC = () => {
     return widgetTypes
   }
 
+  // Type definitions for source mentions
+  type SourceType = 'tool' | 'context'
+  interface ProcessedSource {
+    id: string
+    label: string
+    content?: string
+    type: SourceType
+  }
+
+  // Utility function to generate slugified IDs from labels
+  const generateSlugId = (label: string, existingIds: Set<string> = new Set()): string => {
+    // Convert to lowercase and replace spaces/special chars with underscores
+    let slug = label
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/[\s_-]+/g, '_') // Replace spaces, hyphens, underscores with single underscore
+      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+    
+    // Ensure uniqueness
+    let finalSlug = slug
+    let counter = 1
+    while (existingIds.has(finalSlug)) {
+      finalSlug = `${slug}_${counter}`
+      counter++
+    }
+    
+    return finalSlug || 'source' // Fallback if label is empty
+  }
+
   // Function to extract source mentions from a message
-  const extractSourceMentions = (message: string): Array<{ id: string; label: string; content?: string }> => {
+  const extractSourceMentions = (message: string): ProcessedSource[] => {
     const sourceRegex = /#\[([^\]]+)\]\(([^)]+)\)/g
-    const sources: Array<{ id: string; label: string; content?: string }> = []
+    const sources: ProcessedSource[] = []
     let match
     
     while ((match = sourceRegex.exec(message)) !== null) {
       const label = match[1]
       const id = match[2]
       
-      // Look up the source in sourcesOptions to get the full content
-      const sourceOption = (sourcesOptions as Array<{ id: string; label: string; content: string }>)?.find(
-        source => source.id === id
+      // Look up the source in sourcesOptions
+      const sourceOption = (sourcesOptions as Array<{ id?: string; label: string; content?: string }>)?.find(
+        source => {
+          // Match by id if source has id
+          if (source.id) {
+            return source.id === id
+          } else {
+            // For context-only sources, the id in markup is the slugified label
+            // Generate slug from source label and compare with id from markup
+            const sourceSlug = generateSlugId(source.label)
+            return sourceSlug === id && source.label === label
+          }
+        }
       )
       
-      sources.push({
-        id,
-        label,
-        content: sourceOption?.content
-      })
+      if (sourceOption) {
+        // Determine source type based on structure
+        const hasId = !!sourceOption.id
+        const hasContent = !!sourceOption.content
+        
+        let sourceType: SourceType
+        if (hasId) {
+          // Has id → tool-based (id takes precedence even if content exists)
+          sourceType = 'tool'
+        } else if (hasContent) {
+          // Has content but no id → direct context
+          sourceType = 'context'
+        } else {
+          // Invalid: neither id nor content, skip
+          continue
+        }
+        
+        sources.push({
+          id,
+          label,
+          content: sourceOption.content,
+          type: sourceType
+        })
+      }
     }
     
     return sources
@@ -1003,9 +1062,18 @@ export const AiChatPlus: FC = () => {
     // Extract source mentions and build data sources tag if any
     const mentionedSources = extractSourceMentions(message)
     const dataSourcesTag = mentionedSources.length > 0
-      ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>\n${mentionedSources.map(source => 
-          `- id: ${source.id}, label: ${source.label}${source.content ? `, content: ${source.content}` : ''}`
-        ).join('\n')}\n</EXPLICT_DATA_SOURCES_INCLUDED>`
+      ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>
+For entries with type: tool - Use a tool to retrieve context using the id.
+For entries with type: context - Use the provided content directly as context.
+
+${mentionedSources.map(source => {
+        if (source.type === 'tool') {
+          return `- type: tool, id: ${source.id}, label: ${source.label}`
+        } else {
+          return `- type: context, label: ${source.label}, content: ${source.content || ''}`
+        }
+      }).join('\n')}
+</EXPLICT_DATA_SOURCES_INCLUDED>`
       : ''
     
     const instructionMessage = {
@@ -1099,9 +1167,18 @@ Otherwise, the type should be always "text".
     // Extract source mentions and build data sources tag if any
     const mentionedSources = extractSourceMentions(message)
     const dataSourcesTag = mentionedSources.length > 0
-      ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>\n${mentionedSources.map(source => 
-          `- id: ${source.id}, label: ${source.label}${source.content ? `, content: ${source.content}` : ''}`
-        ).join('\n')}\n</EXPLICT_DATA_SOURCES_INCLUDED>`
+      ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>
+For entries with type: tool - Use a tool to retrieve context using the id.
+For entries with type: context - Use the provided content directly as context.
+
+${mentionedSources.map(source => {
+        if (source.type === 'tool') {
+          return `- type: tool, id: ${source.id}, label: ${source.label}`
+        } else {
+          return `- type: context, label: ${source.label}, content: ${source.content || ''}`
+        }
+      }).join('\n')}
+</EXPLICT_DATA_SOURCES_INCLUDED>`
       : ''
     
     const instructionMessage = {
@@ -1425,7 +1502,7 @@ Otherwise, the type should be always "text".
           }}
           widgetsOptions={widgetsOptions as Record<string, unknown>}
           tools={tools as Record<string, { tool: string; description: string }>}
-          sourcesOptions={sourcesOptions as Array<{ id: string; label: string; content: string }>}
+          sourcesOptions={sourcesOptions as Array<{ id?: string; label: string; content?: string }>}
           welcomeMessage={welcomeMessage}
           error={error}
           onRetry={retryPolling}
