@@ -331,16 +331,20 @@ export const AiChatPlus: FC = () => {
       // Update the ref BEFORE processing to prevent re-triggers
       previousSubmitWithPayloadRef.current = { ...currentValue }
       
-      // Restore history with the provided messages, preserving block properties
+      // Restore history with the provided messages, preserving block properties and traceSteps
       console.log('Restoring history with messages:', messages)
-      const restoredMessages = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        ...(msg.hidden && { hidden: msg.hidden }),
-        ...(msg.blockId !== undefined && { blockId: msg.blockId }),
-        ...(msg.blockIndex !== undefined && { blockIndex: msg.blockIndex }),
-        ...(msg.blockTotal !== undefined && { blockTotal: msg.blockTotal })
-      }))
+      const restoredMessages = messages.map(msg => {
+        const msgWithTrace = msg as typeof msg & { traceSteps?: TraceStep[] }
+        return {
+          role: msg.role,
+          content: msg.content,
+          ...(msg.hidden && { hidden: msg.hidden }),
+          ...(msg.blockId !== undefined && { blockId: msg.blockId }),
+          ...(msg.blockIndex !== undefined && { blockIndex: msg.blockIndex }),
+          ...(msg.blockTotal !== undefined && { blockTotal: msg.blockTotal }),
+          ...(msgWithTrace.traceSteps && Array.isArray(msgWithTrace.traceSteps) && msgWithTrace.traceSteps.length > 0 && { traceSteps: msgWithTrace.traceSteps })
+        }
+      })
       
       // Replace the entire history with the restored messages
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
