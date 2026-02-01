@@ -1,15 +1,9 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { type FC } from 'react'
 import { MessageItem } from './MessageItem'
+import type { MessageWithTrace, TraceStep } from '../types/message'
 
-interface Message {
-  role: 'user' | 'assistant'
-  content: string | { type: string; source?: string; [key: string]: unknown }
-  hidden?: boolean // Optional flag to hide messages from display
-  blockId?: number // ID of the block this message belongs to
-  blockIndex?: number // Index within the block (0-based)
-  blockTotal?: number // Total widgets in the block
-}
+interface Message extends MessageWithTrace {}
 
 interface MessageListProps {
   messages: Message[]
@@ -18,6 +12,160 @@ interface MessageListProps {
   widgetsOptions?: Record<string, any>
   lockUI?: boolean
   hideWidgetFooter?: boolean
+}
+
+const STEP_TYPE_LABELS: Record<string, string> = {
+  agent_start: 'Agent started',
+  llm_start: 'LLM turn started',
+  llm_end: 'LLM turn ended',
+  tool_waiting: 'Tool pending approval',
+  tool_approved: 'Tool approved',
+  tool_start: 'Tool execution started',
+  tool_end: 'Tool finished',
+  agent_end: 'Agent finished'
+}
+
+function getStepLabel(step: TraceStep): string {
+  return step.toolUseReasoningSummary ?? STEP_TYPE_LABELS[step.type] ?? step.type
+}
+
+const REASONING_PREVIEW_LENGTH = 120
+
+const TraceStepsSection: FC<{
+  steps: TraceStep[]
+  blockKey: string
+  stepsPanelOpen: Record<string, boolean>
+  setStepsPanelOpen: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+  expandedStepIds: Set<string>
+  setExpandedStepIds: React.Dispatch<React.SetStateAction<Set<string>>>
+}> = ({ steps, blockKey, stepsPanelOpen, setStepsPanelOpen, expandedStepIds, setExpandedStepIds }) => {
+  const isOpen = stepsPanelOpen[blockKey] ?? false
+  const togglePanel = () => setStepsPanelOpen(prev => ({ ...prev, [blockKey]: !prev[blockKey] }))
+  const toggleStep = (id: string) => setExpandedStepIds(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
+  })
+
+  // Auto-expand steps that have thinking/reasoning when the panel is opened so users can inspect them
+  useEffect(() => {
+    if (isOpen && steps.length > 0) {
+      const idsWithReasoning = steps.filter(s => s.toolUseReasoning).map(s => s.id)
+      if (idsWithReasoning.length > 0) {
+        setExpandedStepIds(prev => {
+          const next = new Set(prev)
+          idsWithReasoning.forEach(id => next.add(id))
+          return next
+        })
+      }
+    }
+  }, [isOpen, blockKey]) // eslint-disable-line react-hooks/exhaustive-deps -- only when panel opens for this block
+
+  return (
+    <div style={{ width: '100%', marginTop: '8px' }}>
+      <button
+        type="button"
+        onClick={togglePanel}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 10px',
+          fontSize: '13px',
+          color: '#0369a1',
+          background: 'rgba(6, 182, 212, 0.08)',
+          border: '1px solid rgba(6, 182, 212, 0.3)',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontFamily: 'inherit'
+        }}
+      >
+        <span style={{ transform: isOpen ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▶</span>
+        <span>Steps & reasoning ({steps.length})</span>
+      </button>
+      {isOpen && (
+        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {steps.map((step) => {
+            const isStepExpanded = expandedStepIds.has(step.id)
+            const label = getStepLabel(step)
+            const hasReasoning = !!step.toolUseReasoning
+            const hasParamsOrResult = !!((step.toolParameters && Object.keys(step.toolParameters).length > 0) || step.toolExecutionResult !== undefined)
+            const hasDetails = hasReasoning || hasParamsOrResult
+            const reasoningPreview = hasReasoning && step.toolUseReasoning
+              ? (step.toolUseReasoning.length <= REASONING_PREVIEW_LENGTH
+                  ? step.toolUseReasoning
+                  : step.toolUseReasoning.slice(0, REASONING_PREVIEW_LENGTH) + '…')
+              : null
+            return (
+              <div
+                key={step.id}
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  fontSize: '13px',
+                  background: '#fafafa'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => hasDetails && toggleStep(step.id)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
+                    gap: '4px',
+                    padding: '8px 12px',
+                    textAlign: 'left',
+                    border: 'none',
+                    background: 'none',
+                    cursor: hasDetails ? 'pointer' : 'default',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ transform: isStepExpanded ? 'rotate(90deg)' : 'none', display: hasDetails ? 'inline-block' : 'none', transition: 'transform 0.15s', color: '#6b7280' }}>▶</span>
+                    <span style={{ color: '#6b7280', flexShrink: 0 }}>{step.type}</span>
+                    <span style={{ color: '#111', flex: 1 }}>{label}</span>
+                  </div>
+                  {reasoningPreview && (
+                    <div style={{ paddingLeft: hasDetails ? '24px' : 0, fontSize: '12px', color: '#4b5563', lineHeight: 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      <span style={{ fontWeight: 600, color: '#6b7280' }}>Thinking: </span>
+                      {reasoningPreview}
+                    </div>
+                  )}
+                </button>
+                {isStepExpanded && hasDetails && (
+                  <div style={{ padding: '10px 12px 12px 28px', borderTop: '1px solid #e5e7eb', color: '#374151' }}>
+                    {step.toolUseReasoning && (
+                      <div style={{ marginBottom: hasParamsOrResult ? '12px' : 0 }}>
+                        <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '12px', color: '#6b7280' }}>Thinking / reasoning</div>
+                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>{step.toolUseReasoning}</div>
+                      </div>
+                    )}
+                    {step.toolParameters && Object.keys(step.toolParameters).length > 0 && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '12px', color: '#6b7280' }}>Parameters</div>
+                        <pre style={{ margin: 0, fontSize: '12px', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(step.toolParameters, null, 2)}</pre>
+                      </div>
+                    )}
+                    {step.toolExecutionResult !== undefined && (
+                      <div>
+                        <div style={{ fontWeight: 600, marginBottom: '4px', fontSize: '12px', color: '#6b7280' }}>Result</div>
+                        <pre style={{ margin: 0, fontSize: '12px', overflow: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{typeof step.toolExecutionResult === 'object' ? JSON.stringify(step.toolExecutionResult, null, 2) : String(step.toolExecutionResult)}</pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export const MessageList: FC<MessageListProps> = ({
@@ -29,6 +177,8 @@ export const MessageList: FC<MessageListProps> = ({
   hideWidgetFooter = false
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [stepsPanelOpen, setStepsPanelOpen] = useState<Record<string, boolean>>({})
+  const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set())
 
   // Filter out hidden messages for display
   const visibleMessages = messages.filter(message => !message.hidden)
@@ -60,9 +210,10 @@ export const MessageList: FC<MessageListProps> = ({
     }
   })
   
-  // Don't forget the last block if it exists
-  if (currentBlock !== null && currentBlock.length > 0) {
-    groupedMessages.push({ messages: currentBlock, isBlock: true })
+  // Don't forget the last block if it exists (type assertion: forEach mutates currentBlock so TS doesn't narrow after loop)
+  const lastBlock = currentBlock as Message[] | null
+  if (lastBlock && lastBlock.length > 0) {
+    groupedMessages.push({ messages: lastBlock, isBlock: true })
   }
 
   // Scroll to bottom when messages change or loading state changes
@@ -108,9 +259,12 @@ export const MessageList: FC<MessageListProps> = ({
           {groupedMessages.map((group, groupIndex) => {
             if (group.isBlock) {
               // Render widgets in a block together
+              const blockKey = `block-${group.messages[0]?.blockId ?? groupIndex}`
+              const traceSteps = group.messages[0]?.traceSteps
+              const hasTraceSteps = traceSteps && traceSteps.length > 0
               return (
                 <div
-                  key={`block-${group.messages[0]?.blockId || groupIndex}`}
+                  key={blockKey}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -121,9 +275,9 @@ export const MessageList: FC<MessageListProps> = ({
                 >
                   {group.messages.map((message, msgIndex) => {
                     const originalIndex = visibleMessages.indexOf(message)
-                      return (
+                    return (
                       <MessageItem
-                        key={`block-${group.messages[0]?.blockId || groupIndex}-${msgIndex}`}
+                        key={`${blockKey}-${msgIndex}`}
                         message={message}
                         messageIndex={originalIndex}
                         onWidgetCallback={onWidgetCallback}
@@ -133,6 +287,16 @@ export const MessageList: FC<MessageListProps> = ({
                       />
                     )
                   })}
+                  {hasTraceSteps && (
+                    <TraceStepsSection
+                      steps={traceSteps}
+                      blockKey={blockKey}
+                      stepsPanelOpen={stepsPanelOpen}
+                      setStepsPanelOpen={setStepsPanelOpen}
+                      expandedStepIds={expandedStepIds}
+                      setExpandedStepIds={setExpandedStepIds}
+                    />
+                  )}
                 </div>
               )
             } else {

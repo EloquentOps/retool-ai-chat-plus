@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { type FC } from 'react'
+import type { MessageWithTrace } from '../types/message'
 import { MessageList } from './MessageList'
 import { MentionsInputBar } from './MentionsInputBar'
 import { ErrorMessage } from './ErrorMessage'
@@ -7,14 +8,7 @@ import { RightPanel } from './RightPanel'
 import packageJson from '../../package.json'
 
 interface ChatContainerProps {
-  messages: Array<{
-    role: 'user' | 'assistant'
-    content: string | { type: string; source?: string; [key: string]: unknown }
-    hidden?: boolean // Optional flag to hide messages from display
-    blockId?: number // ID of the block this message belongs to
-    blockIndex?: number // Index within the block (0-based)
-    blockTotal?: number // Total widgets in the block
-  }>
+  messages: Array<MessageWithTrace>
   onSubmitQuery: (message: string) => void
   isLoading: boolean
   onWidgetCallback?: (payload: Record<string, unknown>) => void
@@ -39,7 +33,7 @@ interface ChatContainerProps {
   componentPreferences?: Record<string, unknown>
   fillInput?: string
   onFillApplied?: () => void
-  onHistoryUpdate?: (updatedHistory: Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>) => void
+  onHistoryUpdate?: (updatedHistory: Array<MessageWithTrace>) => void
 }
 
 interface PinnedWidget {

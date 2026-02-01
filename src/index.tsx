@@ -5,7 +5,34 @@ import { Retool } from '@tryretool/custom-component-support'
 import { ChatContainer } from './components'
 import { ApprovalModal } from './components/ApprovalModal'
 import { getWidgetInstructionsForTypes, WIDGET_REGISTRY, GlobalAssets } from './components/widgets'
+import type { TraceStep } from './types/message'
 import { preprocessCanvasWidgetHtml } from './utils/widgetUtils'
+
+/** Map agent trace spans to normalized steps for listing/inspecting intermediate actions. */
+function parseTraceToSteps(trace: unknown[]): TraceStep[] {
+  return trace.map((span: unknown) => {
+    const s = span as Record<string, unknown>
+    const spanType = (s.spanType as string) || ''
+    const type = spanType.toLowerCase()
+    const step: TraceStep = {
+      type,
+      id: (s.id as string) || '',
+      timestamp: typeof s.timestamp === 'number' ? s.timestamp : undefined,
+      iteration: typeof s.iteration === 'number' ? s.iteration : undefined
+    }
+    const toolData = s.toolData as Record<string, unknown> | undefined
+    if (toolData) {
+      step.toolName = toolData.toolName as string | undefined
+      step.toolUseReasoning = toolData.toolUseReasoning as string | undefined
+      step.toolUseReasoningSummary = toolData.toolUseReasoningSummary as string | undefined
+      step.toolParameters = toolData.toolParameters as Record<string, unknown> | undefined
+      if (spanType === 'TOOL_END' && 'toolExecutionResult' in s) {
+        step.toolExecutionResult = (s as Record<string, unknown>).toolExecutionResult
+      }
+    }
+    return step
+  })
+}
 
 export const AiChatPlus: FC = () => {
   // Add state for welcome message
@@ -800,6 +827,12 @@ export const AiChatPlus: FC = () => {
           blockTotal: widgetArray.length
         }))
 
+        // Attach trace steps to first message of block (from agent getLogs trace)
+        if (queryResponse.trace && Array.isArray(queryResponse.trace) && queryResponse.trace.length > 0 && assistantMessages.length > 0) {
+          const steps = parseTraceToSteps(queryResponse.trace as unknown[])
+          ;(assistantMessages[0] as { traceSteps?: TraceStep[] }).traceSteps = steps
+        }
+
         console.log('Agent completed with widgets array:', widgetArray)
         console.log('assistantMessages:', assistantMessages)
 
@@ -810,12 +843,12 @@ export const AiChatPlus: FC = () => {
         _setHistory(updatedHistoryWithResponse as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         historyRef.current = updatedHistoryWithResponse as any
-        
+
         // Fire lastResponse event
         fireLastResponseEvent(assistantMessages)
         return
       }
-      
+
       // Fallback: If no widgets property, try to parse content/resultText as array or single object
       if (aiResponse) {
         let widgetArray: Array<{ type: string; source?: string; [key: string]: unknown }>
@@ -866,6 +899,12 @@ export const AiChatPlus: FC = () => {
           blockTotal: widgetArray.length
         }))
 
+        // Attach trace steps to first message of block (from agent getLogs trace)
+        if (queryResponse.trace && Array.isArray(queryResponse.trace) && queryResponse.trace.length > 0 && assistantMessages.length > 0) {
+          const steps = parseTraceToSteps(queryResponse.trace as unknown[])
+          ;(assistantMessages[0] as { traceSteps?: TraceStep[] }).traceSteps = steps
+        }
+
         console.log('parsedContent (array):', widgetArray)
         console.log('assistantMessages:', assistantMessages)
 
@@ -876,7 +915,7 @@ export const AiChatPlus: FC = () => {
         _setHistory(updatedHistoryWithResponse as any)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         historyRef.current = updatedHistoryWithResponse as any
-        
+
         // Fire lastResponse event
         fireLastResponseEvent(assistantMessages)
       }
