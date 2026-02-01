@@ -12,6 +12,8 @@ interface MessageListProps {
   widgetsOptions?: Record<string, any>
   lockUI?: boolean
   hideWidgetFooter?: boolean
+  /** When true, show Steps & reasoning inspector below assistant blocks that have trace. Default false. */
+  showTraceSteps?: boolean
 }
 
 const STEP_TYPE_LABELS: Record<string, string> = {
@@ -174,7 +176,8 @@ export const MessageList: FC<MessageListProps> = ({
   onWidgetCallback,
   widgetsOptions,
   lockUI = false,
-  hideWidgetFooter = false
+  hideWidgetFooter = false,
+  showTraceSteps = false
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [stepsPanelOpen, setStepsPanelOpen] = useState<Record<string, boolean>>({})
@@ -287,7 +290,7 @@ export const MessageList: FC<MessageListProps> = ({
                       />
                     )
                   })}
-                  {hasTraceSteps && (
+                  {showTraceSteps && hasTraceSteps && (
                     <TraceStepsSection
                       steps={traceSteps}
                       blockKey={blockKey}

@@ -77,6 +77,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   const isBorderHidden = wrapperBorder === 'hidden'
   const lockUI = componentPreferences.lockUI === true // Default to false if not set
   const hideWidgetFooter = componentPreferences.hideWidgetFooter === true // Default to false if not set
+  const showTraceSteps = componentPreferences.showTraceSteps === true // Default to false: enable Steps & reasoning inspector
 
   // Function to update history with pinned state changes
   const updateHistoryWithPinnedState = (historyIndex: number, pinned: boolean) => {
@@ -388,7 +389,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 height: '100%',
                 overflow: 'hidden'
               }}>
-                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
+                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
                 <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
               </div>
               
@@ -407,7 +408,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
           ) : (
             // Full width layout when no widget is pinned
             <>
-              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
+              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
               <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
             </>
           )}
