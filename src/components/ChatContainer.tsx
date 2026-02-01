@@ -30,6 +30,7 @@ interface ChatContainerProps {
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
   sourcesOptions?: Array<{ id?: string; label: string; content?: string }>
+  commandOptions?: Array<{ id: string; label: string }>
   welcomeMessage?: string
   error?: string | null
   onRetry?: () => void
@@ -59,6 +60,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   widgetsOptions,
   tools,
   sourcesOptions,
+  commandOptions,
   welcomeMessage,
   error,
   onRetry,
@@ -271,6 +273,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               widgetsOptions={widgetsOptions}
               tools={tools}
               sourcesOptions={sourcesOptions}
+              commandOptions={commandOptions}
               placeholder={placeholder}
               lockUI={lockUI}
               fillInput={fillInput}
@@ -392,7 +395,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 overflow: 'hidden'
               }}>
                 <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
-                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
               </div>
               
               {/* Right panel - Pinned widgets with tabs */}
@@ -411,7 +414,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             // Full width layout when no widget is pinned
             <>
               <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} />
-              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
             </>
           )}
         </>

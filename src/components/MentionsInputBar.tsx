@@ -12,6 +12,7 @@ interface MentionsInputBarProps {
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
   sourcesOptions?: Array<{ id?: string; label: string; content?: string }>
+  commandOptions?: Array<{ id: string; label: string }>
   placeholder?: string
   lockUI?: boolean
   fillInput?: string
@@ -31,6 +32,10 @@ interface SourceData {
   content?: string
 }
 
+interface CommandData {
+  id: string
+  display: string
+}
 
 export const MentionsInputBar: FC<MentionsInputBarProps> = ({ 
   onSubmitQuery, 
@@ -40,7 +45,8 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
   widgetsOptions,
   tools,
   sourcesOptions,
-  placeholder = "Type your message... (use @ for widgets, # for sources)",
+  commandOptions,
+  placeholder = "Type your message... (use @ for widgets, # for sources, / for commands)",
   lockUI = false,
   fillInput,
   onFillApplied
@@ -170,6 +176,17 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
         }
       })
   }, [sourcesOptions])
+
+  // Convert commandOptions to react-mentions format with useMemo
+  const commandData: CommandData[] = useMemo(() => {
+    if (!commandOptions || commandOptions.length === 0) {
+      return []
+    }
+    return commandOptions.map(cmd => ({
+      id: cmd.id,
+      display: cmd.label
+    }))
+  }, [commandOptions])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -322,6 +339,13 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
                 fontWeight: '600',
                 padding: '1px 2px',
                 borderRadius: '3px'
+              },
+              'mention--slash': {
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                color: '#10B981',
+                fontWeight: '600',
+                padding: '1px 2px',
+                borderRadius: '3px'
               }
             }}
           >
@@ -419,6 +443,40 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
                         {entry.content}
                       </div>
                     )}
+                  </div>
+                )}
+              />
+            )}
+            {commandData.length > 0 && (
+              <Mention
+                trigger="/"
+                data={commandData}
+                displayTransform={(id: string, display: string) => `/${display}`}
+                markup="/[__display__](__id__)"
+                appendSpaceOnAdd={true}
+                renderSuggestion={(entry: CommandData, _search: string, _highlightedDisplay: string, _index: number, _focused: boolean) => (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 0'
+                  }}>
+                    <span style={{
+                      fontWeight: '600',
+                      color: '#10B981',
+                      fontSize: '14px'
+                    }}>
+                      /{entry.display}
+                    </span>
+                    <span style={{
+                      fontSize: '12px',
+                      color: '#666',
+                      backgroundColor: '#f5f5f5',
+                      padding: '2px 6px',
+                      borderRadius: '4px'
+                    }}>
+                      {entry.id}
+                    </span>
                   </div>
                 )}
               />

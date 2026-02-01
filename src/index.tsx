@@ -47,6 +47,12 @@ export const AiChatPlus: FC = () => {
     initialValue: []
   })
 
+  // Add state for command options
+  const [commandOptions, _setCommandOptions] = Retool.useStateArray({
+    name: 'commandOptions',
+    initialValue: []
+  })
+
   // Add state for input placeholder
   const [placeholder, _setPlaceholder] = Retool.useStateString({
     name: 'placeholder',
@@ -995,6 +1001,20 @@ export const AiChatPlus: FC = () => {
     return sources
   }
 
+  // Function to extract command mentions from a message
+  const extractCommandMentions = (message: string): Array<{ id: string; label: string }> => {
+    const commandRegex = /\/\[([^\]]+)\]\(([^)]+)\)/g
+    const commands: Array<{ id: string; label: string }> = []
+    let match
+
+    while ((match = commandRegex.exec(message)) !== null) {
+      const label = match[1]
+      const id = match[2]
+      commands.push({ id, label })
+    }
+
+    return commands
+  }
 
   // Function to normalize message content for agent input
   // Handles both string content and widget objects
@@ -1093,6 +1113,12 @@ ${mentionedSources.map(source => {
       }).join('\n')}
 </EXPLICT_DATA_SOURCES_INCLUDED>`
       : ''
+
+    // Extract command mentions and build COMMAND_REQUESTED tag if any
+    const mentionedCommands = extractCommandMentions(message)
+    const commandRequestedTag = mentionedCommands.length > 0
+      ? `\n\n<COMMAND_REQUESTED>\n${mentionedCommands.map(cmd => `- id: ${cmd.id}, label: ${cmd.label}`).join('\n')}\n</COMMAND_REQUESTED>`
+      : ''
     
     const instructionMessage = {
       role: 'assistant' as const,
@@ -1126,7 +1152,7 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>` + dataSourcesTag
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>` + dataSourcesTag + commandRequestedTag
     }
     
     messages.push(instructionMessage)
@@ -1198,6 +1224,12 @@ ${mentionedSources.map(source => {
       }).join('\n')}
 </EXPLICT_DATA_SOURCES_INCLUDED>`
       : ''
+
+    // Extract command mentions and build COMMAND_REQUESTED tag if any
+    const mentionedCommands = extractCommandMentions(message)
+    const commandRequestedTag = mentionedCommands.length > 0
+      ? `\n\n<COMMAND_REQUESTED>\n${mentionedCommands.map(cmd => `- id: ${cmd.id}, label: ${cmd.label}`).join('\n')}\n</COMMAND_REQUESTED>`
+      : ''
     
     const instructionMessage = {
       role: 'assistant' as const,
@@ -1231,7 +1263,7 @@ If in the user question is present one of the available widget as mentioned TAG,
 then the type should be the widget type, (i.e. google_map).
 Otherwise, the type should be always "text".
 
-</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>` + dataSourcesTag
+</TECHNICAL_INSTRUCTIONS_FOR_RESPONSE_FORMAT>` + dataSourcesTag + commandRequestedTag
     }
     
     messages.push(instructionMessage)
@@ -1521,6 +1553,7 @@ Otherwise, the type should be always "text".
           widgetsOptions={widgetsOptions as Record<string, unknown>}
           tools={tools as Record<string, { tool: string; description: string }>}
           sourcesOptions={sourcesOptions as Array<{ id?: string; label: string; content?: string }>}
+          commandOptions={commandOptions as Array<{ id: string; label: string }>}
           welcomeMessage={welcomeMessage}
           error={error}
           onRetry={retryPolling}

@@ -3,10 +3,11 @@ import { type FC } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { TextWidget, renderWidget } from './widgets'
 
-// Regex to match @[display](id) and #[display](id) for splitting
-const MENTION_SPLIT_REGEX = /(@\[[^\]]+\]\([^)]+\)|#\[[^\]]+\]\([^)]+\))/g
+// Regex to match @[display](id), #[display](id), and /[display](id) for splitting
+const MENTION_SPLIT_REGEX = /(@\[[^\]]+\]\([^)]+\)|#\[[^\]]+\]\([^)]+\)|\/\[[^\]]+\]\([^)]+\))/g
 const AT_MENTION_REGEX = /^@\[([^\]]+)\]\([^)]+\)$/
 const HASH_MENTION_REGEX = /^#\[([^\]]+)\]\([^)]+\)$/
+const SLASH_MENTION_REGEX = /^\/\[([^\]]+)\]\([^)]+\)$/
 
 const PILL_AT_STYLE: React.CSSProperties = {
   backgroundColor: 'rgba(49, 112, 249, 0.14)',
@@ -29,6 +30,18 @@ const PILL_HASH_STYLE: React.CSSProperties = {
   marginRight: '4px',
   borderRadius: '9999px',
   border: '1px solid rgba(109, 40, 217, 0.4)',
+  display: 'inline'
+}
+
+const PILL_SLASH_STYLE: React.CSSProperties = {
+  backgroundColor: 'rgba(16, 185, 129, 0.14)',
+  color: '#059669',
+  fontWeight: 600,
+  padding: '2px 8px',
+  marginLeft: '4px',
+  marginRight: '4px',
+  borderRadius: '9999px',
+  border: '1px solid rgba(5, 150, 105, 0.4)',
   display: 'inline'
 }
 
@@ -56,6 +69,14 @@ function renderUserMessageContent(content: string): React.ReactNode {
           return (
             <span key={i} style={PILL_HASH_STYLE}>
               #{hashMatch[1]}
+            </span>
+          )
+        }
+        const slashMatch = segment.match(SLASH_MENTION_REGEX)
+        if (slashMatch) {
+          return (
+            <span key={i} style={PILL_SLASH_STYLE}>
+              /{slashMatch[1]}
             </span>
           )
         }
