@@ -1018,13 +1018,10 @@ export const AiChatPlus: FC = () => {
         
         let sourceType: SourceType
         if (hasId) {
-          // Has id → tool-based (id takes precedence even if content exists)
           sourceType = 'tool'
         } else if (hasContent) {
-          // Has content but no id → direct context
           sourceType = 'context'
         } else {
-          // Invalid: neither id nor content, skip
           continue
         }
         
@@ -1034,6 +1031,9 @@ export const AiChatPlus: FC = () => {
           content: sourceOption.content,
           type: sourceType
         })
+      } else {
+        // Mention in message but not in sourcesOptions: still emit so EXPLICT_DATA_SOURCES_INCLUDED is added
+        sources.push({ id, label, type: 'tool' })
       }
     }
     
