@@ -1140,9 +1140,6 @@ export const AiChatPlus: FC = () => {
     const mentionedSources = extractSourceMentions(message)
     const dataSourcesTag = mentionedSources.length > 0
       ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>
-For entries with type: tool - Use a tool to retrieve context using the id.
-For entries with type: context - Use the provided content directly as context.
-
 ${mentionedSources.map(source => {
         if (source.type === 'tool') {
           return `- type: tool, id: ${source.id}, label: ${source.label}`
@@ -1251,9 +1248,6 @@ Otherwise, the type should be always "text".
     const mentionedSources = extractSourceMentions(message)
     const dataSourcesTag = mentionedSources.length > 0
       ? `\n\n<EXPLICT_DATA_SOURCES_INCLUDED>
-For entries with type: tool - Use a tool to retrieve context using the id.
-For entries with type: context - Use the provided content directly as context.
-
 ${mentionedSources.map(source => {
         if (source.type === 'tool') {
           return `- type: tool, id: ${source.id}, label: ${source.label}`

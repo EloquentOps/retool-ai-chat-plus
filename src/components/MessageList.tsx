@@ -50,20 +50,6 @@ const TraceStepsSection: FC<{
     return next
   })
 
-  // Auto-expand steps that have thinking/reasoning when the panel is opened so users can inspect them
-  useEffect(() => {
-    if (isOpen && steps.length > 0) {
-      const idsWithReasoning = steps.filter(s => s.toolUseReasoning).map(s => s.id)
-      if (idsWithReasoning.length > 0) {
-        setExpandedStepIds(prev => {
-          const next = new Set(prev)
-          idsWithReasoning.forEach(id => next.add(id))
-          return next
-        })
-      }
-    }
-  }, [isOpen, blockKey]) // eslint-disable-line react-hooks/exhaustive-deps -- only when panel opens for this block
-
   return (
     <div style={{ width: '100%', marginTop: '8px' }}>
       <button
