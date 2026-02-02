@@ -680,18 +680,31 @@ export const AiChatPlus: FC = () => {
     }
 
     // Extract latest thinking summary from trace for progress feedback during polling
-    if (queryResponse.trace && Array.isArray(queryResponse.trace) && isLoading) {
+    // This should run for IN_PROGRESS, PAUSED_WAITING_FOR_APPROVAL, and any response with trace during active polling
+    const isPollingActive = isLoading || queryResponse.status === 'IN_PROGRESS' || currentAgentRunIdRef.current !== null
+    if (queryResponse.trace && Array.isArray(queryResponse.trace) && isPollingActive) {
       const traceArray = queryResponse.trace as unknown[]
       // Find the most recent span with toolData that has toolUseReasoningSummary
       // Iterate backwards to get the latest one
       for (let i = traceArray.length - 1; i >= 0; i--) {
         const span = traceArray[i] as Record<string, unknown>
         const toolData = span.toolData as Record<string, unknown> | undefined
-        if (toolData?.toolUseReasoningSummary && typeof toolData.toolUseReasoningSummary === 'string') {
-          setCurrentThinkingSummary(toolData.toolUseReasoningSummary as string)
-          break // Found the latest one, stop searching
+        if (toolData) {
+          // Prefer toolUseReasoningSummary, fallback to first 50 chars of toolUseReasoning if summary not available
+          if (toolData.toolUseReasoningSummary && typeof toolData.toolUseReasoningSummary === 'string') {
+            setCurrentThinkingSummary(toolData.toolUseReasoningSummary as string)
+            break
+          } else if (toolData.toolUseReasoning && typeof toolData.toolUseReasoning === 'string') {
+            // Fallback: use first part of full reasoning if summary not available
+            const reasoning = toolData.toolUseReasoning as string
+            const preview = reasoning.length > 50 ? reasoning.slice(0, 50) + '...' : reasoning
+            setCurrentThinkingSummary(preview)
+            break
+          }
         }
       }
+      // If no summary found in trace, keep previous summary (don't clear it)
+      // Only clear when polling stops or completes
     }
 
     // Handle error responses
