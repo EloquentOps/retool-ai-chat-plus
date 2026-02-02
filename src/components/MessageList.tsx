@@ -8,6 +8,7 @@ interface Message extends MessageWithTrace {}
 interface MessageListProps {
   messages: Message[]
   isLoading: boolean
+  currentThinkingSummary?: string | null
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, any>
   lockUI?: boolean
@@ -159,6 +160,7 @@ const TraceStepsSection: FC<{
 export const MessageList: FC<MessageListProps> = ({
   messages,
   isLoading,
+  currentThinkingSummary,
   onWidgetCallback,
   widgetsOptions,
   lockUI = false,
@@ -327,7 +329,7 @@ export const MessageList: FC<MessageListProps> = ({
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite'
                 }} />
-                Thinking...
+                {currentThinkingSummary || 'Thinking'}
               </div>
             </div>
           )}

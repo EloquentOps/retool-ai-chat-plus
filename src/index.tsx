@@ -155,6 +155,7 @@ export const AiChatPlus: FC = () => {
   // Local state for loading, error, and current agentRunId
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentThinkingSummary, setCurrentThinkingSummary] = useState<string | null>(null)
   const [showApprovalModal, setShowApprovalModal] = useState(false)
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null)
   const [toolInfo, setToolInfo] = useState<{
@@ -430,6 +431,7 @@ export const AiChatPlus: FC = () => {
     currentAgentIdRef.current = agentId
     setIsLoading(true)
     setError(null) // Clear any previous errors
+    setCurrentThinkingSummary(null) // Reset thinking summary for new run
     // Reset deduplication tracking for new run
     seenToolExecutionIdsRef.current.clear()
     lastLogUUIDRef.current = null
@@ -510,6 +512,7 @@ export const AiChatPlus: FC = () => {
     }
     //currentAgentRunIdRef.current = null
     setIsLoading(false)
+    setCurrentThinkingSummary(null) // Clear thinking summary when polling stops
     console.log('Loading state set to false')
   }
 
@@ -676,6 +679,21 @@ export const AiChatPlus: FC = () => {
       }
     }
 
+    // Extract latest thinking summary from trace for progress feedback during polling
+    if (queryResponse.trace && Array.isArray(queryResponse.trace) && isLoading) {
+      const traceArray = queryResponse.trace as unknown[]
+      // Find the most recent span with toolData that has toolUseReasoningSummary
+      // Iterate backwards to get the latest one
+      for (let i = traceArray.length - 1; i >= 0; i--) {
+        const span = traceArray[i] as Record<string, unknown>
+        const toolData = span.toolData as Record<string, unknown> | undefined
+        if (toolData?.toolUseReasoningSummary && typeof toolData.toolUseReasoningSummary === 'string') {
+          setCurrentThinkingSummary(toolData.toolUseReasoningSummary as string)
+          break // Found the latest one, stop searching
+        }
+      }
+    }
+
     // Handle error responses
     if (queryResponse.status === 'ERROR' || queryResponse.error) {
       let errorMessage = 'An error occurred while processing your request'
@@ -789,6 +807,7 @@ export const AiChatPlus: FC = () => {
     if (queryResponse.status === 'COMPLETED' && isLoading) {
       stopPolling()
       setError(null) // Clear any errors on successful completion
+      setCurrentThinkingSummary(null) // Clear thinking summary when completed
       
       // First, try to parse resultText/content if they are JSON strings
       let parsedResponse = queryResponse
@@ -1579,6 +1598,7 @@ Otherwise, the type should be always "text".
           messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
           onSubmitQuery={onSubmitQueryCallback}
           isLoading={isLoading}
+          currentThinkingSummary={currentThinkingSummary}
           onWidgetCallback={onWidgetCallbackHandler}
           onStop={stopPolling}
           promptChips={promptChips as Array<{ icon: string; label: string; question?: string; payload?: Record<string, unknown> }>}

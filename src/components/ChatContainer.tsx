@@ -11,6 +11,7 @@ interface ChatContainerProps {
   messages: Array<MessageWithTrace>
   onSubmitQuery: (message: string) => void
   isLoading: boolean
+  currentThinkingSummary?: string | null
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   onStop?: () => void
   promptChips?: Array<{
@@ -46,6 +47,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   messages,
   onSubmitQuery,
   isLoading,
+  currentThinkingSummary,
   onWidgetCallback,
   onStop,
   promptChips = [],
@@ -389,7 +391,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 height: '100%',
                 overflow: 'hidden'
               }}>
-                <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
+                <MessageList messages={messages} isLoading={isLoading} currentThinkingSummary={currentThinkingSummary} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
                 <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
               </div>
               
