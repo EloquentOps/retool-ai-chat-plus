@@ -2,6 +2,7 @@
   "$schema": "./schemas/plugin-config.schema.json",
   
   "external": [
+    "app",
     "canvas",
     "chart",
     "checklist",
