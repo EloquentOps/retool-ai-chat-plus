@@ -11,6 +11,8 @@ interface ChatContainerProps {
   messages: Array<MessageWithTrace>
   onSubmitQuery: (message: string) => void
   isLoading: boolean
+  asyncMode?: boolean
+  sessionAsyncLoading?: boolean
   currentThinkingSummary?: string | null
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   onStop?: () => void
@@ -47,6 +49,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   messages,
   onSubmitQuery,
   isLoading,
+  asyncMode = false,
+  sessionAsyncLoading = false,
   currentThinkingSummary,
   onWidgetCallback,
   onStop,
@@ -67,19 +71,21 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   onFillApplied,
   onHistoryUpdate
 }) => {
-  const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
-  const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && hasWelcomeContent
-
-  // State for pinned widgets in right panel (array to support multiple)
-  const [pinnedWidgets, setPinnedWidgets] = useState<PinnedWidget[]>([])
-  const [activePinnedTab, setActivePinnedTab] = useState<number>(0)
-
-  // Extract preferences from componentPreferences
+  // Extract preferences from componentPreferences (must be before effectiveLockUI)
   const wrapperBorder = componentPreferences.wrapperBorder
   const isBorderHidden = wrapperBorder === 'hidden'
   const lockUI = componentPreferences.lockUI === true // Default to false if not set
   const hideWidgetFooter = componentPreferences.hideWidgetFooter === true // Default to false if not set
-  const showTraceSteps = componentPreferences.showTraceSteps === true // Default to false: enable Steps & reasoning inspector
+  const showTraceSteps = !asyncMode && componentPreferences.showTraceSteps === true // Disabled in async mode; default false
+
+  const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
+  const isSessionLoading = asyncMode && sessionAsyncLoading
+  const isEmpty = messages.filter(message => !message.hidden).length === 0 && !isLoading && !isSessionLoading && hasWelcomeContent
+  const effectiveLockUI = lockUI || isSessionLoading
+
+  // State for pinned widgets in right panel (array to support multiple)
+  const [pinnedWidgets, setPinnedWidgets] = useState<PinnedWidget[]>([])
+  const [activePinnedTab, setActivePinnedTab] = useState<number>(0)
 
   // Function to update history with pinned state changes
   const updateHistoryWithPinnedState = (historyIndex: number, pinned: boolean) => {
@@ -234,6 +240,35 @@ export const ChatContainer: FC<ChatContainerProps> = ({
       overflow: 'hidden',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
+      {/* Session loading banner - always at top, visible when user submits from any input bar */}
+      {isSessionLoading && (
+        <>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        <div style={{
+          flexShrink: 0,
+          padding: '12px 16px',
+          backgroundColor: '#e0f2fe',
+          borderBottom: '1px solid #bae6fd',
+          fontSize: '14px',
+          color: '#0369a1',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        }}>
+          <div style={{
+            width: '16px',
+            height: '16px',
+            border: '2px solid #bae6fd',
+            borderTop: '2px solid #0369a1',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          Session is in progress
+        </div>
+        </>
+      )}
       {isEmpty ? (
         // Empty state with centered input
         <div style={{
@@ -241,7 +276,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100%',
+          flex: 1,
           padding: '40px 20px',
           gap: '40px',
           position: 'relative'
@@ -264,15 +299,15 @@ export const ChatContainer: FC<ChatContainerProps> = ({
           <div style={{ width: '100%', maxWidth: '720px' }}>
             <MentionsInputBar 
               onSubmitQuery={onSubmitQuery} 
-              isLoading={isLoading} 
-              onStop={onStop} 
+              isLoading={asyncMode ? false : isLoading} 
+              onStop={asyncMode ? undefined : onStop} 
               isCentered={true}
               widgetsOptions={widgetsOptions}
               tools={tools}
               sourcesOptions={sourcesOptions}
               commandOptions={commandOptions}
               placeholder={placeholder}
-              lockUI={lockUI}
+              lockUI={effectiveLockUI}
               fillInput={fillInput}
               onFillApplied={onFillApplied}
             />
@@ -289,7 +324,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             }}>
               {promptChips.map((chip, index) => {
                 const handleChipClick = () => {
-                  if (lockUI) {
+                  if (effectiveLockUI) {
                     return // Don't execute if UI is locked
                   }
                   if (chip.payload !== undefined) {
@@ -310,7 +345,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                   <button
                     key={index}
                     onClick={handleChipClick}
-                    disabled={lockUI}
+                    disabled={effectiveLockUI}
                     style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -321,19 +356,19 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                     borderRadius: '24px',
                     fontSize: '14px',
                     color: '#374151',
-                    cursor: lockUI ? 'not-allowed' : 'pointer',
+                    cursor: effectiveLockUI ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
                     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    opacity: lockUI ? 0.6 : 1
+                    opacity: effectiveLockUI ? 0.6 : 1
                   }}
                   onMouseEnter={(e) => {
-                    if (!lockUI) {
+                    if (!effectiveLockUI) {
                       e.currentTarget.style.backgroundColor = '#f9fafb'
                       e.currentTarget.style.borderColor = '#d1d5db'
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (!lockUI) {
+                    if (!effectiveLockUI) {
                       e.currentTarget.style.backgroundColor = '#ffffff'
                       e.currentTarget.style.borderColor = '#e5e7eb'
                     }
@@ -391,8 +426,8 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 height: '100%',
                 overflow: 'hidden'
               }}>
-                <MessageList messages={messages} isLoading={isLoading} currentThinkingSummary={currentThinkingSummary} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
-                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+                <MessageList messages={messages} isLoading={isLoading} asyncMode={asyncMode} sessionAsyncLoading={sessionAsyncLoading} currentThinkingSummary={currentThinkingSummary} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={effectiveLockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
+                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
               </div>
               
               {/* Right panel - Pinned widgets with tabs */}
@@ -403,15 +438,15 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 onTabClose={handleTabClose}
                 onWidgetCallback={handleWidgetCallback}
                 widgetsOptions={widgetsOptions}
-                lockUI={lockUI}
+                lockUI={effectiveLockUI}
                 hideWidgetFooter={hideWidgetFooter}
               />
             </div>
           ) : (
             // Full width layout when no widget is pinned
             <>
-              <MessageList messages={messages} isLoading={isLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={lockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
-              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={isLoading} onStop={onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={lockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+              <MessageList messages={messages} isLoading={isLoading} asyncMode={asyncMode} sessionAsyncLoading={sessionAsyncLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={effectiveLockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
+              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
             </>
           )}
         </>

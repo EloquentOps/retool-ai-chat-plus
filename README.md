@@ -63,7 +63,7 @@ Find the Chat Plus component in component list and drag it into your Retool app:
 
 ### Configure the query and wire it with the component
 
-There are 2 ways to use the component, depending on your preference and requirements.
+There are 3 ways to use the component, depending on your preference and requirements.
 
  #### AI Query
 
@@ -87,7 +87,18 @@ Check this screenshot for proper configuration given the Chat component name is 
 
 ![retool-agent-query](docs/retool-ai-agent.png)
 
+---
 
+#### Async Mode
+
+Use Async Mode when you want to run a Retool Workflow asynchronously instead of an AI or Agent Query. Set `queryResponse` to `{ asyncMode: true, loadingInProgress: true }` to enable async mode. In this mode:
+
+- When `queryResponse.asyncMode === true`, the component treats it as async mode and ignores `queryResponse.widgets` (no automatic message processing)
+- Use `queryResponse.loadingInProgress` to control the loading state — set it to `true` when the workflow is running, `false` when complete
+- Sessions are loaded via `submitWithPayload` with `action: 'restore'`
+- Wire `firstSubmit` to create a session and trigger your Workflow; wire `submitQuery` to trigger the Workflow for subsequent messages
+- When the workflow completes, update `queryResponse.loadingInProgress` to `false` and restore the session with `submitWithPayload` containing the final messages
+- Trace steps are not supported in async mode
 
 ### Component Properties
 
@@ -186,7 +197,7 @@ The `componentPreferences` object allows you to customize both stylistic and beh
 | `welcomeMessage`    | string | Welcome message displayed when chat is empty. If you leave this empty and you don't set the promptChips, the Welcome view won't be shown. |
 | `widgetsOptions`    | object | Widget configuration options (keys determine enabled widgets, empty = only text widget) to enable the widgets and providing additional configuration per-widget. |
 | `promptChips`       | array  | Suggested action chips in Welcome view. Each chip object can be either: `{label:'', icon:'', question:''}` to submit a pre-configured question, or `{label:'', icon:'', payload:{}}` to trigger `chipCallback` query and access payload via `chipPayload` property |
-| `queryResponse`     | object | AI agent response data, **required**                                       |
+| `queryResponse`     | object | AI agent response data, **required**. For async mode, set to `{ asyncMode: true, loadingInProgress: boolean }` to control async behavior. |
 | `componentPreferences`  | object | Options for component preferences (stylistic and behavioral). See Component Preferences section for details. |
 | `submitWithPayload` | object | Programmatic control: `restore` \| `inject` \| `submit` \| `stop` \| `fill` (see Submit With Payload). |
 
@@ -292,6 +303,8 @@ The variable must follow this schema:
   text: '...'  /* required for fill: pre-fill the input bar without submitting */
 }
 ```
+
+**Note for Async Mode**: When using async mode (`queryResponse.asyncMode === true`), control the loading state via `queryResponse.loadingInProgress` instead of using `asyncLoading` in the restore payload.
 
 **Important Note on Payload Reactivity**: The component only reacts when the `submitWithPayload` object changes. If you need to trigger a reaction with the same payload (e.g., to reset the chat with an empty array), you can add a `timestamp` property to make the payload different:
 

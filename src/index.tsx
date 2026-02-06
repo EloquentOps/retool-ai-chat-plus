@@ -556,8 +556,15 @@ export const AiChatPlus: FC = () => {
     })
   }
 
+  // Check if we're in async mode (detected from queryResponse)
+  const isAsyncMode = queryResponse && typeof queryResponse === 'object' && !Array.isArray(queryResponse) && (queryResponse as { asyncMode?: boolean }).asyncMode === true
+  const asyncLoadingInProgress = queryResponse && typeof queryResponse === 'object' && !Array.isArray(queryResponse) && (queryResponse as { loadingInProgress?: boolean }).loadingInProgress === true
+
   // Monitor queryResponse for status changes using useEffect to prevent infinite loops
   useEffect(() => {
+    // In async mode, skip processing widgets - only use loadingInProgress for loading state
+    if (isAsyncMode) return
+
     console.log('AAA queryResponse changed:', queryResponse)
     
     // Early return if queryResponse is null/undefined/empty
@@ -956,7 +963,7 @@ export const AiChatPlus: FC = () => {
         fireLastResponseEvent(assistantMessages)
       }
     }
-  }, [queryResponse, isLoading]) // Dependencies: only re-run when queryResponse or isLoading changes
+  }, [queryResponse, isLoading, isAsyncMode]) // Dependencies: only re-run when queryResponse or isLoading changes
 
   // Retry function to restart polling
   const retryPolling = () => {
@@ -1611,6 +1618,8 @@ Otherwise, the type should be always "text".
           messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
           onSubmitQuery={onSubmitQueryCallback}
           isLoading={isLoading}
+          asyncMode={isAsyncMode}
+          sessionAsyncLoading={asyncLoadingInProgress}
           currentThinkingSummary={currentThinkingSummary}
           onWidgetCallback={onWidgetCallbackHandler}
           onStop={stopPolling}

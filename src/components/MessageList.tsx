@@ -8,6 +8,8 @@ interface Message extends MessageWithTrace {}
 interface MessageListProps {
   messages: Message[]
   isLoading: boolean
+  asyncMode?: boolean
+  sessionAsyncLoading?: boolean
   currentThinkingSummary?: string | null
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, any>
@@ -160,6 +162,8 @@ const TraceStepsSection: FC<{
 export const MessageList: FC<MessageListProps> = ({
   messages,
   isLoading,
+  asyncMode = false,
+  sessionAsyncLoading = false,
   currentThinkingSummary,
   onWidgetCallback,
   widgetsOptions,
@@ -222,7 +226,7 @@ export const MessageList: FC<MessageListProps> = ({
         block: 'end'
       })
     }
-  }, [visibleMessages.length, lastVisibleMessageContent, isLoading])
+  }, [visibleMessages.length, lastVisibleMessageContent, isLoading, sessionAsyncLoading])
 
   return (
     <div style={{
@@ -234,7 +238,7 @@ export const MessageList: FC<MessageListProps> = ({
       gap: '12px',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      {visibleMessages.length === 0 && !isLoading ? (
+      {visibleMessages.length === 0 && !isLoading && !(asyncMode && sessionAsyncLoading) ? (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -307,7 +311,7 @@ export const MessageList: FC<MessageListProps> = ({
               )
             }
           })}
-          {isLoading && (
+          {(isLoading || (asyncMode && sessionAsyncLoading)) && (
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -329,7 +333,7 @@ export const MessageList: FC<MessageListProps> = ({
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite'
                 }} />
-                {currentThinkingSummary || 'Thinking'}
+                {asyncMode && sessionAsyncLoading ? 'Session is in progress' : (currentThinkingSummary || 'Thinking')}
               </div>
             </div>
           )}
