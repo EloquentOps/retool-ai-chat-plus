@@ -394,11 +394,20 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             color: '#374151',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             zIndex: 10,
-            pointerEvents: 'none',
-            userSelect: 'none',
             fontWeight: 400
           }}>
-            v{packageJson.version}
+            <a
+              href="https://github.com/EloquentOps/retool-ai-chat-plus"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: '#2563eb',
+                textDecoration: 'underline',
+                cursor: 'pointer'
+              }}
+            >
+              aav{packageJson.version}
+            </a>
           </div>
         </div>
       ) : (
