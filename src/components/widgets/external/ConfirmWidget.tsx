@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { type FC } from 'react'
 
 interface ConfirmWidgetProps {
-  source: string | { label: string; prompt: string; autoSubmit?: boolean }
+  source: string | { label: string; prompt?: string }
   variant?: 'primary' | 'secondary' | 'danger'
   size?: 'small' | 'medium' | 'large'
   disabled?: boolean
@@ -11,36 +11,63 @@ interface ConfirmWidgetProps {
   historyIndex?: number
 }
 
+/** Parse source that may be string, object, or stringified JSON */
+function parseSource(
+  source: string | { label: string; prompt?: string }
+): { label: string; prompt: string } {
+  if (typeof source === 'object' && source !== null) {
+    const label = String(source.label ?? 'Confirm')
+    const prompt = typeof source.prompt === 'string' ? source.prompt : label
+    return { label, prompt }
+  }
+  const str = String(source)
+  if (str.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(str) as { label?: string; prompt?: string }
+      const label = typeof parsed?.label === 'string' ? parsed.label : 'Confirm'
+      const prompt = typeof parsed?.prompt === 'string' ? parsed.prompt : label
+      return { label, prompt }
+    } catch {
+      // fall through to plain string
+    }
+  }
+  return { label: str || 'Confirm', prompt: str || 'Confirm' }
+}
+
 const ConfirmWidgetComponent: FC<ConfirmWidgetProps> = ({ 
   source, 
-  onWidgetCallback,
-  historyIndex
+  variant = 'primary',
+  onWidgetCallback
 }) => {
   const [isHovered, setIsHovered] = useState(false)
   
-  // Parse source to handle both string and object formats
-  const sourceData = typeof source === 'string' 
-    ? { label: source, prompt: source, autoSubmit: false }
-    : source
+  const sourceData = useMemo(() => parseSource(source), [source])
   
   const getButtonStyles = () => {
-    const baseStyles = {
+    const variantColors = {
+      primary: { bg: '#2563eb', hoverBg: '#1d4ed8', text: '#ffffff' },
+      secondary: { bg: '#64748b', hoverBg: '#475569', text: '#ffffff' },
+      danger: { bg: '#dc2626', hoverBg: '#b91c1c', text: '#ffffff' }
+    }
+    const colors = variantColors[variant] ?? variantColors.primary
+    return {
+      appearance: 'none' as const,
       border: 'none',
       borderRadius: '6px',
       cursor: 'pointer',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: '14px',
       fontWeight: '500',
+      padding: '8px 16px',
       transition: 'all 0.2s ease-in-out',
       outline: 'none',
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px',
-      transform: isHovered ? 'scale(1.05)' : 'scale(1)'
-    }
-
-    return {
-      ...baseStyles,
+      backgroundColor: isHovered ? colors.hoverBg : colors.bg,
+      color: colors.text,
+      boxShadow: isHovered ? '0 2px 8px rgba(0,0,0,0.15)' : '0 1px 3px rgba(0,0,0,0.1)'
     }
   }
 
@@ -49,7 +76,6 @@ const ConfirmWidgetComponent: FC<ConfirmWidgetProps> = ({
       onWidgetCallback({
         type: 'confirm:changed',
         label: sourceData.label,
-        selfSubmit: true,
         prompt: sourceData.prompt
       })
     }
@@ -101,9 +127,9 @@ export const ConfirmWidget = React.memo(ConfirmWidgetComponent, (prevProps, next
 export const ConfirmWidgetInstruction = {
   type: 'confirm',
   hint: 'Add a confirmation button to the conversation',
-  instructions: 'Use this widget when the user asks to confirm an action or decision.',
+  instructions: 'Use this widget when the user asks to confirm an action or decision. Return an object with label (button text) and prompt (optional, sent in callback on click).',
   sourceDataModel: {
-      label: 'string',
-      prompt: 'string.<optional>'
+    label: 'string - button label to display',
+    prompt: 'string - optional, sent in widgetCallback payload when clicked'
   }
 }

@@ -406,7 +406,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 cursor: 'pointer'
               }}
             >
-              aav{packageJson.version}
+              v{packageJson.version}
             </a>
           </div>
         </div>
