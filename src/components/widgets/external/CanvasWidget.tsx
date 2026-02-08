@@ -103,23 +103,14 @@ const CanvasWidgetComponent: FC<CanvasWidgetProps> = ({
   // Handle iframe load
   const handleIframeLoad = () => {
     setIsLoading(false)
-    
-    // Notify that the canvas has loaded
-    onWidgetCallback?.({
-      type: 'canvas:loaded',
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'canvas:loaded', value: 'loaded' })
   }
 
   // Handle iframe errors
   const handleIframeError = () => {
     setError('Failed to load HTML content in iframe')
     setIsLoading(false)
-    onWidgetCallback?.({
-      type: 'canvas:error',
-      error: 'iframe_load_error',
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'canvas:error', value: 'iframe_load_error' })
   }
 
   // Extract dimensions from widgetsOptions or source

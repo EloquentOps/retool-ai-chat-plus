@@ -26,51 +26,26 @@ const VideoWidgetComponent: FC<VideoWidgetProps> = ({
   const handleLoadedData = () => {
     setIsLoading(false)
     setError(null)
-    
-    // Notify that video loaded successfully
-    onWidgetCallback?.({
-      type: 'video:loaded',
-      url: videoUrl,
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'video:loaded', value: videoUrl })
   }
 
   const handleError = () => {
     setIsLoading(false)
     const errorMessage = `Failed to load video: ${videoUrl}`
     setError(errorMessage)
-    
-    // Notify about error
-    onWidgetCallback?.({
-      type: 'video:error',
-      url: videoUrl,
-      error: errorMessage,
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'video:error', value: errorMessage })
   }
 
   const handlePlay = () => {
-    onWidgetCallback?.({
-      type: 'video:play',
-      url: videoUrl,
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'video:play', value: videoUrl })
   }
 
   const handlePause = () => {
-    onWidgetCallback?.({
-      type: 'video:pause',
-      url: videoUrl,
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'video:pause', value: videoUrl })
   }
 
   const handleEnded = () => {
-    onWidgetCallback?.({
-      type: 'video:ended',
-      url: videoUrl,
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'video:ended', value: videoUrl })
   }
 
   if (error) {

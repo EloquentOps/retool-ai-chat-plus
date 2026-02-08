@@ -161,6 +161,7 @@ The `componentPreferences` object allows you to customize both stylistic and beh
 | `hideWidgetFooter` | boolean | `false` | When set to `true`, hides the widget footer (containing pin, try again, and delete buttons) for all widgets. This option works independently of `lockUI` - you can hide the footer even when the UI is not locked. |
 | `showTraceSteps` | boolean | `false` | When set to `true`, shows the **Steps & reasoning** inspector below assistant responses that have agent trace data. Users can expand steps to inspect the model's thinking/reasoning, tool parameters, and results. Useful for debugging or transparency when using Retool Agent. |
 | `welcomeViewHideSubmitBar` | boolean | `false` | When set to `true`, hides the entire submit bar (input field and send button) in the welcome view only. Use this when you want prompt chips as the only starting point—users must click a chip to begin. Does not affect the submit bar once the chat has messages. |
+| `chatViewHideSubmitBar` | boolean | `false` | When set to `true`, hides the entire submit bar (input field and send button) in the chat view only (when messages exist). Does not affect the welcome view. |
 
 #### Example Usage
 
@@ -190,6 +191,11 @@ The `componentPreferences` object allows you to customize both stylistic and beh
   "welcomeViewHideSubmitBar": true
 }
 
+// Hide submit bar in chat view
+{
+  "chatViewHideSubmitBar": true
+}
+
 ```
 
 
@@ -212,7 +218,7 @@ The `componentPreferences` object allows you to customize both stylistic and beh
 
 | Property            | Type   | Description                                                  |
 | ------------------- | ------ | ------------------------------------------------------------ |
-| `widgetPayload`     | object | Widget payload you can read after `widgetCallback` event     |
+| `widgetPayload`     | object | Widget payload you can read after `widgetCallback` event. Each payload has `{ type: 'widget_tag:changed', value }` only. |
 | `chipPayload`       | object | Chip payload you can read after `chipCallback` event         |
 | `history`           | array  | Chat message history                                         |
 | `lastMessage`       | string | Last user message submitted                                  |
@@ -365,13 +371,19 @@ When implemented, the component user can exploit the `widgetCallback` event wire
 ```js
 const payload = aiChatPlus1.widgetPayload
 
-if(payload.type === 'google_map'){
-  utils.confetti()
+// Minimal payload: { type, value } only
+if (payload.type === 'google_map:changed') {
+  const mapData = JSON.parse(payload.value)
+  // mapData has { lat, lon, zoom }
+}
+
+// Each callback overwrites the previous; payload is always the most recent
+if (payload?.type === 'confirm:changed') {
+  // payload.value is the prompt (e.g. button label) sent on click
 }
 ```
 
-You can use both the event trigger and the payload from `widgetPayload` property.
-You can then inspect the object and decide what to do with it.
+Payload format: `type` is `widget_tag:changed` (e.g. `input:changed`, `select:changed`), `value` is the primary data (string or number).
 
 
 

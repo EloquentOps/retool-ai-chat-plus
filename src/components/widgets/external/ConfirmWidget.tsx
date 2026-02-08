@@ -73,11 +73,7 @@ const ConfirmWidgetComponent: FC<ConfirmWidgetProps> = ({
 
   const handleClick = () => {
     if (onWidgetCallback) {
-      onWidgetCallback({
-        type: 'confirm:changed',
-        label: sourceData.label,
-        prompt: sourceData.prompt
-      })
+      onWidgetCallback({ type: 'confirm:changed', value: sourceData.prompt })
     }
   }
 

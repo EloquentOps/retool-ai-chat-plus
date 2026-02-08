@@ -122,8 +122,7 @@ const TabulatorWidgetComponent: FC<TabulatorWidgetProps> = ({
         const rowIndex = tabulatorRow.getPosition()
         onWidgetCallback?.({
           type: 'tabulator:row_clicked',
-          rowData: rowData,
-          rowIndex: rowIndex
+          value: JSON.stringify(rowData)
         })
       })
 

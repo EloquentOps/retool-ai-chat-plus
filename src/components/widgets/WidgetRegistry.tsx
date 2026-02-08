@@ -473,10 +473,57 @@ export const renderWidget = (
     ...(content.pinned !== undefined ? { pinned: content.pinned } : {})
   }
   
+  // Map widget type -> source key for updatedSource (history updates)
+  const SOURCE_KEYS: Record<string, string> = {
+    input: 'currentValue',
+    select: 'selectedValue',
+    slider: 'initialValue'
+  }
+  
+  const wrappedCallback = (payload: Record<string, unknown>) => {
+    const { type: payloadType, value } = payload
+    const widgetTag = typeof payloadType === 'string' ? payloadType.split(':')[0] : undefined
+    const sourceKey = widgetTag && SOURCE_KEYS[widgetTag]
+    let enriched = { ...payload }
+    if (typeof historyIndex === 'number') {
+      if (sourceKey) {
+        enriched = {
+          ...payload,
+          updateHistory: true,
+          historyIndex,
+          updatedSource: { [sourceKey]: value }
+        }
+      } else if (widgetTag === 'google_map' && value != null) {
+        try {
+          const parsed = typeof value === 'string' ? JSON.parse(value) : value
+          enriched = {
+            ...payload,
+            updateHistory: true,
+            historyIndex,
+            updatedSource: parsed as Record<string, unknown>
+          }
+        } catch {
+          // ignore parse error
+        }
+      }
+    }
+    if (payloadType === 'input:changed') {
+      enriched = { ...enriched, dispatchEvent: true }
+    }
+    if (payloadType === 'input:submitted') {
+      enriched = { ...enriched, selfSubmit: true, prompt: value, dispatchEvent: true }
+    }
+    // All widgets that trigger history updates should also fire the Retool event
+    if (sourceKey || widgetTag === 'google_map') {
+      enriched = { ...enriched, dispatchEvent: true }
+    }
+    onWidgetCallback?.(enriched)
+  }
+  
   const props = {
     key: widgetKey,
     source: widgetSource,
-    onWidgetCallback,
+    onWidgetCallback: onWidgetCallback ? wrappedCallback : undefined,
     widgetsOptions,
     historyIndex
   }

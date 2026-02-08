@@ -78,6 +78,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   const hideWidgetFooter = componentPreferences.hideWidgetFooter === true // Default to false if not set
   const showTraceSteps = !asyncMode && componentPreferences.showTraceSteps === true // Disabled in async mode; default false
   const welcomeViewHideSubmitBar = componentPreferences.welcomeViewHideSubmitBar === true // Default false; when true, hides submit bar in welcome view (chips only)
+  const chatViewHideSubmitBar = componentPreferences.chatViewHideSubmitBar === true // Default false; when true, hides submit bar in chat view
 
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
   const isSessionLoading = asyncMode && sessionAsyncLoading
@@ -439,7 +440,9 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 overflow: 'hidden'
               }}>
                 <MessageList messages={messages} isLoading={isLoading} asyncMode={asyncMode} sessionAsyncLoading={sessionAsyncLoading} currentThinkingSummary={currentThinkingSummary} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={effectiveLockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
-                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+                {!chatViewHideSubmitBar && (
+                  <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+                )}
               </div>
               
               {/* Right panel - Pinned widgets with tabs */}
@@ -458,7 +461,9 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             // Full width layout when no widget is pinned
             <>
               <MessageList messages={messages} isLoading={isLoading} asyncMode={asyncMode} sessionAsyncLoading={sessionAsyncLoading} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={effectiveLockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
-              <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+              {!chatViewHideSubmitBar && (
+                <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+              )}
             </>
           )}
         </>

@@ -25,25 +25,7 @@ const SelectWidgetComponent: FC<SelectWidgetProps> = ({
 
   const handleSelect = (value: string) => {
     if (onWidgetCallback) {
-      const selectedOption = options.find((option: { value: string; label: string }) => option.value === value)
-      
-      // Send regular callback for external event handling
-      onWidgetCallback({ 
-        selectedValue: value,
-        selectedLabel: selectedOption?.label || value,
-        widgetType: 'select:changed'
-      })
-      
-      // Send history update callback if historyIndex is available
-      if (typeof historyIndex === 'number') {
-        onWidgetCallback({
-          updateHistory: true,
-          historyIndex: historyIndex,
-          updatedSource: {
-            selectedValue: value
-          }
-        })
-      }
+      onWidgetCallback({ type: 'select:changed', value })
     }
   }
   const [selectedValue, setSelectedValue] = useState<string>(parsedDefaultValue || '')

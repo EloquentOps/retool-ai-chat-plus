@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { type FC } from 'react'
 
 interface InputWidgetProps {
@@ -7,7 +7,7 @@ interface InputWidgetProps {
     validationRegex?: string
     validMessage?: string
     invalidMessage?: string
-    initialValue?: string
+    currentValue?: string
     inputType?: 'text' | 'email' | 'number' | 'date' | 'datetime-local' | 'time' | 'url' | 'tel' | 'password'
     fieldName?: string
     min?: number
@@ -108,7 +108,7 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         validationRegex: '', 
         validMessage: 'Valid input', 
         invalidMessage: 'Invalid input',
-        initialValue: '',
+        currentValue: '',
         inputType: detectInputType(undefined, source),
         fieldName: undefined,
         min: undefined,
@@ -120,7 +120,7 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         validationRegex: source.validationRegex || '',
         validMessage: source.validMessage || 'Valid input',
         invalidMessage: source.invalidMessage || 'Invalid input',
-        initialValue: source.initialValue || '',
+        currentValue: source.currentValue || '',
         inputType: source.inputType || detectInputType(source.fieldName, source.placeholder),
         fieldName: source.fieldName,
         min: source.min,
@@ -128,7 +128,17 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         step: source.step
       }
 
-  const [inputValue, setInputValue] = useState(sourceData.initialValue)
+  const [inputValue, setInputValue] = useState(sourceData.currentValue)
+  const prevCurrentValueRef = useRef<string>(sourceData.currentValue)
+
+  // Sync from source when currentValue changes (e.g. from history update or external)
+  useEffect(() => {
+    const currentValue = sourceData.currentValue || ''
+    if (currentValue !== prevCurrentValueRef.current) {
+      prevCurrentValueRef.current = currentValue
+      setInputValue(currentValue)
+    }
+  }, [sourceData.currentValue])
   const [isValid, setIsValid] = useState<boolean | null>(null)
   const [validationMessage, setValidationMessage] = useState('')
 
@@ -182,27 +192,15 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
  
   }
 
+  const handleBlur = () => {
+    if (onWidgetCallback) {
+      onWidgetCallback({ type: 'input:changed', value: inputValue })
+    }
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      // Submit the value to the callback and update history object
-      if (onWidgetCallback) {
-        onWidgetCallback({
-          type: 'input:submitted',
-          value: inputValue,
-          inputType: sourceData.inputType,
-          fieldName: sourceData.fieldName,
-          isValid: isValid,
-          validationMessage: validationMessage,
-          selfSubmit: true,
-          updateHistory: true,
-          historyIndex: _historyIndex,
-          updatedSource: {
-            value: inputValue,
-            inputType: sourceData.inputType,
-            fieldName: sourceData.fieldName
-          }
-        })
-      }
+    if (e.key === 'Enter' && onWidgetCallback) {
+      onWidgetCallback({ type: 'input:submitted', value: inputValue })
     }
   }
 
@@ -268,6 +266,7 @@ const InputWidgetComponent: FC<InputWidgetProps> = ({
         type={sourceData.inputType}
         value={inputValue}
         onChange={handleInputChange}
+        onBlur={handleBlur}
         onKeyPress={handleKeyPress}
         placeholder={sourceData.placeholder}
         style={getInputStyles()}
@@ -309,7 +308,7 @@ export const InputWidgetInstruction = {
     validationRegex: 'string (optional) - regex pattern for additional validation (combined with type validation)',
     validMessage: 'string (optional) - message shown when input is valid',
     invalidMessage: 'string (optional) - message shown when input is invalid',
-    initialValue: 'string (optional) - initial value for the input field',
+    currentValue: 'string (optional) - initial value and current value for the input field (used for both initial state and history sync)',
     min: 'number (optional) - minimum value for number/date inputs',
     max: 'number (optional) - maximum value for number/date inputs',
     step: 'number (optional) - step value for number inputs'
@@ -324,11 +323,12 @@ export const InputWidget = React.memo(InputWidgetComponent, (prevProps, nextProp
   
   // Compare source data (string or object)
   if (typeof prevSource === 'string' && typeof nextSource === 'string') {
-    return prevSource === nextSource
+    return prevSource === nextSource && prevProps.historyIndex === nextProps.historyIndex
   }
   
   if (typeof prevSource === 'object' && typeof nextSource === 'object') {
-    return JSON.stringify(prevSource) === JSON.stringify(nextSource)
+    return JSON.stringify(prevSource) === JSON.stringify(nextSource) &&
+      prevProps.historyIndex === nextProps.historyIndex
   }
   
   // Different types, allow re-render

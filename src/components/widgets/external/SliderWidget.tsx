@@ -55,18 +55,8 @@ const SliderWidgetComponent: FC<SliderWidgetProps> = ({
     const newValue = parseFloat(e.target.value)
     setValue(newValue)
 
-    // Notify callback on change
     if (onWidgetCallback) {
-      onWidgetCallback({
-        type: 'slider:changed',
-        value: newValue,
-        min: sourceData.min,
-        max: sourceData.max,
-        step: sourceData.step,
-        label: sourceData.label,
-        unit: sourceData.unit,
-        historyIndex
-      })
+      onWidgetCallback({ type: 'slider:changed', value: newValue })
     }
   }
 

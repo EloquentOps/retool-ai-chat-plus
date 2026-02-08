@@ -88,14 +88,7 @@ const TwoWaysWidgetComponent: FC<TwoWaysWidgetProps> = ({
     // Update the text field
     setTextValue(randomNumberString)
     
-    // Send the value via callback to Retool
-    onWidgetCallback?.({
-      type: 'two_ways:number_generated',
-      value: randomNumber,
-      valueString: randomNumberString,
-      timestamp: Date.now(),
-      historyIndex
-    })
+    onWidgetCallback?.({ type: 'two_ways:number_generated', value: randomNumber })
   }
 
   const getInputStyles = () => {

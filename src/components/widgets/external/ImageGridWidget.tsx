@@ -20,11 +20,7 @@ const ImageGridWidgetComponent: FC<ImageGridWidgetProps> = ({
 }) => {
   const handleImageClick = (imageItem: ImageItem, index: number) => {
     if (onWidgetCallback) {
-      onWidgetCallback({
-        type: 'image_grid:changed',
-        image: imageItem,
-        index: index
-      })
+      onWidgetCallback({ type: 'image_grid:changed', value: imageItem.imageUrl })
     }
   }
 

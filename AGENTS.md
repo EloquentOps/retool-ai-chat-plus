@@ -209,9 +209,8 @@ const ExampleWidgetComponent: FC<ExampleWidgetProps> = ({
   // Handle user interactions
   const handleClick = () => {
     onWidgetCallback?.({
-      type: 'example_interaction',
-      data: source,
-      timestamp: Date.now()
+      type: 'example_widget:changed',
+      value: typeof source === 'string' ? source : JSON.stringify(source)
     })
   }
 
@@ -718,45 +717,32 @@ sourceDataModel: {
 
 ## Widget Callbacks
 
-Widgets communicate with the chat system through callback functions:
+Widgets communicate with the chat system through callback functions.
+
+### Payload Format (Minimal)
+
+All widgets send a minimal payload to Retool:
+
+```typescript
+{ type: 'widget_tag:changed', value: string | number }
+```
+
+- `type`: Event type in format `widget_tag:changed` (e.g. `input:changed`, `select:changed`, `confirm:changed`)
+- `value`: Primary data (string or number). For complex data, use `JSON.stringify(...)`
+
+Examples:
+- `{ type: 'input:changed', value: 'hello' }`
+- `{ type: 'select:changed', value: 'eng' }`
+- `{ type: 'confirm:changed', value: 'Submit' }`
+- `{ type: 'chart:clicked', value: '{"data":...}' }`
 
 ### Callback Structure
 
 ```typescript
-onWidgetCallback(payload: Record<string, unknown>)
+onWidgetCallback({ type: 'your_widget:changed', value: primaryData })
 ```
 
-### Common Callback Patterns
-
-```typescript
-// User interaction
-onWidgetCallback({
-  type: 'button:clicked',
-  buttonId: 'save',
-  data: formData
-})
-
-// Data selection
-onWidgetCallback({
-  type: 'image:selected',
-  selectedItem: itemData,
-  index: 0
-})
-
-// Status update
-onWidgetCallback({
-  type: 'status:changed',
-  status: 'loading' | 'success' | 'error',
-  message: 'Operation completed'
-})
-
-// Error reporting
-onWidgetCallback({
-  type: 'error',
-  message: 'Failed to load resource',
-  error: errorDetails
-})
-```
+History updates (input, select, slider, google_map) are injected by the registry wrapper; widgets do not need to send `updateHistory`, `historyIndex`, or `updatedSource`.
 
 
 
@@ -962,8 +948,8 @@ const handleInteraction = (interactionData) => {
   
   // Trigger callback
   onWidgetCallback?.({
-    type: 'interaction_recorded',
-    interaction: interactionData
+    type: 'example_widget:changed',
+    value: JSON.stringify(interactionData)
   }))
 }
 ```
@@ -1040,7 +1026,7 @@ const ConfirmWidgetComponent: FC<ConfirmWidgetProps> = ({
   const [isHovered, setIsHovered] = useState(false)
   
   const handleClick = () => {
-    onWidgetCallback?.({ type: 'button_clicked', text: source })
+    onWidgetCallback?.({ type: 'confirm:changed', value: source })
   }
   
   return (
@@ -1082,9 +1068,8 @@ const ImageGridWidgetComponent: FC<ImageGridWidgetProps> = ({
 }) => {
   const handleImageClick = (imageItem, index) => {
     onWidgetCallback?.({
-      type: 'image_selected',
-      image: imageItem,
-      index: index
+      type: 'image_grid:changed',
+      value: imageItem.imageUrl
     })
   }
   

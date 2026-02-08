@@ -1525,12 +1525,14 @@ Otherwise, the type should be always "text".
       }
     }
     
+    // Retool receives minimal payload: { type, value } only
+    const minimalPayload = { type: safePayload.type, value: safePayload.value }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    _setWidgetPayload(safePayload as any)
+    _setWidgetPayload(minimalPayload as any)
     
-    // Only dispatch to Retool if this is NOT just a history update
-    // History updates are internal and shouldn't trigger external events
-    if (!updateHistory) {
+    // Dispatch to Retool when: not a history update, or when payload explicitly requests it (e.g. input:changed)
+    const { dispatchEvent } = safePayload as { dispatchEvent?: boolean }
+    if (!updateHistory || dispatchEvent === true) {
       // Defer dispatch so widgetPayload state is flushed before Retool reads it
       requestAnimationFrame(() => {
         onWidgetCallback()

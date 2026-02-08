@@ -52,17 +52,10 @@ const CheckListWidgetComponent: FC<CheckListWidgetProps> = ({
     )
     setItems(updatedItems)
 
-    // Trigger callback with updated state
     if (onWidgetCallback) {
       const changedItem = updatedItems[index]
-      onWidgetCallback({
-        type: 'checklist:changed',
-        itemIndex: index,
-        item: changedItem,
-        //allItems: updatedItems,
-        checkedItems: updatedItems.filter(item => item.checked),
-        historyIndex
-      })
+      const value = changedItem.value ?? changedItem.label ?? `item-${index}`
+      onWidgetCallback({ type: 'checklist:changed', value })
     }
   }
 

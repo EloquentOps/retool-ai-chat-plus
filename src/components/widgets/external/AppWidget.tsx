@@ -106,22 +106,14 @@ const AppWidgetComponent: FC<AppWidgetProps> = ({
   const handleIframeLoad = () => {
     setIsLoading(false)
     
-    // Notify that the app has loaded
-    onWidgetCallback?.({
-      type: 'app:loaded',
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'app:loaded', value: 'loaded' })
   }
 
   // Handle iframe errors
   const handleIframeError = () => {
     setError('Failed to load HTML content in iframe')
     setIsLoading(false)
-    onWidgetCallback?.({
-      type: 'app:error',
-      error: 'iframe_load_error',
-      timestamp: Date.now()
-    })
+    onWidgetCallback?.({ type: 'app:error', value: 'iframe_load_error' })
   }
 
   // Extract dimensions from widgetsOptions or source
@@ -156,11 +148,7 @@ const AppWidgetComponent: FC<AppWidgetProps> = ({
       
       if (!newWindow) {
         setError('Failed to open new window. Please check your popup blocker settings.')
-        onWidgetCallback?.({
-          type: 'app:error',
-          error: 'popup_blocked',
-          timestamp: Date.now()
-        })
+        onWidgetCallback?.({ type: 'app:error', value: 'popup_blocked' })
         return
       }
 
@@ -186,25 +174,16 @@ const AppWidgetComponent: FC<AppWidgetProps> = ({
           clearInterval(checkClosed)
           setIsModalOpen(false)
           modalWindowRef.current = null
-          onWidgetCallback?.({
-            type: 'app:standalone_closed',
-            timestamp: Date.now()
-          })
+          onWidgetCallback?.({ type: 'app:standalone_closed', value: 'closed' })
         }
       }, 500)
 
-      // Notify that standalone window was opened
-      onWidgetCallback?.({
-        type: 'app:standalone_opened',
-        timestamp: Date.now()
-      })
+      onWidgetCallback?.({ type: 'app:standalone_opened', value: 'opened' })
     } catch (err) {
       setError(`Failed to open standalone window: ${err instanceof Error ? err.message : 'Unknown error'}`)
       onWidgetCallback?.({
         type: 'app:error',
-        error: 'standalone_open_error',
-        message: err instanceof Error ? err.message : 'Unknown error',
-        timestamp: Date.now()
+        value: err instanceof Error ? err.message : 'Unknown error'
       })
     }
   }

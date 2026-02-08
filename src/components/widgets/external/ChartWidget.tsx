@@ -137,12 +137,13 @@ const ChartWidgetComponent: FC<ChartWidgetProps> = ({
         }
         onWidgetCallback?.({
           type: 'chart:clicked',
-          data: clickParams.data,
-          seriesName: clickParams.seriesName,
-          name: clickParams.name,
-          dataIndex: clickParams.dataIndex,
-          seriesIndex: clickParams.seriesIndex,
-          timestamp: Date.now()
+          value: JSON.stringify({
+            data: clickParams.data,
+            seriesName: clickParams.seriesName,
+            name: clickParams.name,
+            dataIndex: clickParams.dataIndex,
+            seriesIndex: clickParams.seriesIndex
+          })
         })
       })
 

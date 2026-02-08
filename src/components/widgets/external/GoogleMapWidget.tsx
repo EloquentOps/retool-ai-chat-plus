@@ -58,29 +58,12 @@ const GoogleMapWidgetComponent: FC<GoogleMapWidgetProps> = ({
       if (onWidgetCallback) {
         const center = mapInstance.getCenter()
         const zoom = mapInstance.getZoom()
-        
-        // Send regular callback for external event handling
-        onWidgetCallback({
-          type: 'google_map:changed',
-          center: {
-            lat: center?.lat(),
-            lng: center?.lng()
-          },
+        const value = JSON.stringify({
+          lat: center?.lat(),
+          lon: center?.lng(),
           zoom: zoom
         })
-        
-        // Send history update callback if historyIndex is available
-        if (typeof historyIndex === 'number') {
-          onWidgetCallback({
-            updateHistory: true,
-            historyIndex: historyIndex,
-            updatedSource: {
-              lat: center?.lat(),
-              lon: center?.lng(),
-              zoom: zoom
-            }
-          })
-        }
+        onWidgetCallback({ type: 'google_map:changed', value })
       }
     }, 750)
   }, [onWidgetCallback, historyIndex])

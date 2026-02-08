@@ -258,56 +258,42 @@ const FullCalendarWidgetComponent: FC<FullCalendarWidgetProps> = ({
     }
   }, [sourceInitialDate])
 
-  // Handle date selection
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     onWidgetCallback?.({
       type: 'fullcalendar:date_selected',
-      start: selectInfo.startStr,
-      end: selectInfo.endStr,
-      allDay: selectInfo.allDay,
-      timestamp: Date.now()
+      value: JSON.stringify({ start: selectInfo.startStr, end: selectInfo.endStr, allDay: selectInfo.allDay })
     })
   }
 
-  // Handle event click
   const handleEventClick = (clickInfo: EventClickArg) => {
     onWidgetCallback?.({
       type: 'fullcalendar:event_clicked',
-      event: {
+      value: JSON.stringify({
         id: clickInfo.event.id,
         title: clickInfo.event.title,
         start: clickInfo.event.startStr,
         end: clickInfo.event.endStr,
         allDay: clickInfo.event.allDay,
         extendedProps: clickInfo.event.extendedProps
-      },
-      timestamp: Date.now()
+      })
     })
   }
 
-  // Handle event drop/resize (if editable)
   const handleEventChange = (changeInfo: { event: { id: string; startStr: string; endStr: string } }) => {
     onWidgetCallback?.({
       type: 'fullcalendar:event_changed',
-      event: {
+      value: JSON.stringify({
         id: changeInfo.event.id,
         start: changeInfo.event.startStr,
         end: changeInfo.event.endStr
-      },
-      timestamp: Date.now()
+      })
     })
   }
 
-  // Handle view change (datesSet fires when calendar navigates to a new date range)
   const handleDatesSet = (dateSetInfo: DatesSetArg) => {
     onWidgetCallback?.({
       type: 'fullcalendar:view_changed',
-      start: dateSetInfo.startStr,
-      end: dateSetInfo.endStr,
-      startDate: dateSetInfo.startStr, // Explicit startDate parameter for easier access
-      endDate: dateSetInfo.endStr, // Explicit endDate parameter for easier access
-      view: dateSetInfo.view.type,
-      timestamp: Date.now()
+      value: JSON.stringify({ start: dateSetInfo.startStr, end: dateSetInfo.endStr, view: dateSetInfo.view.type })
     })
   }
 
