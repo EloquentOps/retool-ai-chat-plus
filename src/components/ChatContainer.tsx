@@ -77,6 +77,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   const lockUI = componentPreferences.lockUI === true // Default to false if not set
   const hideWidgetFooter = componentPreferences.hideWidgetFooter === true // Default to false if not set
   const showTraceSteps = !asyncMode && componentPreferences.showTraceSteps === true // Disabled in async mode; default false
+  const welcomeViewHideSubmitBar = componentPreferences.welcomeViewHideSubmitBar === true // Default false; when true, hides submit bar in welcome view (chips only)
 
   const hasWelcomeContent = welcomeMessage || (promptChips && promptChips.length > 0)
   const isSessionLoading = asyncMode && sessionAsyncLoading
@@ -295,23 +296,25 @@ export const ChatContainer: FC<ChatContainerProps> = ({
             </div>
           )}
 
-          {/* Centered input bar */}
-          <div style={{ width: '100%', maxWidth: '720px' }}>
-            <MentionsInputBar 
-              onSubmitQuery={onSubmitQuery} 
-              isLoading={asyncMode ? false : isLoading} 
-              onStop={asyncMode ? undefined : onStop} 
-              isCentered={true}
-              widgetsOptions={widgetsOptions}
-              tools={tools}
-              sourcesOptions={sourcesOptions}
-              commandOptions={commandOptions}
-              placeholder={placeholder}
-              lockUI={effectiveLockUI}
-              fillInput={fillInput}
-              onFillApplied={onFillApplied}
-            />
-          </div>
+          {/* Centered input bar - hidden when welcomeViewHideSubmitBar is true */}
+          {!welcomeViewHideSubmitBar && (
+            <div style={{ width: '100%', maxWidth: '720px' }}>
+              <MentionsInputBar 
+                onSubmitQuery={onSubmitQuery} 
+                isLoading={asyncMode ? false : isLoading} 
+                onStop={asyncMode ? undefined : onStop} 
+                isCentered={true}
+                widgetsOptions={widgetsOptions}
+                tools={tools}
+                sourcesOptions={sourcesOptions}
+                commandOptions={commandOptions}
+                placeholder={placeholder}
+                lockUI={effectiveLockUI}
+                fillInput={fillInput}
+                onFillApplied={onFillApplied}
+              />
+            </div>
+          )}
 
           {/* Suggested action chips */}
           {promptChips.length > 0 && (

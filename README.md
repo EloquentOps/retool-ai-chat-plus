@@ -160,6 +160,7 @@ The `componentPreferences` object allows you to customize both stylistic and beh
 | `lockUI` | boolean | `false` | When set to `true`, disables all user interaction controls in the component. This includes: the submit bar (input field and send button), widget footer buttons (remove, pin, try again), pinned widget close buttons, and prompt chips. Useful for read-only modes or when you want to prevent user interactions programmatically. |
 | `hideWidgetFooter` | boolean | `false` | When set to `true`, hides the widget footer (containing pin, try again, and delete buttons) for all widgets. This option works independently of `lockUI` - you can hide the footer even when the UI is not locked. |
 | `showTraceSteps` | boolean | `false` | When set to `true`, shows the **Steps & reasoning** inspector below assistant responses that have agent trace data. Users can expand steps to inspect the model's thinking/reasoning, tool parameters, and results. Useful for debugging or transparency when using Retool Agent. |
+| `welcomeViewHideSubmitBar` | boolean | `false` | When set to `true`, hides the entire submit bar (input field and send button) in the welcome view only. Use this when you want prompt chips as the only starting point—users must click a chip to begin. Does not affect the submit bar once the chat has messages. |
 
 #### Example Usage
 
@@ -182,6 +183,11 @@ The `componentPreferences` object allows you to customize both stylistic and beh
 // Enable Steps & reasoning inspector (agent trace)
 {
   "showTraceSteps": true
+}
+
+// Hide submit bar in welcome view (chips only as starting point)
+{
+  "welcomeViewHideSubmitBar": true
 }
 
 ```
