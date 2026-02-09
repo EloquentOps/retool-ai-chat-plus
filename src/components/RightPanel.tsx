@@ -153,7 +153,7 @@ export const RightPanel: FC<RightPanelProps> = ({
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, undefined, undefined, lockUI, true)}
+        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, undefined, undefined, activeWidget.historyIndex, lockUI, true)}
       </div>
     </div>
   )

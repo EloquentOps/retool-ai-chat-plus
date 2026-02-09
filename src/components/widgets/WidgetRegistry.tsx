@@ -39,7 +39,7 @@ export type WidgetRegistryType = Record<string, WidgetConfig>
 
 interface WidgetWrapperProps {
   children?: React.ReactElement
-  historyIndex?: number
+  messageIndex?: number
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetType: string
   widgetContent?: { type: string; source?: string; [key: string]: unknown }
@@ -49,7 +49,7 @@ interface WidgetWrapperProps {
 
 const WidgetWrapper: FC<WidgetWrapperProps> = ({
   children,
-  historyIndex,
+  messageIndex,
   onWidgetCallback,
   widgetType,
   widgetContent,
@@ -62,7 +62,7 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
     e.stopPropagation()
     onWidgetCallback?.({
       type: 'widget:remove',
-      messageIndex: historyIndex,
+      messageIndex: messageIndex,
       widgetType: widgetType,
       timestamp: Date.now()
     })
@@ -72,7 +72,7 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
     e.stopPropagation()
     onWidgetCallback?.({
       type: 'widget:try_again',
-      messageIndex: historyIndex,
+      messageIndex: messageIndex,
       widgetType: widgetType,
       timestamp: Date.now()
     })
@@ -87,7 +87,7 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
         // Unpin if already pinned
         onWidgetCallback?.({
           type: 'widget:unpin',
-          historyIndex: historyIndex,
+          historyIndex: messageIndex,
           timestamp: Date.now()
         })
       } else {
@@ -96,7 +96,7 @@ const WidgetWrapper: FC<WidgetWrapperProps> = ({
           type: 'widget:pin',
           widgetContent: widgetContent,
           widgetType: widgetType,
-          messageIndex: historyIndex,
+          messageIndex: messageIndex,
           timestamp: Date.now()
         })
       }
@@ -411,6 +411,7 @@ export const renderWidget = (
   widgetsOptions?: Record<string, unknown>,
   blockId?: number,
   blockIndex?: number,
+  messageIndex?: number,
   lockUI?: boolean,
   hideWidgetFooter?: boolean
 ) => {
@@ -438,7 +439,7 @@ export const renderWidget = (
     // Wrap the fallback widget with the footer wrapper
     return React.createElement(WidgetWrapper, {
       key: `wrapper-${fallbackKey}`,
-      historyIndex: undefined,
+      messageIndex: messageIndex,
       onWidgetCallback,
       widgetType: 'text',
       widgetContent: fallbackWidgetContent,
@@ -537,7 +538,7 @@ export const renderWidget = (
   // Wrap the widget with the footer wrapper (skip for text widget when it's a fallback)
   return React.createElement(WidgetWrapper, {
     key: `wrapper-${widgetKey}`,
-    historyIndex,
+    messageIndex: messageIndex,
     onWidgetCallback,
     widgetType: type,
     widgetContent: widgetContentForPin,

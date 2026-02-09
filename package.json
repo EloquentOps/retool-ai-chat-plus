@@ -1,6 +1,6 @@
 {
   "name": "retool-chat-plus",
-  "version": "0.1.6h",
+  "version": "0.1.6i",
   "private": true,
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",

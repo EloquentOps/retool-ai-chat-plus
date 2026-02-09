@@ -184,7 +184,7 @@ export const MessageItem: FC<MessageItemProps> = ({
       ) : (
         typeof message.content === 'string' 
           ? <TextWidget source={message.content} />
-          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, message.blockId, message.blockIndex, lockUI, hideWidgetFooter)
+          : renderWidget(message.content as { type: string; source?: string; [key: string]: unknown }, onWidgetCallback, widgetsOptions, message.blockId, message.blockIndex, messageIndex, lockUI, hideWidgetFooter)
       )}
     </div>
   )

@@ -333,16 +333,78 @@ export const AiChatPlus: FC = () => {
       previousSubmitWithPayloadRef.current = { ...currentValue }
       
       // Restore history with the provided messages, preserving block properties and traceSteps
+      // Assign blockId/blockIndex to assistant messages that don't have them
       console.log('Restoring history with messages:', messages)
-      const restoredMessages = messages.map(msg => {
+      let currentBlockId: number | undefined = undefined
+      let currentBlockIndex = 0
+      
+      const restoredMessages = messages.map((msg, index) => {
         const msgWithTrace = msg as typeof msg & { traceSteps?: TraceStep[] }
+        
+        // If message already has blockId, use it; otherwise assign one for consecutive assistant messages
+        let blockId = msg.blockId
+        let blockIndex = msg.blockIndex
+        let blockTotal = msg.blockTotal
+        
+        if (msg.role === 'assistant' && typeof msg.content === 'object' && msg.content !== null && 'type' in msg.content) {
+          // This is a widget message
+          if (blockId === undefined) {
+            // Check if previous message was also an assistant widget (same block)
+            const prevMsg = index > 0 ? messages[index - 1] : null
+            const isPrevWidget = prevMsg && 
+              prevMsg.role === 'assistant' && 
+              typeof prevMsg.content === 'object' && 
+              prevMsg.content !== null && 
+              'type' in prevMsg.content
+            
+            if (!isPrevWidget || prevMsg?.blockId === undefined) {
+              // Start a new block
+              currentBlockId = Date.now() + index // Unique block ID
+              currentBlockIndex = 0
+            } else {
+              // Continue previous block
+              currentBlockId = prevMsg.blockId
+              currentBlockIndex = (prevMsg.blockIndex ?? -1) + 1
+            }
+            blockId = currentBlockId
+            blockIndex = currentBlockIndex
+          } else {
+            // Message already has blockId, use it
+            currentBlockId = blockId
+            currentBlockIndex = blockIndex ?? 0
+          }
+          
+          // Calculate blockTotal if not provided
+          if (blockTotal === undefined) {
+            // Count consecutive assistant messages with same blockId
+            let total = 1
+            for (let i = index + 1; i < messages.length; i++) {
+              const nextMsg = messages[i]
+              if (nextMsg.role === 'assistant' && 
+                  typeof nextMsg.content === 'object' && 
+                  nextMsg.content !== null && 
+                  'type' in nextMsg.content &&
+                  (nextMsg.blockId === blockId || (nextMsg.blockId === undefined && i === index + 1))) {
+                total++
+              } else {
+                break
+              }
+            }
+            blockTotal = total
+          }
+        } else {
+          // Not a widget message, reset block tracking
+          currentBlockId = undefined
+          currentBlockIndex = 0
+        }
+        
         return {
           role: msg.role,
           content: msg.content,
           ...(msg.hidden && { hidden: msg.hidden }),
-          ...(msg.blockId !== undefined && { blockId: msg.blockId }),
-          ...(msg.blockIndex !== undefined && { blockIndex: msg.blockIndex }),
-          ...(msg.blockTotal !== undefined && { blockTotal: msg.blockTotal }),
+          ...(blockId !== undefined && { blockId }),
+          ...(blockIndex !== undefined && { blockIndex }),
+          ...(blockTotal !== undefined && { blockTotal }),
           ...(msgWithTrace.traceSteps && Array.isArray(msgWithTrace.traceSteps) && msgWithTrace.traceSteps.length > 0 && { traceSteps: msgWithTrace.traceSteps })
         }
       })
