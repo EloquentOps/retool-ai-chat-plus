@@ -1462,15 +1462,16 @@ Otherwise, the type should be always "text".
       }
     }
     
-    // Handle history update requests
-    const { updateHistory, historyIndex, updatedSource } = safePayload as { 
+    // Handle history update requests - use blockId + blockIndex for reliable message identification
+    const { updateHistory, blockId, blockIndex, updatedSource } = safePayload as { 
       updateHistory?: boolean; 
-      historyIndex?: number; 
+      blockId?: number;
+      blockIndex?: number;
       updatedSource?: Record<string, unknown> 
     }
     
-    if (updateHistory && typeof historyIndex === 'number' && updatedSource) {
-      console.log('Updating history at index:', historyIndex, 'with:', updatedSource)
+    if (updateHistory && typeof blockId === 'number' && typeof blockIndex === 'number' && updatedSource) {
+      console.log('Updating history for blockId:', blockId, 'blockIndex:', blockIndex, 'with:', updatedSource)
       
       // Get current history from ref to avoid stale closure
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1483,9 +1484,13 @@ Otherwise, the type should be always "text".
         blockTotal?: number;
       }>
       
-      // Validate history index
-      if (historyIndex >= 0 && historyIndex < currentHistory.length) {
-        const targetMessage = currentHistory[historyIndex]
+      // Find message by blockId + blockIndex instead of using index
+      const targetIndex = currentHistory.findIndex(
+        msg => msg.blockId === blockId && msg.blockIndex === blockIndex
+      )
+      
+      if (targetIndex >= 0) {
+        const targetMessage = currentHistory[targetIndex]
         
         // Only update assistant messages with widget content
         if (targetMessage.role === 'assistant' && 
@@ -1509,7 +1514,7 @@ Otherwise, the type should be always "text".
           
           // Update history with the modified message
           const updatedHistory = [...currentHistory]
-          updatedHistory[historyIndex] = updatedMessage
+          updatedHistory[targetIndex] = updatedMessage
           
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           _setHistory(updatedHistory as any)
@@ -1521,7 +1526,7 @@ Otherwise, the type should be always "text".
           console.warn('Cannot update history: invalid message type or structure')
         }
       } else {
-        console.warn('Cannot update history: invalid history index:', historyIndex)
+        console.warn('Cannot update history: message not found with blockId:', blockId, 'blockIndex:', blockIndex)
       }
     }
     

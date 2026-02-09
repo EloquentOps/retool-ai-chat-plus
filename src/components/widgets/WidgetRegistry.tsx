@@ -409,7 +409,8 @@ export const renderWidget = (
   content: { type: string; source?: string; [key: string]: unknown },
   onWidgetCallback?: (payload: Record<string, unknown>) => void,
   widgetsOptions?: Record<string, unknown>,
-  historyIndex?: number,
+  blockId?: number,
+  blockIndex?: number,
   lockUI?: boolean,
   hideWidgetFooter?: boolean
 ) => {
@@ -418,13 +419,13 @@ export const renderWidget = (
   if (!widgetConfig || !widgetConfig.enabled) {
     // Fallback to text widget if widget type is not found or disabled
     const textConfig = WIDGET_REGISTRY.text
-    const fallbackKey = `widget-${historyIndex || 'unknown'}-text-fallback`
+    const fallbackKey = `widget-${blockId ?? 'unknown'}-${blockIndex ?? 'unknown'}-text-fallback`
     const fallbackWidgetElement = React.createElement(textConfig.component, { 
       key: fallbackKey,
       source: content.source || JSON.stringify(content),
       onWidgetCallback,
       widgetsOptions,
-      historyIndex
+      historyIndex: undefined
     })
     
     // Prepare widget content object for pinning (preserving pinned property)
@@ -437,7 +438,7 @@ export const renderWidget = (
     // Wrap the fallback widget with the footer wrapper
     return React.createElement(WidgetWrapper, {
       key: `wrapper-${fallbackKey}`,
-      historyIndex,
+      historyIndex: undefined,
       onWidgetCallback,
       widgetType: 'text',
       widgetContent: fallbackWidgetContent,
@@ -461,9 +462,9 @@ export const renderWidget = (
     widgetSource = otherContent
   }
   
-  // Generate a stable key for the widget based on message index and widget type
+  // Generate a stable key for the widget based on blockId/blockIndex and widget type
   // This ensures React can properly identify and preserve widget instances during re-renders
-  const widgetKey = `widget-${historyIndex || 'unknown'}-${type}`
+  const widgetKey = `widget-${blockId ?? 'unknown'}-${blockIndex ?? 'unknown'}-${type}`
   
   // Prepare widget content object for pinning (reconstruct the original content structure, preserving pinned property)
   const widgetContentForPin: { type: string; source?: string; [key: string]: unknown } = {
@@ -485,12 +486,14 @@ export const renderWidget = (
     const widgetTag = typeof payloadType === 'string' ? payloadType.split(':')[0] : undefined
     const sourceKey = widgetTag && SOURCE_KEYS[widgetTag]
     let enriched = { ...payload }
-    if (typeof historyIndex === 'number') {
+    // Use blockId + blockIndex for reliable message identification
+    if (typeof blockId === 'number' && typeof blockIndex === 'number') {
       if (sourceKey) {
         enriched = {
           ...payload,
           updateHistory: true,
-          historyIndex,
+          blockId,
+          blockIndex,
           updatedSource: { [sourceKey]: value }
         }
       } else if (widgetTag === 'google_map' && value != null) {
@@ -499,7 +502,8 @@ export const renderWidget = (
           enriched = {
             ...payload,
             updateHistory: true,
-            historyIndex,
+            blockId,
+            blockIndex,
             updatedSource: parsed as Record<string, unknown>
           }
         } catch {
@@ -525,7 +529,7 @@ export const renderWidget = (
     source: widgetSource,
     onWidgetCallback: onWidgetCallback ? wrappedCallback : undefined,
     widgetsOptions,
-    historyIndex
+    historyIndex: undefined
   }
   
   const widgetElement = React.createElement(widgetConfig.component, props)
