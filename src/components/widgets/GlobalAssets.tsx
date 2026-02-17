@@ -9,7 +9,7 @@
  * Usage: Include <GlobalAssets /> at the root of your component tree
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 
 // ============================================================================
 // Types
@@ -88,7 +88,26 @@ function useAssetLoader(assets: AssetConfig): AssetLoadState {
     errors: []
   })
   
+  // Create a stable key from assets to detect actual changes
+  // Convert arrays to sorted strings for stable comparison
+  const cssKey = useMemo(() => [...assets.css].sort().join('|'), [assets.css])
+  const fontsKey = useMemo(() => [...assets.fonts].sort().join('|'), [assets.fonts])
+  const assetsKey = `${cssKey}::${fontsKey}`
+  
+  // Track if we've already loaded these assets
+  const loadedAssetsRef = useRef<Set<string>>(new Set())
+  const previousAssetsKeyRef = useRef<string>('')
+  
   useEffect(() => {
+    // Skip if we've already processed these exact assets
+    if (loadedAssetsRef.current.has(assetsKey) || previousAssetsKeyRef.current === assetsKey) {
+      return
+    }
+    
+    // Mark as processing
+    previousAssetsKeyRef.current = assetsKey
+    loadedAssetsRef.current.add(assetsKey)
+    
     const errors: string[] = []
     let loadedCount = 0
     const totalAssets = assets.css.length + assets.fonts.length
@@ -146,7 +165,7 @@ function useAssetLoader(assets: AssetConfig): AssetLoadState {
       }
       document.head.appendChild(link)
     })
-  }, [assets])
+  }, [assetsKey])
   
   return state
 }
@@ -178,26 +197,49 @@ export const GlobalAssets: React.FC<GlobalAssetsProps> = ({
   onLoad,
   onError
 }) => {
-  const mergedAssets = getMergedAssets()
+  // Memoize mergedAssets to prevent recreation on every render
+  const mergedAssets = useMemo(() => getMergedAssets(), [])
   
-  // Combine with additional assets
-  const allAssets: AssetConfig = {
+  // Memoize allAssets to prevent recreation on every render
+  // Use stringified arrays for comparison to detect actual changes
+  const mergedCssKey = useMemo(() => mergedAssets.css.join('|'), [mergedAssets.css])
+  const mergedFontsKey = useMemo(() => mergedAssets.fonts.join('|'), [mergedAssets.fonts])
+  const additionalCssKey = useMemo(() => additionalCss.join('|'), [additionalCss])
+  const additionalFontsKey = useMemo(() => additionalFonts.join('|'), [additionalFonts])
+  
+  const allAssets: AssetConfig = useMemo(() => ({
     css: [...new Set([...mergedAssets.css, ...additionalCss])],
     fonts: [...new Set([...mergedAssets.fonts, ...additionalFonts])]
-  }
+  }), [mergedCssKey, mergedFontsKey, additionalCssKey, additionalFontsKey])
   
   const { loaded, errors } = useAssetLoader(allAssets)
   
-  // Fire callbacks when loading completes
+  // Use refs to store callbacks to avoid dependency issues
+  const onLoadRef = useRef(onLoad)
+  const onErrorRef = useRef(onError)
+  
+  // Update refs when callbacks change
   useEffect(() => {
-    if (loaded) {
-      if (errors.length > 0 && onError) {
-        onError(errors)
-      } else if (onLoad) {
-        onLoad()
+    onLoadRef.current = onLoad
+    onErrorRef.current = onError
+  }, [onLoad, onError])
+  
+  // Fire callbacks when loading completes (only once per load state)
+  const hasFiredCallbacksRef = useRef(false)
+  useEffect(() => {
+    if (loaded && !hasFiredCallbacksRef.current) {
+      hasFiredCallbacksRef.current = true
+      if (errors.length > 0 && onErrorRef.current) {
+        onErrorRef.current(errors)
+      } else if (onLoadRef.current) {
+        onLoadRef.current()
       }
     }
-  }, [loaded, errors, onLoad, onError])
+    // Reset when loaded state changes back to false (shouldn't happen, but be safe)
+    if (!loaded) {
+      hasFiredCallbacksRef.current = false
+    }
+  }, [loaded, errors])
   
   // Render link tags declaratively (for SSR compatibility and React DevTools visibility)
   return (

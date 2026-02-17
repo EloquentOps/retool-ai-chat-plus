@@ -11,11 +11,13 @@ declare module 'react-mentions' {
     children: ReactNode
     forceSuggestionsAboveCursor?: boolean
     inputRef?: React.RefObject<HTMLElement | null> | ((el: HTMLElement | null) => void)
+    customSuggestionsContainer?: (children: ReactNode) => ReactNode
+    disabled?: boolean
   }
 
   export interface MentionProps {
     trigger: string
-    data: Array<{ id: string; display: string; [key: string]: any }>
+    data: Array<{ id: string; display: string; [key: string]: any }> | ((search: string, callback: (results: Array<{ id: string; display: string; [key: string]: any }>) => void) => void)
     displayTransform?: (id: string, display: string) => string
     markup?: string
     appendSpaceOnAdd?: boolean

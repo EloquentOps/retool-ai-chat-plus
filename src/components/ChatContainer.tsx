@@ -26,8 +26,9 @@ interface ChatContainerProps {
   onSetChipPayload?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   tools?: Record<string, { tool: string; description: string }>
-  sourcesOptions?: Array<{ id?: string; label: string; content?: string }>
-  commandOptions?: Array<{ id: string; label: string }>
+  sourcesOptions?: Record<string, { label: string; color?: string; items: Array<{ id?: string; label: string; content?: string }> }>
+  commandOptions?: Record<string, { label: string; color?: string; items: Array<{ id: string; label: string }> }>
+  atOptions?: Record<string, { label: string; color?: string; items: Array<{ id: string; display: string; hint?: string; description?: string }> }>
   welcomeMessage?: string
   error?: string | null
   onRetry?: () => void
@@ -61,6 +62,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
   tools,
   sourcesOptions,
   commandOptions,
+  atOptions,
   welcomeMessage,
   error,
   onRetry,
@@ -309,6 +311,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
                 tools={tools}
                 sourcesOptions={sourcesOptions}
                 commandOptions={commandOptions}
+                atOptions={atOptions}
                 placeholder={placeholder}
                 lockUI={effectiveLockUI}
                 fillInput={fillInput}
@@ -441,7 +444,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               }}>
                 <MessageList messages={messages} isLoading={isLoading} asyncMode={asyncMode} sessionAsyncLoading={sessionAsyncLoading} currentThinkingSummary={currentThinkingSummary} onWidgetCallback={handleWidgetCallback} widgetsOptions={widgetsOptions} lockUI={effectiveLockUI} hideWidgetFooter={hideWidgetFooter} showTraceSteps={showTraceSteps} />
                 {!chatViewHideSubmitBar && (
-                  <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
+                  <MentionsInputBar onSubmitQuery={onSubmitQuery} isLoading={asyncMode ? false : isLoading} onStop={asyncMode ? undefined : onStop} isCentered={false} widgetsOptions={widgetsOptions} tools={tools} sourcesOptions={sourcesOptions} commandOptions={commandOptions} atOptions={atOptions} placeholder={placeholder} lockUI={effectiveLockUI} fillInput={fillInput} onFillApplied={onFillApplied} />
                 )}
               </div>
               

@@ -3,6 +3,9 @@ import { type FC } from 'react'
 
 import { Retool } from '@tryretool/custom-component-support'
 import { ChatContainer } from './components'
+import { ChatHeader } from './components/ChatHeader'
+import { ChatSidebar } from './components/ChatSidebar'
+import { ChatFooter } from './components/ChatFooter'
 import { ApprovalModal } from './components/ApprovalModal'
 import { getWidgetInstructionsForTypes, WIDGET_REGISTRY, GlobalAssets } from './components/widgets'
 import type { TraceStep } from './types/message'
@@ -68,16 +71,23 @@ export const AiChatPlus: FC = () => {
     inspector: 'hidden',
   })
 
-  // Add state for sources options
-  const [sourcesOptions, _setSourcesOptions] = Retool.useStateArray({
+  // Add state for sources options (object format only)
+  const [sourcesOptions, _setSourcesOptions] = Retool.useStateObject({
     name: 'sourcesOptions',
-    initialValue: []
+    initialValue: {}
   })
 
-  // Add state for command options
-  const [commandOptions, _setCommandOptions] = Retool.useStateArray({
+  // Add state for command options (object format only)
+  const [commandOptions, _setCommandOptions] = Retool.useStateObject({
     name: 'commandOptions',
-    initialValue: []
+    initialValue: {}
+  })
+
+  // Add state for @ options (object format only)
+  const [atOptions, _setAtOptions] = Retool.useStateObject({
+    name: 'atOptions',
+    initialValue: {},
+    inspector: 'hidden'
   })
 
   // Add state for input placeholder
@@ -151,6 +161,9 @@ export const AiChatPlus: FC = () => {
   
   // Local state for fill-input (pre-fill input bar without submitting)
   const [fillInput, setFillInput] = useState('')
+  
+  // Local state for sidebar visibility (only used when fullChat is enabled)
+  const [sidebarVisible, setSidebarVisible] = useState(true)
 
   // Local state for loading, error, and current agentRunId
   const [isLoading, setIsLoading] = useState(false)
@@ -1099,22 +1112,52 @@ export const AiChatPlus: FC = () => {
     
     while ((match = sourceRegex.exec(message)) !== null) {
       const label = match[1]
-      const id = match[2]
+      const encodedId = match[2]
       
-      // Look up the source in sourcesOptions
-      const sourceOption = (sourcesOptions as Array<{ id?: string; label: string; content?: string }>)?.find(
-        source => {
-          // Match by id if source has id
-          if (source.id) {
-            return source.id === id
-          } else {
-            // For context-only sources, the id in markup is the slugified label
-            // Generate slug from source label and compare with id from markup
-            const sourceSlug = generateSlugId(source.label)
-            return sourceSlug === id && source.label === label
+      // Check if ID is encoded (grouped mode): format is "groupKey|actualId"
+      let id = encodedId
+      let groupKey: string | undefined
+      if (encodedId.includes('|')) {
+        const parts = encodedId.split('|')
+        groupKey = parts[0]
+        id = parts.slice(1).join('|') // Handle IDs that might contain | themselves
+      }
+      
+      let sourceOption: { id?: string; label: string; content?: string } | undefined
+      
+      // Look up in object format
+      if (groupKey && sourcesOptions) {
+        const grouped = sourcesOptions as Record<string, { label: string; color?: string; items: Array<{ id?: string; label: string; content?: string }> }>
+        const group = grouped[groupKey]
+        if (group && group.items) {
+          sourceOption = group.items.find(source => {
+            if (source.id) {
+              return source.id === id
+            } else {
+              const sourceSlug = generateSlugId(source.label)
+              return sourceSlug === id && source.label === label
+            }
+          })
+        }
+      }
+      
+      // Fallback: try to find in any group if no groupKey (shouldn't happen but handle gracefully)
+      if (!sourceOption && sourcesOptions) {
+        const grouped = sourcesOptions as Record<string, { label: string; color?: string; items: Array<{ id?: string; label: string; content?: string }> }>
+        for (const group of Object.values(grouped)) {
+          if (group && group.items) {
+            sourceOption = group.items.find(source => {
+              if (source.id) {
+                return source.id === id
+              } else {
+                const sourceSlug = generateSlugId(source.label)
+                return sourceSlug === id && source.label === label
+              }
+            })
+            if (sourceOption) break
           }
         }
-      )
+      }
       
       if (sourceOption) {
         // Determine source type based on structure
@@ -1131,14 +1174,14 @@ export const AiChatPlus: FC = () => {
         }
         
         sources.push({
-          id,
+          id: encodedId, // Keep encoded ID in result for consistency
           label,
           content: sourceOption.content,
           type: sourceType
         })
       } else {
         // Mention in message but not in sourcesOptions: still emit so EXPLICT_DATA_SOURCES_INCLUDED is added
-        sources.push({ id, label, type: 'tool' })
+        sources.push({ id: encodedId, label, type: 'tool' })
       }
     }
     
@@ -1153,8 +1196,44 @@ export const AiChatPlus: FC = () => {
 
     while ((match = commandRegex.exec(message)) !== null) {
       const label = match[1]
-      const id = match[2]
-      commands.push({ id, label })
+      const encodedId = match[2]
+      
+      // Check if ID is encoded (grouped mode): format is "groupKey|actualId"
+      let id = encodedId
+      let groupKey: string | undefined
+      if (encodedId.includes('|')) {
+        const parts = encodedId.split('|')
+        groupKey = parts[0]
+        id = parts.slice(1).join('|') // Handle IDs that might contain | themselves
+      }
+      
+      // Look up command in object format
+      let commandOption: { id: string; label: string } | undefined
+      if (groupKey && commandOptions) {
+        const grouped = commandOptions as Record<string, { label: string; color?: string; items: Array<{ id: string; label: string }> }>
+        const group = grouped[groupKey]
+        if (group && group.items) {
+          commandOption = group.items.find(cmd => cmd.id === id)
+        }
+      }
+      
+      // Fallback: try to find in any group if no groupKey
+      if (!commandOption && commandOptions) {
+        const grouped = commandOptions as Record<string, { label: string; color?: string; items: Array<{ id: string; label: string }> }>
+        for (const group of Object.values(grouped)) {
+          if (group && group.items) {
+            commandOption = group.items.find(cmd => cmd.id === id)
+            if (commandOption) break
+          }
+        }
+      }
+      
+      // Use found command or fallback to extracted values
+      if (commandOption) {
+        commands.push({ id: encodedId, label: commandOption.label })
+      } else {
+        commands.push({ id: encodedId, label })
+      }
     }
 
     return commands
@@ -1673,6 +1752,9 @@ Otherwise, the type should be always "text".
   }
 
 
+  // Check if fullChat mode is enabled
+  const fullChatEnabled = componentPreferences && typeof componentPreferences === 'object' && (componentPreferences as { fullChat?: boolean }).fullChat === true
+
   return (
     <>
       {/* Global CSS and Font Assets - managed by plugin system */}
@@ -1683,41 +1765,120 @@ Otherwise, the type should be always "text".
         width: '100%',
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        <ChatContainer
-          messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
-          onSubmitQuery={onSubmitQueryCallback}
-          isLoading={isLoading}
-          asyncMode={isAsyncMode}
-          sessionAsyncLoading={asyncLoadingInProgress}
-          currentThinkingSummary={currentThinkingSummary}
-          onWidgetCallback={onWidgetCallbackHandler}
-          onStop={stopPolling}
-          promptChips={promptChips as Array<{ icon: string; label: string; question?: string; payload?: Record<string, unknown> }>}
-          onChipCallback={onChipCallback}
-          onSetChipPayload={(payload: Record<string, unknown>) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            _setChipPayload(payload as any)
-          }}
-          widgetsOptions={widgetsOptions as Record<string, unknown>}
-          tools={tools as Record<string, { tool: string; description: string }>}
-          sourcesOptions={sourcesOptions as Array<{ id?: string; label: string; content?: string }>}
-          commandOptions={commandOptions as Array<{ id: string; label: string }>}
-          welcomeMessage={welcomeMessage}
-          error={error}
-          onRetry={retryPolling}
-          onDismissError={() => setError(null)}
-          placeholder={placeholder}
-          componentPreferences={componentPreferences as Record<string, unknown>}
-          fillInput={fillInput}
-          onFillApplied={() => setFillInput('')}
-          onHistoryUpdate={(updatedHistory) => {
-            // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            _setHistory(updatedHistory as any)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            historyRef.current = updatedHistory as any
-          }}
-        />
+        {fullChatEnabled ? (
+          <div style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'row'
+          }}>
+            {/* Sidebar on the left */}
+            <ChatSidebar visible={sidebarVisible} />
+            
+            {/* Right side: Header + Chat + Footer */}
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              overflow: 'hidden'
+            }}>
+              {/* Header with fixed height */}
+              <ChatHeader 
+                onToggleSidebar={() => setSidebarVisible(!sidebarVisible)}
+                sidebarVisible={sidebarVisible}
+              />
+              
+              {/* Chat container - expands to fill available space */}
+              <div style={{
+                flex: 1,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <ChatContainer
+                  messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
+                  onSubmitQuery={onSubmitQueryCallback}
+                  isLoading={isLoading}
+                  asyncMode={isAsyncMode}
+                  sessionAsyncLoading={asyncLoadingInProgress}
+                  currentThinkingSummary={currentThinkingSummary}
+                  onWidgetCallback={onWidgetCallbackHandler}
+                  onStop={stopPolling}
+                  promptChips={promptChips as Array<{ icon: string; label: string; question?: string; payload?: Record<string, unknown> }>}
+                  onChipCallback={onChipCallback}
+                  onSetChipPayload={(payload: Record<string, unknown>) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    _setChipPayload(payload as any)
+                  }}
+                  widgetsOptions={widgetsOptions as Record<string, unknown>}
+                  tools={tools as Record<string, { tool: string; description: string }>}
+                  sourcesOptions={sourcesOptions as Record<string, { label: string; color?: string; items: Array<{ id?: string; label: string; content?: string }> }>}
+                  commandOptions={commandOptions as Record<string, { label: string; color?: string; items: Array<{ id: string; label: string }> }>}
+                  atOptions={atOptions as Record<string, { label: string; color?: string; items: Array<{ id: string; display: string; hint?: string; description?: string }> }>}
+                  welcomeMessage={welcomeMessage}
+                  error={error}
+                  onRetry={retryPolling}
+                  onDismissError={() => setError(null)}
+                  placeholder={placeholder}
+                  componentPreferences={{
+                    ...(componentPreferences as Record<string, unknown>),
+                    wrapperBorder: 'hidden'
+                  }}
+                  fillInput={fillInput}
+                  onFillApplied={() => setFillInput('')}
+                  onHistoryUpdate={(updatedHistory) => {
+                    // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    _setHistory(updatedHistory as any)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    historyRef.current = updatedHistory as any
+                  }}
+                />
+              </div>
+              
+              {/* Footer - tiny fixed height */}
+              <ChatFooter />
+            </div>
+          </div>
+        ) : (
+          <ChatContainer
+            messages={history as Array<{ role: 'user' | 'assistant'; content: string | { type: string; source?: string; [key: string]: unknown }; hidden?: boolean; blockId?: number; blockIndex?: number; blockTotal?: number }>}
+            onSubmitQuery={onSubmitQueryCallback}
+            isLoading={isLoading}
+            asyncMode={isAsyncMode}
+            sessionAsyncLoading={asyncLoadingInProgress}
+            currentThinkingSummary={currentThinkingSummary}
+            onWidgetCallback={onWidgetCallbackHandler}
+            onStop={stopPolling}
+            promptChips={promptChips as Array<{ icon: string; label: string; question?: string; payload?: Record<string, unknown> }>}
+            onChipCallback={onChipCallback}
+            onSetChipPayload={(payload: Record<string, unknown>) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              _setChipPayload(payload as any)
+            }}
+            widgetsOptions={widgetsOptions as Record<string, unknown>}
+            tools={tools as Record<string, { tool: string; description: string }>}
+            sourcesOptions={sourcesOptions as Record<string, { label: string; color?: string; items: Array<{ id?: string; label: string; content?: string }> }>}
+            commandOptions={commandOptions as Record<string, { label: string; color?: string; items: Array<{ id: string; label: string }> }>}
+            atOptions={atOptions as Record<string, { label: string; color?: string; items: Array<{ id: string; display: string; hint?: string; description?: string }> }>}
+            welcomeMessage={welcomeMessage}
+            error={error}
+            onRetry={retryPolling}
+            onDismissError={() => setError(null)}
+            placeholder={placeholder}
+            componentPreferences={componentPreferences as Record<string, unknown>}
+            fillInput={fillInput}
+            onFillApplied={() => setFillInput('')}
+            onHistoryUpdate={(updatedHistory) => {
+              // Update history when ChatContainer modifies it (e.g., pinning/unpinning widgets)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              _setHistory(updatedHistory as any)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              historyRef.current = updatedHistory as any
+            }}
+          />
+        )}
         
         {/* Approval Modal */}
         <ApprovalModal
