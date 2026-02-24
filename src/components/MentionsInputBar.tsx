@@ -588,8 +588,16 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
     
     if (startPos < 0) return
     
+    // For # and / in grouped mode, use "groupKey, itemId" so message is e.g. #[Project](g1, 1)
+    const currentSuggestions = activeTrigger === '@' ? atSuggestions : activeTrigger === '#' ? sourceSuggestions : commandSuggestions
+    const activeGroup = getActiveGroupInfo(currentSuggestions as NormalizedSuggestions<any>, activeTrigger)
+    const isGrouped = currentSuggestions.mode === 'grouped' && activeGroup
+    const payloadId = (activeTrigger === '#' || activeTrigger === '/') && isGrouped
+      ? `${activeGroup.key}, ${item.id}`
+      : item.id
+
     // Build mention markup
-    const mentionMarkup = `${activeTrigger}[${item.display}](${item.id}) `
+    const mentionMarkup = `${activeTrigger}[${item.display}](${payloadId}) `
     
     // Insert mention
     const before = inputValue.substring(0, startPos)
@@ -611,7 +619,7 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
       const event = new Event('input', { bubbles: true })
       textarea.dispatchEvent(event)
     }, 0)
-  }, [inputValue, activeTrigger])
+  }, [inputValue, activeTrigger, atSuggestions, sourceSuggestions, commandSuggestions, getActiveGroupInfo])
 
   // Handle submit
   const handleSubmit = useCallback((e: React.FormEvent | React.KeyboardEvent) => {
@@ -691,6 +699,22 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
     }
   }, [fillInput, onFillApplied])
 
+  // Resolve color for a single mention segment (per-pill color from group key when grouped)
+  const getMentionSegmentColor = useCallback((segment: MentionSegment): string => {
+    if (!segment.trigger) return activeGroupColor['@']
+    // For # and / in grouped mode, segment.id can be "groupKey, itemId" — use that group's color
+    if ((segment.trigger === '#' || segment.trigger === '/') && segment.id && segment.id.includes(', ')) {
+      const commaIdx = segment.id.indexOf(', ')
+      const groupKey = segment.id.substring(0, commaIdx).trim()
+      const suggestions = segment.trigger === '#' ? sourceSuggestions : commandSuggestions
+      if (suggestions.mode === 'grouped' && suggestions.groups) {
+        const group = suggestions.groups.find(g => g.key === groupKey)
+        if (group?.color) return group.color
+      }
+    }
+    return activeGroupColor[segment.trigger]
+  }, [activeGroupColor, sourceSuggestions, commandSuggestions])
+
   // Render mention segments for overlay
   const renderMentions = useCallback(() => {
     if (!inputValue) return null
@@ -699,7 +723,7 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
     
     return segments.map((segment, index) => {
       if (segment.type === 'mention' && segment.trigger) {
-        const color = activeGroupColor[segment.trigger]
+        const color = getMentionSegmentColor(segment)
         const bgColor = segment.trigger === '@' 
           ? 'rgba(49, 112, 249, 0.1)'
           : segment.trigger === '#'
@@ -741,7 +765,7 @@ export const MentionsInputBar: FC<MentionsInputBarProps> = ({
         </span>
       )
     })
-  }, [inputValue, activeGroupColor])
+  }, [inputValue, getMentionSegmentColor])
 
   // Get current suggestions
   const filteredSuggestions = getFilteredSuggestions()

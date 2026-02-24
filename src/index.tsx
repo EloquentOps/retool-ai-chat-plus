@@ -1114,10 +1114,14 @@ export const AiChatPlus: FC = () => {
       const label = match[1]
       const encodedId = match[2]
       
-      // Check if ID is encoded (grouped mode): format is "groupKey|actualId"
+      // Check if ID is encoded (grouped mode): "groupKey, actualId" or "groupKey|actualId"
       let id = encodedId
       let groupKey: string | undefined
-      if (encodedId.includes('|')) {
+      if (encodedId.includes(', ')) {
+        const commaIdx = encodedId.indexOf(', ')
+        groupKey = encodedId.substring(0, commaIdx).trim()
+        id = encodedId.substring(commaIdx + 2).trim()
+      } else if (encodedId.includes('|')) {
         const parts = encodedId.split('|')
         groupKey = parts[0]
         id = parts.slice(1).join('|') // Handle IDs that might contain | themselves
@@ -1198,10 +1202,14 @@ export const AiChatPlus: FC = () => {
       const label = match[1]
       const encodedId = match[2]
       
-      // Check if ID is encoded (grouped mode): format is "groupKey|actualId"
+      // Check if ID is encoded (grouped mode): "groupKey, actualId" or "groupKey|actualId"
       let id = encodedId
       let groupKey: string | undefined
-      if (encodedId.includes('|')) {
+      if (encodedId.includes(', ')) {
+        const commaIdx = encodedId.indexOf(', ')
+        groupKey = encodedId.substring(0, commaIdx).trim()
+        id = encodedId.substring(commaIdx + 2).trim()
+      } else if (encodedId.includes('|')) {
         const parts = encodedId.split('|')
         groupKey = parts[0]
         id = parts.slice(1).join('|') // Handle IDs that might contain | themselves
