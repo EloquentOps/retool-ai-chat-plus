@@ -1362,12 +1362,14 @@ ${mentionedSources.map(source => {
 
 ALWAYS RETURN THE RESPONSE AS JSON STRING:
 Return the response as JSON STRING with this mandatory schema: 
-{"widgets": [{"type":"<type>", "source":"<answer formatted based on the type rules>"}, ...]}
+{"widgets": [{"type":"<type>", "source":"<answer formatted based on the type rules>", "pinned": <optional boolean>}, ...]}
 
 The response MUST be an object with a "widgets" property containing an array.
 The widgets array MUST always contain at least one widget object, even if it's just one widget.
 When multiple widgets make sense (e.g., text explanation + video + text conclusion), 
 return them as separate objects in the widgets array: {"widgets": [{"type":"text", "source":"..."}, {"type":"video", "source":"..."}, {"type":"text", "source":"..."}]}
+
+You MAY optionally add "pinned": true on any widget object to pin that widget in the side panel when rendered. If "pinned" is omitted or false, the widget is not pinned by default.
 
 Example single widget response:
 {"widgets": [{"type":"text", "source":"Hello! How can I help you today?"}]}
@@ -1470,12 +1472,14 @@ ${mentionedSources.map(source => {
 
 ALWAYS RETURN THE RESPONSE AS JSON STRING:
 Return the response as JSON STRING with this mandatory schema: 
-{"widgets": [{"type":"<type>", "source":"<answer formatted based on the type rules>"}, ...]}
+{"widgets": [{"type":"<type>", "source":"<answer formatted based on the type rules>", "pinned": <optional boolean>}, ...]}
 
 The response MUST be an object with a "widgets" property containing an array.
 The widgets array MUST always contain at least one widget object, even if it's just one widget.
 When multiple widgets make sense (e.g., text explanation + video + text conclusion), 
 return them as separate objects in the widgets array: {"widgets": [{"type":"text", "source":"..."}, {"type":"video", "source":"..."}, {"type":"text", "source":"..."}]}
+
+You MAY optionally add "pinned": true on any widget object to pin that widget in the side panel when rendered. If "pinned" is omitted or false, the widget is not pinned by default.
 
 Example single widget response:
 {"widgets": [{"type":"text", "source":"Hello! How can I help you today?"}]}
