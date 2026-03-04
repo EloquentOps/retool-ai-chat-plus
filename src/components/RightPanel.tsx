@@ -8,8 +8,17 @@ interface PinnedWidget {
   historyIndex: number
 }
 
+/** Minimal message shape needed to resolve blockId/blockIndex and current widget content */
+interface MessageForPanel {
+  role: string
+  content: string | { type: string; source?: string; [key: string]: unknown }
+  blockId?: number
+  blockIndex?: number
+}
+
 interface RightPanelProps {
   pinnedWidgets: PinnedWidget[]
+  messages: MessageForPanel[]
   activeTab: number
   onTabChange: (tabIndex: number) => void
   onTabClose: (historyIndex: number) => void
@@ -21,6 +30,7 @@ interface RightPanelProps {
 
 export const RightPanel: FC<RightPanelProps> = ({
   pinnedWidgets,
+  messages,
   activeTab,
   onTabChange,
   onTabClose,
@@ -34,6 +44,19 @@ export const RightPanel: FC<RightPanelProps> = ({
   }
 
   const activeWidget = pinnedWidgets[activeTab] || pinnedWidgets[0]
+
+  // Use current message from history so blockId/blockIndex are set (history updates work) and content is up to date
+  const message = messages[activeWidget.historyIndex]
+  const isWidgetMessage =
+    message?.role === 'assistant' &&
+    typeof message.content === 'object' &&
+    message.content !== null &&
+    'type' in message.content
+  const widgetContent = isWidgetMessage
+    ? (message.content as { type: string; source?: string; [key: string]: unknown })
+    : activeWidget.widgetContent
+  const blockId = isWidgetMessage ? message.blockId : undefined
+  const blockIndex = isWidgetMessage ? message.blockIndex : undefined
 
   return (
     <div style={{
@@ -153,7 +176,7 @@ export const RightPanel: FC<RightPanelProps> = ({
         display: 'flex',
         flexDirection: 'column'
       }}>
-        {renderWidget(activeWidget.widgetContent, onWidgetCallback, widgetsOptions, undefined, undefined, activeWidget.historyIndex, lockUI, true)}
+        {renderWidget(widgetContent, onWidgetCallback, widgetsOptions, blockId, blockIndex, activeWidget.historyIndex, lockUI, true)}
       </div>
     </div>
   )

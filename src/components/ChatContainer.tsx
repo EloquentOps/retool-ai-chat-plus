@@ -451,6 +451,7 @@ export const ChatContainer: FC<ChatContainerProps> = ({
               {/* Right panel - Pinned widgets with tabs */}
               <RightPanel
                 pinnedWidgets={pinnedWidgets}
+                messages={messages}
                 activeTab={activePinnedTab}
                 onTabChange={handleTabChange}
                 onTabClose={handleTabClose}
