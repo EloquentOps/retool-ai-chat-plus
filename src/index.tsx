@@ -1646,20 +1646,33 @@ Otherwise, the type should be always "text".
         const targetMessage = currentHistory[targetIndex]
         
         // Only update assistant messages with widget content
-        if (targetMessage.role === 'assistant' && 
-            typeof targetMessage.content === 'object' && 
-            targetMessage.content !== null &&
-            'type' in targetMessage.content &&
-            'source' in targetMessage.content) {
-          
-          // Create updated message with merged source
-          const widgetContent = targetMessage.content as { type: string; source?: string | Record<string, unknown>; [key: string]: unknown }
+        if (
+          targetMessage.role === 'assistant' &&
+          typeof targetMessage.content === 'object' &&
+          targetMessage.content !== null &&
+          'type' in targetMessage.content &&
+          'source' in targetMessage.content
+        ) {
+          const widgetContent = targetMessage.content as {
+            type: string
+            source?: string | Record<string, unknown>
+            [key: string]: unknown
+          }
+
+          // Default behavior: merge updatedSource into an object-valued source.
+          // For widgets whose source was a string (e.g., mdx on first update),
+          // start from an empty object to avoid spreading a string.
+          const existingSource =
+            typeof widgetContent.source === 'object' && widgetContent.source !== null
+              ? (widgetContent.source as Record<string, unknown>)
+              : {}
+
           const updatedMessage = {
             ...targetMessage,
             content: {
               ...widgetContent,
               source: {
-                ...(widgetContent.source as Record<string, unknown>),
+                ...existingSource,
                 ...updatedSource
               }
             } as unknown as { type: string; source?: string; [key: string]: unknown }

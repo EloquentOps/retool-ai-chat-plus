@@ -479,7 +479,8 @@ export const renderWidget = (
   const SOURCE_KEYS: Record<string, string> = {
     input: 'currentValue',
     select: 'selectedValue',
-    slider: 'initialValue'
+    slider: 'initialValue',
+    mdx: 'markdown'
   }
   
   const wrappedCallback = (payload: Record<string, unknown>) => {
@@ -487,6 +488,7 @@ export const renderWidget = (
     const widgetTag = typeof payloadType === 'string' ? payloadType.split(':')[0] : undefined
     const sourceKey = widgetTag && SOURCE_KEYS[widgetTag]
     let enriched = { ...payload }
+
     // Use blockId + blockIndex for reliable message identification
     if (typeof blockId === 'number' && typeof blockIndex === 'number') {
       if (sourceKey) {
@@ -512,6 +514,7 @@ export const renderWidget = (
         }
       }
     }
+
     if (payloadType === 'input:changed') {
       enriched = { ...enriched, dispatchEvent: true }
     }
@@ -522,6 +525,7 @@ export const renderWidget = (
     if (sourceKey || widgetTag === 'google_map') {
       enriched = { ...enriched, dispatchEvent: true }
     }
+
     onWidgetCallback?.(enriched)
   }
   

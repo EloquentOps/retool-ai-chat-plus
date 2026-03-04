@@ -17,10 +17,20 @@ import {
 } from '@mdxeditor/editor'
 
 interface MDXWidgetProps {
-  source: string
+  source: string | { markdown?: string }
   onWidgetCallback?: (payload: Record<string, unknown>) => void
   widgetsOptions?: Record<string, unknown>
   historyIndex?: number
+}
+
+const getMarkdownFromSource = (source: MDXWidgetProps['source']): string => {
+  if (typeof source === 'string') {
+    return source
+  }
+  if (source && typeof source === 'object' && 'markdown' in source) {
+    return (source.markdown as string) || ''
+  }
+  return ''
 }
 
 const MDXWidgetComponent: FC<MDXWidgetProps> = ({
@@ -28,8 +38,9 @@ const MDXWidgetComponent: FC<MDXWidgetProps> = ({
   onWidgetCallback,
   historyIndex
 }) => {
-  const [markdown, setMarkdown] = useState<string>(source || '')
-  const lastSourceRef = useRef<string>(source || '')
+  const initialMarkdown = getMarkdownFromSource(source)
+  const [markdown, setMarkdown] = useState<string>(initialMarkdown)
+  const lastSourceRef = useRef<string>(initialMarkdown)
   const cssLoadedRef = useRef<boolean>(false)
 
   // Dynamically load MDXEditor CSS
@@ -66,18 +77,27 @@ const MDXWidgetComponent: FC<MDXWidgetProps> = ({
 
   // Sync with source prop when it changes externally
   useEffect(() => {
-    // Only update if source changed externally (different from what we last saw)
-    if (source !== undefined && source !== lastSourceRef.current) {
-      lastSourceRef.current = source
-      setMarkdown(source)
+    // Only update if source-derived markdown changed externally
+    const incomingMarkdown = getMarkdownFromSource(source)
+    if (incomingMarkdown !== undefined && incomingMarkdown !== lastSourceRef.current) {
+      lastSourceRef.current = incomingMarkdown
+      setMarkdown(incomingMarkdown)
     }
   }, [source])
 
   // Handle markdown changes from MDXEditor
-  const handleChange = useCallback((newMarkdown: string) => {
-    setMarkdown(newMarkdown)
-    // Callbacks removed as requested
-  }, [])
+  const handleChange = useCallback(
+    (newMarkdown: string) => {
+      setMarkdown(newMarkdown)
+
+      // Notify host app / registry wrapper so history can be updated
+      onWidgetCallback?.({
+        type: 'mdx:changed',
+        value: newMarkdown
+      })
+    },
+    [onWidgetCallback]
+  )
 
 
   // Handle empty or invalid source
@@ -130,20 +150,21 @@ const MDXWidgetComponent: FC<MDXWidgetProps> = ({
 
 // Memoized component to prevent unnecessary re-renders
 export const MDXWidget = React.memo(MDXWidgetComponent, (prevProps, nextProps) => {
-  // Custom comparison function to prevent re-renders when props haven't meaningfully changed
-  // Compare source string content
-  if (typeof prevProps.source === 'string' && typeof nextProps.source === 'string') {
-    return prevProps.source === nextProps.source && prevProps.historyIndex === nextProps.historyIndex
-  }
+  const prevSourceMarkdown = getMarkdownFromSource(prevProps.source)
+  const nextSourceMarkdown = getMarkdownFromSource(nextProps.source)
 
-  // Different types or undefined, allow re-render
-  return false
+  return (
+    prevSourceMarkdown === nextSourceMarkdown &&
+    prevProps.historyIndex === nextProps.historyIndex
+  )
 })
 
 // Export the instruction for this widget
 export const MDXWidgetInstruction = {
   type: 'mdx',
   instructions: 'Use this widget when the user needs to edit markdown content visually. This widget provides a WYSIWYG markdown editor with a toolbar for formatting options including headers, bold, italic, lists, links, images, tables, and more. The content can be edited directly in the rendered view.',
-  sourceDataModel: 'string - The markdown text content to be displayed and edited'
+  sourceDataModel: {
+    markdown: 'string - The markdown text content to be displayed and edited'
+  }
 }
 
